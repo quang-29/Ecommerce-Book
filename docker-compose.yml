@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: spring-app
+    ports:
+      - "8085:8080"
+    environment:
+      DB_URL: jdbc:mysql://db:3306/bookstore
+      DB_USERNAME: minhquang
+      DB_PASSWORD: 29092002
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TZ: Asia/Ho_Chi_Minh
+    depends_on:
+      - db
+      - redis
+    networks:
+      - bookstore-network
+
+  db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_DATABASE: bookstore
+      MYSQL_USER: minhquang
+      MYSQL_PASSWORD: 29092002
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - bookstore-network
+
+  redis:
+    image: redis:latest
+    container_name: redis-cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - bookstore-network
+
+volumes:
+  mysql-data: {}
+  redis-data: {}
+
+networks:
+  bookstore-network:
+    driver: bridge
+    name: bookstore-network
