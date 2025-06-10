@@ -2,6 +2,7 @@ package org.example.bookstore.service;
 
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.exception.AppException;
+import org.example.bookstore.mapper.ReviewMapper;
 import org.example.bookstore.model.Book;
 import org.example.bookstore.model.Review;
 import org.example.bookstore.model.User;
@@ -29,13 +30,13 @@ public class ReviewServiceImpl implements ReviewService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
-    private final ModelMapper modelMapper;
+    private final ReviewMapper reviewMapper;
 
-    public ReviewServiceImpl(BookRepository bookRepository, UserRepository userRepository, ReviewRepository reviewRepository, ModelMapper modelMapper) {
+    public ReviewServiceImpl(BookRepository bookRepository, UserRepository userRepository, ReviewRepository reviewRepository, ModelMapper modelMapper, ReviewMapper reviewMapper) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
-        this.modelMapper = modelMapper;
+        this.reviewMapper = reviewMapper;
     }
 
     @Override
@@ -66,7 +67,7 @@ public class ReviewServiceImpl implements ReviewService {
         book.setAverageRating(getAvgRatingProduct(reviews));
         bookRepository.save(book);
 
-        ReviewDTO reviewDTO = modelMapper.map(review, ReviewDTO.class);
+        ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
         reviewDTO.setTitle(review.getBook().getTitle());
         reviewDTO.setUsername(review.getUser().getUsername());
 
@@ -97,7 +98,7 @@ public class ReviewServiceImpl implements ReviewService {
         book.setAverageRating(getAvgRatingProduct(reviews));
         bookRepository.save(book);
 
-        return modelMapper.map(review, ReviewDTO.class);
+        return reviewMapper.mapToDTO(review);
     }
     private double getAvgRatingProduct(List<Review> reviews) {
         if (reviews == null || reviews.isEmpty()) {
@@ -134,7 +135,7 @@ public class ReviewServiceImpl implements ReviewService {
     public List<ReviewDTO> getReviewsByUserId(UUID userId) {
         List<Review> reviews = reviewRepository.findAllReviewsByUserId(userId);
         return reviews.stream().map(review -> {
-            ReviewDTO reviewDTO = modelMapper.map(review, ReviewDTO.class);
+            ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
             reviewDTO.setTitle(review.getBook().getTitle());
             reviewDTO.setUsername(review.getUser().getUsername());
             return reviewDTO;
@@ -146,7 +147,7 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewDTO getReviewById(UUID reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
-        ReviewDTO reviewDTO = modelMapper.map(review, ReviewDTO.class);
+        ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
         reviewDTO.setTitle(review.getBook().getTitle());
         reviewDTO.setUsername(review.getUser().getUsername());
         return reviewDTO;
@@ -159,7 +160,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         List<Review> reviews = book.getReviews();
         return reviews.stream().map(review ->{
-            ReviewDTO reviewDTO = modelMapper.map(review, ReviewDTO.class);
+            ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
             reviewDTO.setTitle(review.getBook().getTitle());
             reviewDTO.setUsername(review.getUser().getUsername());
             return reviewDTO;

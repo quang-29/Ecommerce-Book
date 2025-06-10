@@ -2,9 +2,13 @@ package org.example.bookstore.service.Interface;
 
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.UserDTO;
+import org.example.bookstore.payload.request.ChangeAvatar;
+import org.example.bookstore.payload.request.EditUser;
 import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.UserResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.Set;
 import java.util.UUID;
 
@@ -28,4 +32,8 @@ public interface UserService {
     Set<BookDTO> listBooksLikedByUser(UUID userId);
 
     UUID getCurrentUserId(Authentication authentication);
+
+    boolean editUser(EditUser editUser);
+
+    ChangeAvatar changeAvatar(UUID userId, MultipartFile file);
 }

@@ -2,6 +2,7 @@ package org.example.bookstore.service;
 
 import com.google.firebase.messaging.FirebaseMessagingException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.example.bookstore.enums.*;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.*;
@@ -13,6 +14,7 @@ import org.example.bookstore.payload.Note;
 import org.example.bookstore.payload.OrderDTO;
 import org.example.bookstore.payload.OrderItemDTO;
 import org.example.bookstore.payload.order.PlaceOrderDTO;
+import org.example.bookstore.payload.order.PlaceSingleBookDTO;
 import org.example.bookstore.payload.response.PlaceOrderResponse;
 import org.example.bookstore.repository.*;
 import org.example.bookstore.service.Interface.CartService;
@@ -89,6 +91,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
+    @Transactional
     @Override
     public PlaceOrderResponse placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest httpServletRequest) throws Exception {
 
@@ -265,6 +268,7 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
     public OrderDTO updateOrder(UUID orderId, int orderStatus) {
         Order order = orderRepository.findById(orderId)
@@ -277,13 +281,9 @@ public class OrderServiceImpl implements OrderService {
     public String cancelOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
-//        if (order.getOrderStatus() != OrderStatus.WAIT_PAYMENT.getValue() ||
-//                order.getOrderStatus() != OrderStatus.PAID.getValue()) {
-//            throw new AppException(ErrorCode.ORDER_CANCELED_ERROR);
-//        }
-//
-//        order.setOrderStatus(OrderStatus.CANCELLED.getValue());
+        Payment payment = order.getPayment();
+        payment.setStatus(PaymentStatus.CANCELLED);
+        order.setPayment(payment);
         orderRepository.save(order);
 
         List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
@@ -299,9 +299,33 @@ public class OrderServiceImpl implements OrderService {
     public String confirmOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-//        order.setOrderStatus(OrderStatus.PROCESSING.getValue());
+        Payment payment = order.getPayment();
+        payment.setStatus(PaymentStatus.CONFIRMED);
+        order.setPayment(payment);
         orderRepository.save(order);
         return "Confirm order successfully.";
+    }
+
+    @Override
+    public String transitOrder(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        Payment payment = order.getPayment();
+        payment.setStatus(PaymentStatus.IN_TRANSIT);
+        order.setPayment(payment);
+        orderRepository.save(order);
+        return "Start delivery order .";
+    }
+
+    @Override
+    public String deliveryOrder(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        Payment payment = order.getPayment();
+        payment.setStatus(PaymentStatus.DELIVERED);
+        order.setPayment(payment);
+        orderRepository.save(order);
+        return "Delivery order successfully.";
     }
 
     @Override
@@ -313,4 +337,94 @@ public class OrderServiceImpl implements OrderService {
     public void savePayment(Payment payment) {
         paymentRepository.save(payment);
     }
+
+    @Transactional
+    @Override
+    public PlaceOrderResponse buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception {
+        Book book = bookRepository.findById(placeSingleBookDTO.getBookId())
+                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+
+        List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
+        if (placeSingleBookDTO.getAddressId() == null) {
+            throw new AppException(ErrorCode.INVALID_ADDRESS);
+        }
+        UserAddress addressTo = userAddressList.stream()
+                .filter(address -> address.getId().equals(placeSingleBookDTO.getAddressId()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.ADDRESS_NOT_FOUND));
+
+        ShipmentInfo shipmentInfo = ShipmentInfo.builder()
+                .from(new ShopAddress())
+                .to(addressTo)
+                .weight(placeSingleBookDTO.getWeight())
+                .build();
+
+        BasicShippingOrderInfo basicShippingOrderInfo = ghnService.calculateShipmentFee(shipmentInfo);
+        long shippingFee = basicShippingOrderInfo.getFee();
+
+        long totalPay = book.getPrice() + shippingFee;
+
+        PaymentType paymentType = PaymentType.fromString(placeSingleBookDTO.getPaymentType());
+
+        if(paymentType == null) {
+            throw new AppException(ErrorCode.PAYMENT_METHOD_NOT_FOUND);
+        }
+
+        Payment payment = new Payment();
+        payment.setType(paymentType);
+        payment.setCreatedAt(new Date());
+        payment.setFeeShip(shippingFee);
+        payment.setAmount(totalPay);
+        if(payment.getType() != PaymentType.COD) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(payment.getCreatedAt());
+            calendar.add(Calendar.MINUTE, 2);
+            payment.setExpireAt(calendar.getTime());
+            payment.setStatus(PaymentStatus.PENDING);
+            payment.setGateway(PaymentGateway.VNPAY);
+        }
+        else {
+            payment.setStatus(PaymentStatus.COD);
+            payment.setGateway(PaymentGateway.COD);
+        }
+
+        Order order = new Order();
+        order.setCreateAt(new Date());
+        order.setUser(user);
+        order.setUserAddress(addressTo);
+        order.setPayment(payment);
+        order.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
+        
+        orderRepository.save(order);
+        
+        OrderItem orderItem = new OrderItem();
+        orderItem.setBook(book);
+        orderItem.setQuantity(1);
+        orderItem.setProductPrice(book.getPrice());
+        orderItem.setOrder(order);
+        orderItemRepository.save(orderItem);
+        order.setOrderItems(Arrays.asList(orderItem));
+
+        book.setStock(book.getStock() - 1);
+        book.setSold(book.getSold() + 1);
+        bookRepository.save(book);
+
+
+        PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
+        placeOrderResponse.setOrderId(order.getId());
+        if(paymentType == PaymentType.BANK_TRANSFER){
+            String paymentUrl = vnPayService.createPaymentUrl(order, request);
+            placeOrderResponse.setPaymentUrl(paymentUrl);
+        }
+        return placeOrderResponse;
+
+    }
+
+
+
 }

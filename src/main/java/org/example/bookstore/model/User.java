@@ -44,7 +44,7 @@ public class User {
     private String email;
 
     @Column(name = "avatar")
-    private  String avatarUrl = "https://res.cloudinary.com/daxt0vwoc/image/upload/v1740297885/User-avatar.svg_nihuye.png";
+    private String avatarUrl ;
 
     @Size(min = 10, max = 10, message = "Mobile Number must be exactly 10 digits long")
     @Pattern(regexp = "^\\d{10}$", message = "Mobile Number must contain only Numbers")

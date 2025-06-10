@@ -5,6 +5,8 @@ import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.User;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.UserDTO;
+import org.example.bookstore.payload.request.ChangeAvatar;
+import org.example.bookstore.payload.request.EditUser;
 import org.example.bookstore.payload.request.UserRequest;
 import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.DataResponse;
@@ -20,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -178,6 +181,19 @@ public class UserController {
         int count = userRepository.countUser();
         return ResponseEntity.status(HttpStatus.OK).body(count);
 
+    }
+    @PutMapping("/editUser")
+    public ResponseEntity<?> editUser(@RequestBody EditUser editUser) {
+        boolean isSuccessEdit = userService.editUser(editUser);
+        return ResponseEntity.status(HttpStatus.OK).body(isSuccessEdit);
+
+    }
+
+    @PutMapping("/changeAvatar/{userId}")
+    public ResponseEntity<ChangeAvatar> changeAvatar(@PathVariable UUID userId,
+                                          @RequestParam("file") MultipartFile file) {
+        ChangeAvatar changeAvatar = userService.changeAvatar(userId,file);
+        return ResponseEntity.status(HttpStatus.OK).body(changeAvatar);
     }
 
 

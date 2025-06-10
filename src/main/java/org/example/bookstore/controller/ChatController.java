@@ -39,10 +39,11 @@ public class ChatController {
         message.setRoomId(roomId);
         message.setSender(chatMessage.getSender());
         message.setContent(chatMessage.getContent());
+        message.setSenderUrl(chatMessage.getSenderUrl());
         message.setSentAt(new Date());
         messageRepository.save(message);
-        // GỬI LẠI CHO CÁC CLIENT TRONG PHÒNG
         messagingTemplate.convertAndSend("/topic/room/" + roomId, message);
+        messagingTemplate.convertAndSend("/topic/public", message);
     }
 
 }

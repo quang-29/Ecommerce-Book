@@ -12,7 +12,7 @@ import java.net.http.HttpResponse;
 @Service
 public class ChatServiceImpl implements IChatService {
 
-    private final String BASE_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent";
+    private final String BASE_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent";
 
     @Value("${chat.api.key}")
     private String apiKey;
@@ -34,7 +34,7 @@ public class ChatServiceImpl implements IChatService {
                 }
               ]
             }
-            """.formatted(prompt);
+            """.formatted(prompt.replace("\"", "\\\"")); // escape dấu "
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint))
@@ -44,9 +44,6 @@ public class ChatServiceImpl implements IChatService {
 
             HttpClient client = HttpClient.newHttpClient();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            // In response ra để kiểm tra
-//            System.out.println("Gemini response: " + response.body());
 
             JSONObject obj = new JSONObject(response.body());
             if (obj.has("error")) {
@@ -65,6 +62,37 @@ public class ChatServiceImpl implements IChatService {
             return "Xin lỗi, có lỗi xảy ra khi gọi Gemini.";
         }
     }
+
+    @Override
+    public String extractBookTitleFromText(String ocrText) {
+        try {
+            System.out.println("OCR Text: " + ocrText); // để kiểm tra đầu vào
+
+            String prompt = """
+                Tôi có một đoạn văn bản được trích xuất từ ảnh bìa sách bằng công nghệ OCR, nhưng có thể bị sai chính tả và lẫn nhiều thông tin không liên quan như tác giả, dịch giả, nhà xuất bản.
+            
+                Đoạn văn:
+                ---
+                %s
+                ---
+            
+                Hãy thực hiện các bước sau:
+                1.Nếu tiêu đề là Tiếng Việt thì sửa lỗi chính tả tiếng Việt, nếu không phải thì thôi.
+                2. Xác định đâu là tên cuốn sách chính có trong đoạn văn.
+                3. Chỉ trả về đúng tên sách, không thêm gì khác.
+            
+                Nếu không xác định được rõ tên sách, hãy trả về: "Không xác định được tiêu đề".
+    """.formatted(ocrText);
+
+            String result = getGeminiResponse(prompt);
+            if (result == null || result.trim().isEmpty()) {
+                return "Không xác định được tiêu đề";
+            }
+
+            return result.trim();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Lỗi khi gửi yêu cầu đến Gemini";
+        }
+    }
 }
-
-

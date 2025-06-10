@@ -43,8 +43,7 @@ public class SecurityConfig {
             "/api/category/getCategoryById/{id}",
             "/api/category/getAllCategories",
             "/api/cart/addBookToCart",
-            "/api/cart/deleteBookFromCart",
-            "api/order/placeOrder",
+            "/api/cart/deleteBookFromCar",
             "/api/user/myInfo",
             "/api/review/**",
             "/api/v1/cart/**",
@@ -52,11 +51,13 @@ public class SecurityConfig {
             "/api/payment/vn-pay-callback/**",
             "/api/payment/**",
             "/api/auth/**",
-            "/api/chat",
+            "/api/chat/**",
             "/api/book/search/**",
             "/ws/***",
             "/api/rooms/**",
             "/api/messages/**",
+            "/api/book/searchByISBN/*",
+            "/api/order/getOrderByOrderId/*"
     };
 
     @Autowired

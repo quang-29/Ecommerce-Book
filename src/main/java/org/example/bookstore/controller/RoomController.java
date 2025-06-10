@@ -3,11 +3,13 @@ package org.example.bookstore.controller;
 
 import lombok.Getter;
 import org.example.bookstore.model.chat.Room;
+import org.example.bookstore.payload.request.RoomCreate;
 import org.example.bookstore.repository.RoomRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -18,16 +20,17 @@ public class RoomController {
         this.roomRepository = roomRepository;
     }
 
-    //create Room
     @PostMapping("")
-    public ResponseEntity<?> createRoom(@RequestBody String roomId) {
-
-        Room room = roomRepository.findByRoomId(roomId);
+    public ResponseEntity<?> createRoom(@RequestBody RoomCreate roomCreate) {
+        Room room = roomRepository.findByRoomId(roomCreate.getRoomId());
         if (room != null) {
             return new ResponseEntity<>("Room is already existed", HttpStatus.BAD_REQUEST);
         }
         Room newRoom = new Room();
-        newRoom.setRoomId(roomId);
+        newRoom.setRoomId(roomCreate.getRoomId());
+        newRoom.setUserAvatar(roomCreate.getUserAvatar());
+        newRoom.setUserId(roomCreate.getUserId());
+        newRoom.setUserName(roomCreate.getUserName());
         newRoom.setCreatedAt(new Date());
         roomRepository.save(newRoom);
         return new ResponseEntity<>(room, HttpStatus.CREATED);
@@ -43,5 +46,10 @@ public class RoomController {
         }
         return new ResponseEntity<>(room, HttpStatus.OK);
 
+    }
+    @GetMapping("/getAllRooms")
+    public ResponseEntity<?> getAllRoom() {
+        List<Room> rooms = roomRepository.findAll();
+        return new ResponseEntity<>(rooms, HttpStatus.OK);
     }
 }

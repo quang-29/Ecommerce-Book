@@ -39,8 +39,9 @@ public class Book {
     @Column(name = "average_rating")
     private Double averageRating = 0.0;
 
-    @Column(name = "book_description")
+    @Column(name = "book_description", columnDefinition = "TEXT")
     private String description;
+
 
     @Column(name = "language")
     private String language;

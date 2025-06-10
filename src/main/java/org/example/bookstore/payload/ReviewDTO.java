@@ -16,14 +16,13 @@ import java.util.UUID;
 @NoArgsConstructor
 public class ReviewDTO {
 
-    private UUID id;
+    private UUID reviewId;
     private String content;
     private int ratePoint;
     private LocalDate createdAt;
-
-    @JsonProperty("title")
     private String title;
-
-    @JsonProperty("username")
+    private UUID bookId;
+    private String imagePath;
     private String username;
+    private String avatarUrl;
 }

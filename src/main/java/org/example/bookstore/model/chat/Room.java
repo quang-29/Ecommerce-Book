@@ -24,5 +24,7 @@ public class Room {
     @Column(unique = true)
     private String roomId;
     private UUID userId;
+    private String userAvatar;
+    private String userName;
     private Date createdAt = new Date();
 }

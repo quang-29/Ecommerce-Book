@@ -23,4 +23,11 @@ public class ChatBotController {
         String reply = iChatService.getGeminiResponse(message);
         return ResponseEntity.ok(Map.of("reply", reply));
     }
+
+    @PostMapping("/extract-title")
+    public Map<String, String> extractTitle(@RequestBody Map<String, String> request) {
+        String ocrText = request.get("text");
+        String title = iChatService.extractBookTitleFromText(ocrText);
+        return Map.of("title", title.trim());
+    }
 }

@@ -44,4 +44,8 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
 
     @Query(value = "select count(id) as totalBook from book;",nativeQuery = true)
     int countBook();
+
+    @Query(value = "SELECT * FROM book WHERE isbn = :isbn", nativeQuery = true)
+    Book findBookByIsbn(@Param("isbn") String isbn);
+
 }

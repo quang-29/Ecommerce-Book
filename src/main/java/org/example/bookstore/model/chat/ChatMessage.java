@@ -12,6 +12,7 @@ import java.time.LocalDate;
 public class ChatMessage {
     private String roomId;
     private String sender;
+    private String senderUrl;
     private String content;
     private LocalDate sentAt;
 }

@@ -29,4 +29,10 @@ public class MessageController {
 
     }
 
+    @GetMapping("/getRecentMessage/{roomId}")
+    public ResponseEntity<?> getRecentMessages(@PathVariable("roomId") String roomId) {
+        Message message = messageRepository.findRecentMessageByRoomId(roomId);
+        return new ResponseEntity<>(message, HttpStatus.OK);
+    }
+
 }

@@ -24,6 +24,7 @@ public class UserDTO {
     private String email;
     private String password;
     private String address;
+    private String avatarUrl;
     private CartDTO cart;
     @JsonProperty("roles")
     public String getRolesAsString() {

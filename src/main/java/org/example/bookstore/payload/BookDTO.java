@@ -24,7 +24,7 @@ public class BookDTO {
     private Long sold;
     private int page;
     private int reprint;
-
+    private String publishedDate;
     private Double averageRating;
     @JsonProperty("category")
     private String categoryName;

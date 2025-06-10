@@ -19,6 +19,7 @@ public class Message {
     private long id;
     private String roomId;
     private String sender;
+    private String senderUrl;
     private String content;
     private Date sentAt = new Date();
 

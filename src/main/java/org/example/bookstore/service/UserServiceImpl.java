@@ -7,13 +7,17 @@ import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.CartDTO;
 import org.example.bookstore.payload.CartItemDTO;
 import org.example.bookstore.payload.UserDTO;
+import org.example.bookstore.payload.request.ChangeAvatar;
+import org.example.bookstore.payload.request.EditUser;
 import org.example.bookstore.payload.request.UserUpdate;
+import org.example.bookstore.payload.response.CloudinaryResponse;
 import org.example.bookstore.payload.response.UserResponse;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.RoleRepository;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.service.Interface.CartService;
 import org.example.bookstore.service.Interface.UserService;
+import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,11 +28,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +46,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private BookRepository bookRepository;
+
+    @Autowired
+    private CloudinaryServiceImpl cloudinaryServiceImpl;
 
     @Override
     public UserResponse getAllUsers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
@@ -179,6 +184,40 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         return user.getId();
+    }
+
+    @Override
+    public boolean editUser(EditUser editUser) {
+        User user = userRepository.findById(editUser.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        user.setFirstName(editUser.getFirstName());
+        user.setLastName(editUser.getLastName());
+        user.setPhoneNumber(editUser.getPhoneNumber());
+        user.setEmail(editUser.getEmail());
+        userRepository.save(user);
+        return true;
+    }
+
+    @Override
+    public ChangeAvatar changeAvatar(UUID userId, MultipartFile file) {
+        ChangeAvatar changeAvatar = new ChangeAvatar();
+        try {
+            Optional<User> userFound = userRepository.findById(userId);
+            if (userFound.isEmpty()) {
+                throw new AppException(ErrorCode.USER_NOT_FOUND);
+            }
+            User user = userFound.get();
+            FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
+            final String fileName = FileUploadUtil.getFileName(file.getOriginalFilename());
+            final CloudinaryResponse response = cloudinaryServiceImpl.uploadFile(file, fileName);
+            user.setAvatarUrl(response.getUrl());
+            userRepository.save(user);
+            changeAvatar.setSuccess(true);
+            changeAvatar.setUrl(user.getAvatarUrl());
+        } catch (Exception ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
+        return changeAvatar;
     }
 
 

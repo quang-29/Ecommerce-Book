@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -103,7 +104,7 @@ public class BookController {
     @GetMapping("/getAllBooks")
     public ResponseEntity<BookResponse> getAllBooks(
             @RequestParam(defaultValue = "0") Integer pageNumber,
-            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(defaultValue = "20") Integer pageSize,
             @RequestParam(defaultValue = "title") String sortBy,
             @RequestParam(defaultValue = "asc") String sortOrder) {
         BookResponse books = bookService.getAllBooks(pageNumber, pageSize, sortBy, sortOrder);
@@ -180,10 +181,35 @@ public class BookController {
                 .build();
         return ResponseEntity.ok(dataResponse);
     }
+
+    @GetMapping("/searchByISBN")
+    public ResponseEntity<DataResponse> searchByISBN(@RequestParam String str) {
+        BookDTO bookDTO = bookService.getBookByISBN(str);
+        DataResponse dataResponse = DataResponse.builder()
+                .code(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .data(bookDTO)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.ok(dataResponse);
+    }
+
     @GetMapping("/getNumberOfBooks")
     public ResponseEntity<?> getNumberOfBooks(){
         int number = bookRepository.countBook();
         return ResponseEntity.ok(number);
+    }
+
+    @GetMapping("/searchByContent")
+    public ResponseEntity<DataResponse> searchBookByContent(@RequestParam String text) {
+        BookDTO book = bookService.searchBookByContent(text);
+
+        return ResponseEntity.ok(DataResponse.builder()
+                .code(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .data(book) // có thể là null nếu không tìm được
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
 }

@@ -1,5 +1,6 @@
 package org.example.bookstore.service.Interface;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.model.Book;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.request.CreateBookRequest;
@@ -21,7 +22,7 @@ public interface BookService {
     BookResponse getAllBooks(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     BookResponse getAllBooksByAuthor(String author,Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
     BookResponse getAllBooksByCategory(String category,Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
-    BookDTO addBook(CreateBookRequest request);
+    BookDTO addBook(CreateBookRequest request) ;
     CloudinaryResponse uploadImageBook(UUID id, MultipartFile file);
     String uploadImageB(UUID id, MultipartFile file);
 
@@ -31,5 +32,10 @@ public interface BookService {
     BookResponse getNewReleaseBook(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder);
 
     List<BookDTO> getBookByTitle(String title);
+
+    BookDTO getBookByISBN(String isbn);
+    BookDTO searchBookByContent(String content);
+
+
 
 }

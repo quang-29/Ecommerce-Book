@@ -5,6 +5,7 @@ import org.example.bookstore.model.Order;
 import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.payload.OrderDTO;
 import org.example.bookstore.payload.order.PlaceOrderDTO;
+import org.example.bookstore.payload.order.PlaceSingleBookDTO;
 import org.example.bookstore.payload.response.OrderResponse;
 import org.example.bookstore.payload.response.PlaceOrderResponse;
 import org.springframework.stereotype.Service;
@@ -29,8 +30,14 @@ public interface OrderService {
 
     String confirmOrder(UUID orderId);
 
+    String transitOrder(UUID orderId);
+
+    String deliveryOrder(UUID orderId);
+
     Order getOrderById(UUID orderId);
 
     void savePayment(Payment payment);
+
+    PlaceOrderResponse buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception;
 
 }

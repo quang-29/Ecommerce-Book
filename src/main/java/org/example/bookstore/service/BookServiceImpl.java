@@ -1,5 +1,6 @@
 package org.example.bookstore.service;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.exception.ResourceNotFoundException;
@@ -29,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -60,19 +62,35 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public BookResponse getAllBooks(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
+
         Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
         Page<Book> pageBooks = bookRepository.findAll(pageDetails);
         List<Book> books = pageBooks.getContent();
+
         List<BookDTO> bookDTOList = books.stream()
                 .map(book -> {
                     BookDTO bookDTO = modelMapper.map(book, BookDTO.class);
-                    bookDTO.setAuthorName(book.getAuthor().getName());
-                    bookDTO.setCategoryName(book.getCategory().getName());
+
+                    // Kiểm tra null trước khi gọi getName()
+                    if (book.getAuthor() != null) {
+                        bookDTO.setAuthorName(book.getAuthor().getName());
+                    } else {
+                        bookDTO.setAuthorName("Không xác định");
+                    }
+
+                    if (book.getCategory() != null) {
+                        bookDTO.setCategoryName(book.getCategory().getName());
+                    } else {
+                        bookDTO.setCategoryName("Chưa phân loại");
+                    }
+
                     return bookDTO;
-                }
-                ).toList();
+                })
+                .toList();
+
         BookResponse bookResponse = new BookResponse();
         bookResponse.setContent(bookDTOList);
         bookResponse.setPageNumber(pageBooks.getNumber());
@@ -80,8 +98,10 @@ public class BookServiceImpl implements BookService {
         bookResponse.setTotalElements(pageBooks.getTotalElements());
         bookResponse.setTotalPages(pageBooks.getTotalPages());
         bookResponse.setLastPage(pageBooks.isLast());
+
         return bookResponse;
     }
+
 
     @Override
     public BookResponse getAllBooksByAuthor(String authorName,Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
@@ -141,6 +161,7 @@ public class BookServiceImpl implements BookService {
             throw new AppException(ErrorCode.BOOK_EXISTED);
         }
         Book book = modelMapper.map(request, Book.class);
+        book.setSold(0L);
         book.setPublishedDate(LocalDate.parse(request.getPublishedDate()));
         Optional<Category> optionalCategory = categoryRepository.findByName(request.getCategory());
         if(optionalCategory.isPresent()){
@@ -299,5 +320,77 @@ public class BookServiceImpl implements BookService {
         List<BookDTO> bookDTOList = bookList.stream().map(book -> modelMapper.map(book, BookDTO.class)).toList();
         return bookDTOList ;
     }
+
+    @Override
+    public BookDTO getBookByISBN(String isbn) {
+//        String fixISBN = isbn.replace("-", "");
+        Book book = bookRepository.findBookByIsbn(isbn);
+        if(book == null) {
+            throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+        }
+
+        return modelMapper.map(book, BookDTO.class);
+    }
+
+    @Override
+    public BookDTO searchBookByContent(String content) {
+        String cleanText = normalizeText(content);
+        List<Book> allBooks = bookRepository.findAll();
+
+        Book bestMatch = null;
+        double highestScore = 0.0;
+
+        for (Book book : allBooks) {
+            String combined = (book.getTitle() + " " + book.getAuthor() + " " + book.getDescription()).toLowerCase();
+            double score = similarity(cleanText, combined);
+            if (score > highestScore) {
+                highestScore = score;
+                bestMatch = book;
+            }
+        }
+
+        if (bestMatch == null) {
+            // Có thể throw exception hoặc trả về null tùy yêu cầu
+            throw new NoSuchElementException("Không tìm thấy sách ");
+        }
+
+        if (bestMatch != null && highestScore >= 0.5) {
+            return modelMapper.map(bestMatch, BookDTO.class);
+        }
+
+        return null;
+    }
+    private String normalizeText(String input) {
+        return input.toLowerCase()
+                .replaceAll("[^a-zA-Z0-9\\s]", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private double similarity(String s1, String s2) {
+        int distance = levenshteinDistance(s1, s2);
+        int maxLen = Math.max(s1.length(), s2.length());
+        return (maxLen == 0) ? 1.0 : 1.0 - (double) distance / maxLen;
+    }
+
+    private int levenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+
+        for (int i = 0; i <= s1.length(); i++) dp[i][0] = i;
+        for (int j = 0; j <= s2.length(); j++) dp[0][j] = j;
+
+        for (int i = 1; i <= s1.length(); i++) {
+            for (int j = 1; j <= s2.length(); j++) {
+                int cost = (s1.charAt(i - 1) == s2.charAt(j - 1)) ? 0 : 1;
+                dp[i][j] = Math.min(
+                        Math.min(dp[i - 1][j] + 1,     // delete
+                                dp[i][j - 1] + 1),    // insert
+                        dp[i - 1][j - 1] + cost        // replace
+                );
+            }
+        }
+        return dp[s1.length()][s2.length()];
+    }
+
 
 }
