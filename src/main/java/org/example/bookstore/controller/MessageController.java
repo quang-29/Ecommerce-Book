@@ -4,12 +4,10 @@ import org.example.bookstore.model.chat.Message;
 import org.example.bookstore.repository.MessageRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -33,6 +31,20 @@ public class MessageController {
     public ResponseEntity<?> getRecentMessages(@PathVariable("roomId") String roomId) {
         Message message = messageRepository.findRecentMessageByRoomId(roomId);
         return new ResponseEntity<>(message, HttpStatus.OK);
+    }
+
+
+    @PutMapping("/updateAvatarUrl")
+    public ResponseEntity<?> updateAvatarUrl(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String newAvatarUrl = request.get("newAvatarUrl");
+
+        if (username == null || newAvatarUrl == null) {
+            return ResponseEntity.badRequest().body("Thiếu thông tin.");
+        }
+
+        int updated = messageRepository.updateUrlSenderBySender(username, newAvatarUrl);
+        return ResponseEntity.ok(Map.of("success", true, "updatedCount", updated));
     }
 
 }

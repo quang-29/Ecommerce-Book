@@ -3,12 +3,12 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: spring-app
+    container_name: bookstore-app
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/storestore
-      SPRING_DATASOURCE_USERNAME: minhquang
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/bookbook
+      SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: minhquang
       TZ: Asia/Ho_Chi_Minh
     depends_on:
@@ -19,10 +19,10 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_DATABASE: storestore
+      MYSQL_DATABASE: bookbook
       MYSQL_ROOT_PASSWORD: minhquang
     ports:
-      - "3307:3306"
+      - "3308:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./bookstore_data.sql:/docker-entrypoint-initdb.d/bookstore_data.sql

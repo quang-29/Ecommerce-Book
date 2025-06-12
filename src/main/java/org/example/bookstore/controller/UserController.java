@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -195,6 +197,18 @@ public class UserController {
         ChangeAvatar changeAvatar = userService.changeAvatar(userId,file);
         return ResponseEntity.status(HttpStatus.OK).body(changeAvatar);
     }
+
+    @GetMapping("/admin/avatar")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    public ResponseEntity<?> getAvatarAdmin(Authentication authentication) {
+        Optional<User> user = userRepository.findByUsername("admin");
+        if (user.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(Map.of("avatarUrl", user.get().getAvatarUrl()));
+    }
+
 
 
 

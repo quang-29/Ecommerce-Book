@@ -125,12 +125,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Cho phép tất cả các origin (có thể thay bằng domain cụ thể)
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Cho phép các phương thức HTTP
-        configuration.setAllowedHeaders(Arrays.asList("*")); // Cho phép tất cả các header
-        configuration.setExposedHeaders(Arrays.asList("Authorization")); // Cho phép client đọc header Authorization
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // ✅ domain frontend
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        configuration.setAllowCredentials(true); // ✅ PHẢI có dòng này nếu dùng cookie/session/SockJS
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // Áp dụng cấu hình CORS cho tất cả các đường dẫn
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 }
