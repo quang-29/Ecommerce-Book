@@ -1,16 +1,14 @@
 package org.example.bookstore.service;
 
-import com.google.firebase.messaging.FirebaseMessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.*;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.*;
-import org.example.bookstore.model.address.Address;
 import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.model.shipment.BasicShippingOrderInfo;
 import org.example.bookstore.model.shipment.ShipmentInfo;
-import org.example.bookstore.payload.Note;
 import org.example.bookstore.payload.OrderDTO;
 import org.example.bookstore.payload.OrderItemDTO;
 import org.example.bookstore.payload.order.PlaceOrderDTO;
@@ -19,81 +17,62 @@ import org.example.bookstore.payload.response.PlaceOrderResponse;
 import org.example.bookstore.repository.*;
 import org.example.bookstore.service.Interface.CartService;
 import org.example.bookstore.service.Interface.NotificationService;
-import org.example.bookstore.service.Interface.OrderService;
 import org.example.bookstore.service.Interface.UserAddressService;
-import org.example.bookstore.service.firebase.FirebaseMessagingService;
 import org.example.bookstore.service.shipment.GHNService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
 
 @Service
-public class OrderServiceImpl implements OrderService {
-    @Autowired
-    private CartRepository cartRepository;
+public class OrderService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final CartRepository cartRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final PaymentRepository paymentRepository;
+    private final OrderRepository orderRepository;
+    private final CartService cartService;
+    private final OrderItemRepository orderItemRepository;
+    private final BookRepository bookRepository;
+    private final GHNService ghnService;
+    private final VNPayService vnPayService;
 
-    @Autowired
-    private ModelMapper modelMapper;
-
-    @Autowired
-    private PaymentRepository paymentRepository;
-
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private CartService cartService;
-
-    @Autowired
-    private OrderItemRepository orderItemRepository;
-
-    @Autowired
-    private BookRepository bookRepository;
-
-    @Autowired
-    private DeliveryRepository deliveryRepository;
-
-    private FirebaseMessagingService firebaseMessagingService;
-
-    @Autowired
-    private UserAddressRepository userAddressRepository;
-
-    @Autowired
-    private GHNService ghnService;
-
-    private Logger logger = LoggerFactory.getLogger(OrderServiceImpl.class);
+    private Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     private final UserAddressService userAddressService;
 
 
-    @Autowired
-    private VNPayService vnPayService;
-    @Autowired
-    private NotificationRepository notificationRepository;
-    @Autowired
-    private NotificationService notificationService;
 
-    public OrderServiceImpl(UserAddressService userAddressService) {
+
+
+    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, OrderItemRepository orderItemRepository, BookRepository bookRepository, GHNService ghnService, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, UserAddressService userAddressService) {
+        this.cartRepository = cartRepository;
+        this.userRepository = userRepository;
+        this.modelMapper = modelMapper;
+        this.paymentRepository = paymentRepository;
+        this.orderRepository = orderRepository;
+        this.cartService = cartService;
+        this.orderItemRepository = orderItemRepository;
+        this.bookRepository = bookRepository;
+        this.ghnService = ghnService;
+        this.vnPayService = vnPayService;
         this.userAddressService = userAddressService;
     }
 
 
     @Transactional
-    @Override
-    public PlaceOrderResponse placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest httpServletRequest) throws Exception {
+    public ServerResponseDto placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest httpServletRequest) throws Exception {
 
         Cart cart = cartRepository.findById(placeOrderDTO.getCartId())
                 .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
@@ -187,72 +166,35 @@ public class OrderServiceImpl implements OrderService {
             bookRepository.save(book);
         }
 
-        Notifications notifications = new Notifications();
-        notifications.setReceiver(user);
-        notifications.setRead(false);
-        notifications.setContent("Đơn hàng %s đã được tạo thành công"+ order.getId());
-        notifications.setCreatedAt(new Date());
-        notifications.setItemCount(orderItems.size());
-        notifications.setScope(NotificationScope.SHOP);
-        notificationRepository.save(notifications);
-        logger.info("Notifications", notifications);
-        notificationService.sendNotification(notifications);
-
-
-
-//        Notification notification = Notification.builder()
-//                .context("Dat hang thanh cong")
-//                .body(String.format("Đơn hàng với id %s đã được tạo thành công", order.getId().toString()))
-//                .users(Collections.singletonList(user))
-//                .referenceId(order.getId().toString())
-//                .title("Đã tạo đơn hàng")
-//                .build();
-//        user.getNotifications().add(notification);
-//        userRepository.save(user);
-//        try{
-//            firebaseMessagingService
-//                    .sendNotification(new Note("Context.ORDER", "ORDER_CREATE_SUCCESS", order.getId().toString()),user.getDeviceToken());
-//        } catch (FirebaseMessagingException e) {
-//            logger.error(e.getMessage());
-//        }
         PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
         placeOrderResponse.setOrderId(order.getId());
         if(paymentType == PaymentType.BANK_TRANSFER){
             String paymentUrl = vnPayService.createPaymentUrl(order, httpServletRequest);
             placeOrderResponse.setPaymentUrl(paymentUrl);
         }
-        return placeOrderResponse;
+        return ServerResponseDto.success(placeOrderResponse);
     }
 
-    @Override
-    public OrderDTO getOrder(UUID orderId) {
+    public ServerResponseDto getOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
         orderDTO.setOrderItem(order.getOrderItems().stream()
                 .map(orderItem -> modelMapper.map(orderItem, OrderItemDTO.class)).collect(Collectors.toList()));
-        return orderDTO;
+        return ServerResponseDto.success(orderDTO);
     }
 
-    @Override
-    public List<OrderDTO> getOrdersByUserId(UUID userId) {
-        List<Order> orders = orderRepository.findAllByUserId(userId);
+    public ServerResponseDto getOrdersByUserId(UUID userId, int page, int size, String sortBy, String sortDirection) {
 
-        // Không throw exception nếu không có đơn hàng
-        return orders.stream()
-                .map(order -> {
-                    OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
-                    orderDTO.setOrderItem(order.getOrderItems().stream()
-                            .map(orderItem -> modelMapper.map(orderItem, OrderItemDTO.class))
-                            .collect(Collectors.toList()));
-                    return orderDTO;
-                })
-                .collect(Collectors.toList());
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<OrderDTO> orderDTOPage = orderRepository.findAllOrderByUserId(userId, pageable).map(order -> modelMapper.map(order, OrderDTO.class));
+        return ServerResponseDto.success(orderDTOPage);
     }
 
 
-    @Override
-    public List<OrderDTO> getAllOrders() {
+    public List<OrderDTO> getAllOrders(int page, int size, String sortBy, String sortDirection) {
         List<Order> orders = orderRepository.findAll();
         if (orders.size() == 0) {
             throw new AppException(ErrorCode.ORDER_NOT_FOUND);
@@ -269,16 +211,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Transactional
-    @Override
-    public OrderDTO updateOrder(UUID orderId, int orderStatus) {
+    public ServerResponseDto updateStatusOrder(UUID orderId, int orderStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 //        order.setOrderStatus(orderStatus);
-        return modelMapper.map(orderRepository.save(order), OrderDTO.class);
+        return ServerResponseDto.success(modelMapper.map(orderRepository.save(order), OrderDTO.class));
     }
 
-    @Override
-    public String cancelOrder(UUID orderId) {
+    public ServerResponseDto cancelOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         Payment payment = order.getPayment();
@@ -292,55 +232,49 @@ public class OrderServiceImpl implements OrderService {
             book.setStock(book.getStock() + orderItem.getQuantity());
              bookRepository.save(book);
         }
-        return "Order has been canceled successfully.";
+        return ServerResponseDto.success("Order has been canceled successfully");
     }
 
-    @Override
-    public String confirmOrder(UUID orderId) {
+    public ServerResponseDto confirmOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         Payment payment = order.getPayment();
         payment.setStatus(PaymentStatus.CONFIRMED);
         order.setPayment(payment);
         orderRepository.save(order);
-        return "Confirm order successfully.";
+        return ServerResponseDto.success("Confirm order successfully");
     }
 
-    @Override
-    public String transitOrder(UUID orderId) {
+    public ServerResponseDto transitOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         Payment payment = order.getPayment();
         payment.setStatus(PaymentStatus.IN_TRANSIT);
         order.setPayment(payment);
         orderRepository.save(order);
-        return "Start delivery order .";
+        return ServerResponseDto.success("Start delivery order");
     }
 
-    @Override
-    public String deliveryOrder(UUID orderId) {
+    public ServerResponseDto deliveryOrder(UUID orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         Payment payment = order.getPayment();
         payment.setStatus(PaymentStatus.DELIVERED);
         order.setPayment(payment);
         orderRepository.save(order);
-        return "Delivery order successfully.";
+        return ServerResponseDto.success("Delivery order successfully");
     }
 
-    @Override
     public Order getOrderById(UUID orderId) {
         return orderRepository.findById(orderId).orElse(null);
     }
 
-    @Override
     public void savePayment(Payment payment) {
         paymentRepository.save(payment);
     }
 
     @Transactional
-    @Override
-    public PlaceOrderResponse buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception {
+    public ServerResponseDto buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception {
         Book book = bookRepository.findById(placeSingleBookDTO.getBookId())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -421,7 +355,7 @@ public class OrderServiceImpl implements OrderService {
             String paymentUrl = vnPayService.createPaymentUrl(order, request);
             placeOrderResponse.setPaymentUrl(paymentUrl);
         }
-        return placeOrderResponse;
+        return ServerResponseDto.success(placeOrderResponse);
 
     }
 

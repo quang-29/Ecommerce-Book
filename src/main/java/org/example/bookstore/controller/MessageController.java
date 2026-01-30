@@ -19,7 +19,6 @@ public class MessageController {
         this.messageRepository = messageRepository;
     }
 
-    // get All Messages by roomId
     @GetMapping("/{roomId}")
     public ResponseEntity<?> getAllMessages(@PathVariable("roomId") String roomId) {
         List<Message> messages = messageRepository.findAllByRoomId(roomId);
