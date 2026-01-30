@@ -12,8 +12,9 @@ public enum MessageException {
     BOOK_NOT_FOUND("Book not found"),
     BOOK_EXIST("Book existed"),
     USER_NOT_FOUND("User not found"),
-    UNAUTHORIZED_ACTION("Unauthorized action");
-
+    UNAUTHORIZED_ACTION("Unauthorized action"),
+    CATEGORY_ALREADY_EXISTS("Category already exists"),
+    ORDER_NOT_FOUND("Order not found");
 
     private String message;
 
