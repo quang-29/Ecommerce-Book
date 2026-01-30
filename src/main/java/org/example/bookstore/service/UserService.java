@@ -1,7 +1,10 @@
 package org.example.bookstore.service;
 
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.ErrorCode;
+import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.AppException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.CartDTO;
@@ -13,20 +16,16 @@ import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.CloudinaryResponse;
 import org.example.bookstore.payload.response.UserResponse;
 import org.example.bookstore.repository.BookRepository;
-import org.example.bookstore.repository.RoleRepository;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.service.Interface.CartService;
-import org.example.bookstore.service.Interface.UserService;
 import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,49 +33,34 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class UserServiceImpl implements UserService {
-    @Autowired
-    private UserRepository userRepository;
+public class UserService {
 
-    @Autowired
-    private ModelMapper modelMapper;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final CartService cartService;
+    private final BookRepository bookRepository;
+    private final CloudinaryServiceImpl cloudinaryServiceImpl;
 
-    @Autowired
-    private CartService cartService;
+    public UserService(UserRepository userRepository, ModelMapper modelMapper, CartService cartService, BookRepository bookRepository, CloudinaryServiceImpl cloudinaryServiceImpl) {
+        this.userRepository = userRepository;
+        this.modelMapper = modelMapper;
+        this.cartService = cartService;
+        this.bookRepository = bookRepository;
+        this.cloudinaryServiceImpl = cloudinaryServiceImpl;
+    }
 
-    @Autowired
-    private BookRepository bookRepository;
+    public ServerResponseDto getAllUsers(int pageNumber, int pageSize, String sortBy, String sortDirection) {
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
 
-    @Autowired
-    private CloudinaryServiceImpl cloudinaryServiceImpl;
-
-    @Override
-    public UserResponse getAllUsers(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
-        Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
-        Page<User> pageUsers = userRepository.findAll(pageDetails);
-        List<UserDTO> userDTOs = pageUsers.getContent().stream()
-                .map(user -> {
-                    UserDTO userDTO = modelMapper.map(user, UserDTO.class);
-                    return userDTO;
-                }).toList();
-
-        UserResponse userResponse = new UserResponse();
-        userResponse.setContent(userDTOs);
-        userResponse.setPageNumber(pageUsers.getNumber());
-        userResponse.setPageSize(pageUsers.getSize());
-        userResponse.setTotalElements(pageUsers.getTotalElements());
-        userResponse.setTotalPages(pageUsers.getTotalPages());
-        userResponse.setLastPage(pageUsers.isLast());
-        return userResponse;
+        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
+        Page<UserDTO> pageUsers = userRepository.findAll(pageDetails).map(user -> modelMapper.map(user, UserDTO.class));
+        return ServerResponseDto.success(pageUsers);
 
     }
 
-    @Override
-    public UserDTO getUserById(UUID userId) {
+    public ServerResponseDto getUserById(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
 
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         CartDTO cart = modelMapper.map(user.getCart(), CartDTO.class);
@@ -86,11 +70,10 @@ public class UserServiceImpl implements UserService {
         userDTO.setCart(cart);
 
         userDTO.getCart().setCartItem(cartItemDTOS);
-        return userDTO;
+        return ServerResponseDto.success(userDTO);
     }
-
-    @Override
-    public UserDTO updateUser(UserUpdate userUpdate) {
+    
+    public ServerResponseDto updateUser(UserUpdate userUpdate) {
         User user = userRepository.findUserByUsername(userUpdate.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -104,11 +87,10 @@ public class UserServiceImpl implements UserService {
                 .map(item -> modelMapper.map(item.getBook(), CartItemDTO.class)).collect(Collectors.toList());
         userDTO.setCart(cart);
         userDTO.getCart().setCartItem(cartItemDTOS);
-        return userDTO;
+        return ServerResponseDto.success(userDTO);
     }
 
-    @Override
-    public String deleteUser(UUID userId) {
+    public ServerResponseDto deleteUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -123,71 +105,63 @@ public class UserServiceImpl implements UserService {
         });
 
         userRepository.delete(user);
-        return "User with userId " + userId + " deleted successfully!!!";
+        return ServerResponseDto.success("Delete user successfully");
     }
 
-    @Override
-    public UserDTO getMyProfile(String username) {
+    public ServerResponseDto getMyProfile(String username) {
         User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        UserDTO userDTO = modelMapper.map(user, UserDTO.class);
-        return userDTO;
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+        return ServerResponseDto.success(modelMapper.map(user, UserDTO.class));
     }
-
-    @Override
-    public String likedBooks(UUID userId, UUID bookId) {
+    
+    public ServerResponseDto likedBooks(UUID userId, UUID bookId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
 
         Set<Book> likedBooks = user.getLikedBooks();
 
         if (!likedBooks.contains(book)) {
             likedBooks.add(book);
             userRepository.save(user);
-            return "Like book successfully!!!";
+            return ServerResponseDto.success("Like book successfully");
         }
-        return "Book already liked!";
+        return ServerResponseDto.success("Book already liked!");
     }
 
-    @Override
-    public String removeLikedBooks(UUID userId, UUID bookId) {
+    public ServerResponseDto removeLikedBooks(UUID userId, UUID bookId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
 
         Set<Book> likedBooks = user.getLikedBooks();
-
         if (likedBooks.contains(book)) {
             likedBooks.remove(book);
             userRepository.save(user);
-            return "Dislike book successfully!!!";
+            return ServerResponseDto.success("Dislike book successfully!!!");
         }
-        return "Book was not liked before!";
+        return ServerResponseDto.success("Book was not liked before!");
     }
 
-    @Override
-    public Set<BookDTO> listBooksLikedByUser(UUID userId) {
+    public ServerResponseDto listBooksLikedByUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
 
-        return user.getLikedBooks().stream()
+        return ServerResponseDto.success(user.getLikedBooks().stream()
                 .map(book -> modelMapper.map(book, BookDTO.class))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toSet()));
     }
 
-    @Override
     public UUID getCurrentUserId(Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
         return user.getId();
     }
 
-    @Override
-    public boolean editUser(EditUser editUser) {
+    public ServerResponseDto editUser(EditUser editUser) {
         User user = userRepository.findById(editUser.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         user.setFirstName(editUser.getFirstName());
@@ -195,16 +169,15 @@ public class UserServiceImpl implements UserService {
         user.setPhoneNumber(editUser.getPhoneNumber());
         user.setEmail(editUser.getEmail());
         userRepository.save(user);
-        return true;
+        return ServerResponseDto.success("Edit user successfully");
     }
 
-    @Override
-    public ChangeAvatar changeAvatar(UUID userId, MultipartFile file) {
+    public ServerResponseDto changeAvatar(UUID userId, MultipartFile file) {
         ChangeAvatar changeAvatar = new ChangeAvatar();
         try {
             Optional<User> userFound = userRepository.findById(userId);
             if (userFound.isEmpty()) {
-                throw new AppException(ErrorCode.USER_NOT_FOUND);
+                throw new RuntimeException(MessageException.USER_NOT_FOUND.getMessage());
             }
             User user = userFound.get();
             FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
@@ -217,7 +190,7 @@ public class UserServiceImpl implements UserService {
         } catch (Exception ex) {
             throw new RuntimeException(ex.getMessage());
         }
-        return changeAvatar;
+        return ServerResponseDto.success(changeAvatar);
     }
 
 

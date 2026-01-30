@@ -25,7 +25,7 @@ public class VNPayService {
     private final VNPAYConfig vnPayConfig;
 
     @Value("${payment.vnPay.max_time}")
-    private int maxPaymentTime; // in second
+    private int maxPaymentTime;
 
     private final String SUCCESS_CODE = "00";
 

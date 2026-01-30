@@ -25,7 +25,8 @@ import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-@CrossOrigin
+
+@CrossOrigin(origins = "http://localhost:5173")
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")

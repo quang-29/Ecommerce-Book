@@ -1,34 +1,22 @@
 package org.example.bookstore.controller;
 
-import org.example.bookstore.model.Book;
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.request.CreateBookRequest;
-import org.example.bookstore.payload.response.BookResponse;
-import org.example.bookstore.payload.response.CloudinaryResponse;
-import org.example.bookstore.payload.response.CreateBookResponse;
 import org.example.bookstore.payload.response.DataResponse;
 import org.example.bookstore.repository.BookRepository;
-import org.example.bookstore.service.Interface.AwsS3Service;
-import org.example.bookstore.service.Interface.BookService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.bookstore.service.BookService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/book")
 public class BookController {
-
-    private static  final String ADD_BOOK = "Add Book successfully";
-    private static  final String GET_BOOK = "GET Book information successfully";
-    private static  final String UPLOAD_IMAGE_BOOK = "Upload Image Book successfully";
-
 
     private final BookService bookService;
     private final BookRepository bookRepository;
@@ -39,159 +27,90 @@ public class BookController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DataResponse> getBookById(@PathVariable UUID id) {
-        BookDTO bookDTO = bookService.getBookById(id);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .data(bookDTO)
-                .message(GET_BOOK)
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+    public ResponseEntity<ServerResponseDto> getBookById(@PathVariable UUID id) {
+        return ResponseEntity.ok(bookService.getBookById(id));
     }
 
     @PostMapping("/addBook")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DataResponse> addBook(@RequestBody CreateBookRequest request) {
-        BookDTO bookDTO = bookService.addBook(request);
-        DataResponse response = DataResponse.builder()
-                .code(HttpStatus.CREATED.value())
-                .status(HttpStatus.CREATED)
-                .message(ADD_BOOK)
-                .data(bookDTO)
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.status(response.getStatus()).body(response);
+    public ResponseEntity<ServerResponseDto> addBook(@RequestBody CreateBookRequest request) {
+        return ResponseEntity.ok(bookService.addBook(request));
     }
 
     @PostMapping("/uploadImageBook/{bookId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DataResponse> uploadImageBook(
+    public ResponseEntity<ServerResponseDto> uploadImageBook(
             @PathVariable UUID bookId,
             @RequestParam("file") MultipartFile file) {
-        CloudinaryResponse cloudinaryResponse= bookService.uploadImageBook(bookId,file);
-        DataResponse response = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .message(UPLOAD_IMAGE_BOOK)
-                .data(cloudinaryResponse)
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.status(response.getStatus()).body(response);
+        return ResponseEntity.ok(bookService.uploadImageBook(bookId,file));
     }
 
-    @PostMapping("/uploadImageB/{bookId}")
+    @GetMapping("/books")
+    public ResponseEntity<ServerResponseDto> getAllBooks(@RequestParam(defaultValue = "0") Integer page,
+                                                         @RequestParam(defaultValue = "20") Integer size,
+                                                         @RequestParam(required = false) String sortBy,
+                                                         @RequestParam(required = false) String sortDirection) {
+        return ResponseEntity.ok(bookService.getAllBooks(page, size, sortBy, sortDirection));
+    }
+
+
+    @GetMapping("/books/{authorName}")
+    public ResponseEntity<ServerResponseDto> getBooksByAuthor(@PathVariable String authorName,
+                                                              @RequestParam(defaultValue = "0") Integer page,
+                                                              @RequestParam(defaultValue = "10") Integer size,
+                                                              @RequestParam(required = false) String sortBy,
+                                                              @RequestParam(required = false) String sortDirection) {
+        return ResponseEntity.ok(bookService.getAllBooksByAuthor(authorName, page, size, sortBy, sortDirection));
+    }
+
+
+    @GetMapping("/books/{category}")
+    public ResponseEntity<ServerResponseDto> getBooksByCategory(@PathVariable String category,
+                                                                @RequestParam(defaultValue = "0") Integer page,
+                                                                @RequestParam(defaultValue = "10") Integer size,
+                                                                @RequestParam(required = false) String sortBy,
+                                                                @RequestParam(required = false) String sortDirection) {
+        return ResponseEntity.ok(bookService.getAllBooksByCategory(category, page, size, sortBy, sortDirection));
+    }
+
+    @PutMapping("book/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DataResponse> uploadImageB(
-            @PathVariable UUID bookId,
-            @RequestParam("file") MultipartFile file) {
-        String imageUrl = bookService.uploadImageB(bookId,file);
-        DataResponse response = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .message(UPLOAD_IMAGE_BOOK)
-                .data(imageUrl)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(response.getStatus()).body(response);
-    }
-
-
-
-    @GetMapping("/getAllBooks")
-    public ResponseEntity<BookResponse> getAllBooks(
-            @RequestParam(defaultValue = "0") Integer pageNumber,
-            @RequestParam(defaultValue = "20") Integer pageSize,
-            @RequestParam(defaultValue = "title") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
-        BookResponse books = bookService.getAllBooks(pageNumber, pageSize, sortBy, sortOrder);
-        return ResponseEntity.ok(books);
-    }
-
-
-    @GetMapping("/getAllBookByAuthor/{authorName}")
-    public ResponseEntity<BookResponse> getBooksByAuthor(
-        @PathVariable String authorName,
-        @RequestParam(defaultValue = "0") Integer pageNumber,
-        @RequestParam(defaultValue = "10") Integer pageSize,
-        @RequestParam(defaultValue = "title") String sortBy,
-        @RequestParam(defaultValue = "asc") String sortOrder) {
-        BookResponse books = bookService.getAllBooksByAuthor(authorName, pageNumber, pageSize, sortBy, sortOrder);
-        return ResponseEntity.ok(books);
-    }
-
-
-    @GetMapping("/getAllBooksByCategory/{category}")
-    public ResponseEntity<BookResponse> getBooksByCategory(
-            @PathVariable String category,
-            @RequestParam(defaultValue = "0") Integer pageNumber,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(defaultValue = "title") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
-        BookResponse books = bookService.getAllBooksByCategory(category, pageNumber, pageSize, sortBy, sortOrder);
-        return ResponseEntity.ok(books);
-    }
-
-    @PutMapping("updateBook/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookDTO> updateBook(@PathVariable UUID id, @RequestBody BookDTO bookDTO) {
-        BookDTO updatedBook = bookService.updateBook(id, bookDTO);
-        return ResponseEntity.ok(updatedBook);
+    public ResponseEntity<ServerResponseDto> updateBook(@PathVariable UUID id, @RequestBody BookDTO bookDTO) {
+        return ResponseEntity.ok( bookService.updateBook(id, bookDTO));
     }
 
 
     @DeleteMapping("deleteBook/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteBook(@PathVariable UUID id) {
-        boolean deleted = bookService.deleteBook(id);
-        return deleted ? ResponseEntity.ok("Book deleted successfully") :
-                ResponseEntity.badRequest().body("Failed to delete book");
+    public ResponseEntity<ServerResponseDto> deleteBook(@PathVariable UUID id) {
+        return ResponseEntity.ok(bookService.deleteBook(id));
     }
 
     @GetMapping("/upSaleBook")
-    public ResponseEntity<BookResponse> upSaleBook(
-            @RequestParam(defaultValue = "0") Integer pageNumber,
-            @RequestParam(defaultValue = "10") Integer pageSize
+    public ResponseEntity<ServerResponseDto> upSaleBook(@RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "10") int size,
+                                                        @RequestParam(required = false) String sortBy,
+                                                        @RequestParam(required = false) String sortDirection
     ){
-        BookResponse book = bookService.getBookUpSale(pageNumber, pageSize);
-        return ResponseEntity.ok(book);
+        return ResponseEntity.ok(bookService.getBookUpSale(page, size, sortBy, sortDirection));
     }
 
     @GetMapping("/getNewReleaseBook")
-    public ResponseEntity<BookResponse> getNewReleaseBook(
-            @RequestParam(defaultValue = "0") Integer pageNumber,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(defaultValue = "title") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortOrder) {
-        BookResponse books = bookService.getNewReleaseBook( pageNumber, pageSize, sortBy, sortOrder);
-        return ResponseEntity.ok(books);
+    public ResponseEntity<ServerResponseDto> getNewReleaseBook(@RequestParam(defaultValue = "0") Integer page,
+                                                                @RequestParam(defaultValue = "10") Integer size,
+                                                                @RequestParam(required = false) String sortBy,
+                                                                @RequestParam(required = false) String sortDirection) {
+        return ResponseEntity.ok(bookService.getNewReleaseBook(page, size, sortBy, sortDirection));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<DataResponse> getBookByName(@RequestParam String name) {
-        List<BookDTO> bookDTOList = bookService.getBookByTitle(name);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .data(bookDTOList)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(dataResponse);
+    public ResponseEntity<ServerResponseDto> getBookByName(@RequestParam String name) {
+        return ResponseEntity.ok(bookService.getBookByTitle(name));
     }
 
     @GetMapping("/searchByISBN")
-    public ResponseEntity<DataResponse> searchByISBN(@RequestParam String str) {
-        BookDTO bookDTO = bookService.getBookByISBN(str);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .data(bookDTO)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(dataResponse);
+    public ResponseEntity<ServerResponseDto> searchByISBN(@RequestParam String isbn) {
+        return ResponseEntity.ok(bookService.getBookByISBN(isbn));
     }
 
     @GetMapping("/getNumberOfBooks")
@@ -201,15 +120,8 @@ public class BookController {
     }
 
     @GetMapping("/searchByContent")
-    public ResponseEntity<DataResponse> searchBookByContent(@RequestParam String text) {
-        BookDTO book = bookService.searchBookByContent(text);
-
-        return ResponseEntity.ok(DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .data(book) // có thể là null nếu không tìm được
-                .timestamp(LocalDateTime.now())
-                .build());
+    public ResponseEntity<ServerResponseDto> searchBookByContent(@RequestParam String text) {
+        return ResponseEntity.ok(bookService.searchBookByContent(text));
     }
 
 }

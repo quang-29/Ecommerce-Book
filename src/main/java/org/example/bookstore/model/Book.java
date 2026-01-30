@@ -42,7 +42,6 @@ public class Book {
     @Column(name = "book_description", columnDefinition = "TEXT")
     private String description;
 
-
     @Column(name = "language")
     private String language;
 
@@ -69,7 +68,6 @@ public class Book {
 
     @Column(name = "publishedDate", nullable = false)
     private LocalDate publishedDate;
-
 
     @OneToMany(mappedBy = "book")
     private List<Review> reviews;

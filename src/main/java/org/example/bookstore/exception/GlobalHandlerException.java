@@ -1,6 +1,8 @@
 package org.example.bookstore.exception;
 
+import com.google.api.gax.rpc.NotFoundException;
 import org.apache.tomcat.util.http.fileupload.FileUploadException;
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.payload.response.DataResponse;
 import org.springframework.http.HttpStatus;
@@ -16,19 +18,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 @ControllerAdvice
-public class GlobalHandlerException extends RuntimeException{
-    @ExceptionHandler(value = AppException.class)
-    public ResponseEntity<DataResponse> handleAppException(AppException appException) {
-        ErrorCode errorCode = appException.getErrorCode();
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.BAD_REQUEST.value())
-                .message(errorCode.getMessage())
-                .status(HttpStatus.BAD_REQUEST)
-                .data("")
-                .timestamp(LocalDateTime.now())
-                .build();
+public class GlobalHandlerException {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ServerResponseDto> handleGeneralException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ServerResponseDto.error(ex.getMessage()));
+    }
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(dataResponse);
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ServerResponseDto> handleNotFoundException(NotFoundException ex){
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ServerResponseDto.error(ex.getMessage()));
+
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ServerResponseDto> handleRunTimeException(RuntimeException ex){
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ServerResponseDto.error(ex.getMessage()));
+
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ServerResponseDto> handleRunTimeException(ResourceNotFoundException ex){
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ServerResponseDto.error(ex.getMessage()));
+
     }
 
 //    @ExceptionHandler(value = FileUploadException.class)

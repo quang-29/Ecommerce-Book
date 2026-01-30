@@ -1,21 +1,21 @@
 package org.example.bookstore.controller;
 
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.ErrorCode;
+import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.User;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.UserDTO;
 import org.example.bookstore.payload.request.ChangeAvatar;
 import org.example.bookstore.payload.request.EditUser;
-import org.example.bookstore.payload.request.UserRequest;
 import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.DataResponse;
 import org.example.bookstore.payload.response.UserResponse;
 import org.example.bookstore.repository.UserRepository;
-import org.example.bookstore.service.Interface.UserService;
+import org.example.bookstore.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,177 +36,100 @@ public class UserController {
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
+    private final UserService userService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private UserRepository userRepository;
-
-    @GetMapping("/getAllUsers")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DataResponse> getAllUsers(
-            @RequestParam(defaultValue = "0") Integer pageNumber,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(defaultValue = "username") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortOrder
-    ) {
-
-        UserResponse userResponse = userService.getAllUsers(pageNumber, pageSize, sortBy, sortOrder);
-        DataResponse dataResponse = DataResponse.builder()
-                .data(userResponse)
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message("success")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+    public UserController(UserService userService, UserRepository userRepository) {
+        this.userService = userService;
+        this.userRepository = userRepository;
     }
 
-    @GetMapping("/myInfo")
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ServerResponseDto> getAllUsers(@RequestParam(defaultValue = "0") Integer page,
+                                                         @RequestParam(defaultValue = "10") Integer size,
+                                                         @RequestParam(defaultValue = "username") String sortBy,
+                                                         @RequestParam(required = false) String sortDirection) {
+        return ResponseEntity.ok(userService.getAllUsers(page, size, sortBy, sortDirection));
+    }
+
+    @GetMapping("/mypage")
     @PreAuthorize("hasRole('ADMIN') or authentication.principal.username == authentication.name")
-    public ResponseEntity<DataResponse> getUserInfo() {
+    public ResponseEntity<ServerResponseDto> getUserInfo() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDTO userDTO = userService.getMyProfile(authentication.getName());
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .message("success")
-                .timestamp(LocalDateTime.now())
-                .data(userDTO)
-                .status(HttpStatus.OK)
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+        return ResponseEntity.ok(userService.getMyProfile(authentication.getName()));
     }
 
-    @GetMapping("/getUserById/{id}")
+    @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DataResponse> getUserById(@PathVariable UUID id) {
-        UserDTO userDTO = userService.getUserById(id);
-        DataResponse dataResponse = DataResponse.builder()
-                .data(userDTO)
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message("success")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+    public ResponseEntity<ServerResponseDto> getUserById(@PathVariable UUID id) {
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @PutMapping("/updateUser")
-    public ResponseEntity<DataResponse> updateUser(@RequestBody UserUpdate userUpdate) {
+    @PutMapping("/update")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ServerResponseDto> updateUser(@RequestBody UserUpdate userUpdate) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
         UUID currentUserId = userService.getCurrentUserId(authentication);
-        if (!isAdmin) {
-            if(!currentUserId.equals(userUpdate.getId())) {
-                throw new AppException(ErrorCode.UNAUTHORIZED_ACTION);
-            }
+        if(!currentUserId.equals(userUpdate.getId())) {
+            throw new RuntimeException(MessageException.UNAUTHORIZED_ACTION.getMessage());
         }
-        UserDTO userDTO = userService.updateUser(userUpdate);
-        DataResponse dataResponse = DataResponse.builder()
-                .data(userDTO)
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message("success")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+        return ResponseEntity.ok(userService.updateUser(userUpdate));
     }
 
-    @DeleteMapping("/deleteUser")
+    @DeleteMapping("/delete")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DataResponse> deleteUser(@RequestParam UUID userId) {
-        String result = userService.deleteUser(userId);
-        DataResponse dataResponse = DataResponse.builder()
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message(result)
-                .timestamp(LocalDateTime.now())
-                .data("")
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    public ResponseEntity<ServerResponseDto> deleteUser(@RequestParam UUID userId) {
+        return ResponseEntity.ok(userService.deleteUser(userId));
     }
 
     @PutMapping("/likeBook")
-    public ResponseEntity<DataResponse> likedBook(@RequestParam UUID userId,
+    public ResponseEntity<ServerResponseDto> likedBook(@RequestParam UUID userId,
                                                   @RequestParam UUID bookId) {
-        String result = userService.likedBooks(userId, bookId);
-        DataResponse dataResponse = DataResponse.builder()
-                .data("")
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message(result)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+        return ResponseEntity.ok(userService.likedBooks(userId, bookId));
     }
 
     @PutMapping("/unlikeBook")
-    public ResponseEntity<DataResponse> removeLikedBooks(@RequestParam UUID userId,
-                                                         @RequestParam UUID bookId) {
-        String result = userService.removeLikedBooks(userId, bookId);
-        DataResponse dataResponse = DataResponse.builder()
-                .data("")
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message(result)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+    public ResponseEntity<ServerResponseDto> removeLikedBooks(@RequestParam UUID userId,
+                                                              @RequestParam UUID bookId) {
+        return ResponseEntity.ok(userService.removeLikedBooks(userId, bookId));
     }
 
     @GetMapping("/listBooksLikedByUser")
-    public ResponseEntity<DataResponse> listBooksLikedByUser(@RequestParam UUID userId) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ServerResponseDto> listBooksLikedByUser(@RequestParam UUID userId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
         UUID currentUserId = userService.getCurrentUserId(authentication);
-        if (!isAdmin) {
-            if(!currentUserId.equals(userId)) {
-                throw new AppException(ErrorCode.UNAUTHORIZED_ACTION);
-            }
+        if(!currentUserId.equals(userId)) {
+            throw new RuntimeException(MessageException.UNAUTHORIZED_ACTION.getMessage());
         }
-
-        Set<BookDTO> bookDTOS = userService.listBooksLikedByUser(userId);
-        DataResponse dataResponse = DataResponse.builder()
-                .data(bookDTOS)
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .message("success")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.status(dataResponse.getStatus()).body(dataResponse);
+        return ResponseEntity.ok(userService.listBooksLikedByUser(userId));
     }
 
     @GetMapping("/getNumberOfUsers")
-    public ResponseEntity<?> getAllUser() {
-        int count = userRepository.countUser();
-        return ResponseEntity.status(HttpStatus.OK).body(count);
+    public ResponseEntity<ServerResponseDto> getAllUser() {
+        return ResponseEntity.ok(ServerResponseDto.success(userRepository.countUser()));
 
     }
     @PutMapping("/editUser")
-    public ResponseEntity<?> editUser(@RequestBody EditUser editUser) {
-        boolean isSuccessEdit = userService.editUser(editUser);
-        return ResponseEntity.status(HttpStatus.OK).body(isSuccessEdit);
-
+    public ResponseEntity<ServerResponseDto> editUser(@RequestBody EditUser editUser) {
+        return ResponseEntity.ok(userService.editUser(editUser));
     }
 
     @PutMapping("/changeAvatar/{userId}")
-    public ResponseEntity<ChangeAvatar> changeAvatar(@PathVariable UUID userId,
-                                          @RequestParam("file") MultipartFile file) {
-        ChangeAvatar changeAvatar = userService.changeAvatar(userId,file);
-        return ResponseEntity.status(HttpStatus.OK).body(changeAvatar);
+    public ResponseEntity<ServerResponseDto> changeAvatar(@PathVariable UUID userId,
+                                                          @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userService.changeAvatar(userId,file));
     }
 
     @GetMapping("/admin/avatar")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    public ResponseEntity<?> getAvatarAdmin(Authentication authentication) {
+    public ResponseEntity<ServerResponseDto> getAvatarAdmin() {
         Optional<User> user = userRepository.findByUsername("admin");
         if (user.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-
-        return ResponseEntity.ok(Map.of("avatarUrl", user.get().getAvatarUrl()));
+        return ResponseEntity.ok(ServerResponseDto.success(Map.of("avatarUrl", user.get().getAvatarUrl())));
     }
 
 
