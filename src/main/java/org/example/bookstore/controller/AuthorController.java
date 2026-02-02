@@ -8,8 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
+import java.lang.Long;
 
 @RestController
 @RequestMapping("/api/author")
@@ -26,28 +25,28 @@ public class AuthorController {
 
     @PutMapping("/updateAuthor/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> editAuthor(@PathVariable UUID id, @RequestBody AuthorDTO newAuthorDTO) {
+    public ResponseEntity<ServerResponseDto> editAuthor(@PathVariable Long id, @RequestBody AuthorDTO newAuthorDTO) {
         return ResponseEntity.ok(authorService.updateAuthor(id, newAuthorDTO));
     }
 
     @DeleteMapping("/deleteAuthor/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> deleteAuthor(@PathVariable UUID id) {
+    public ResponseEntity<ServerResponseDto> deleteAuthor(@PathVariable Long id) {
         return ResponseEntity.ok(authorService.deleteAuthor(id));
     }
 
     @GetMapping("/getAuthorById/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> getAuthorById(@PathVariable UUID id) {
+    public ResponseEntity<ServerResponseDto> getAuthorById(@PathVariable Long id) {
         return ResponseEntity.ok(authorService.getAuthorById(id));
 
     }
 
     @GetMapping("/getAllAuthors")
     public ResponseEntity<ServerResponseDto> getAllAuthors(@RequestParam(defaultValue = "0") int size,
-                                                      @RequestParam(defaultValue = "10") int page,
-                                                      @RequestParam(required = false) String sortBy,
-                                                      @RequestParam(required = false) String sortDirection) {
+                                                       @RequestParam(defaultValue = "10") int page,
+                                                       @RequestParam(required = false) String sortBy,
+                                                       @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(authorService.getAllAuthors(page, size, sortBy, sortDirection));
     }
 

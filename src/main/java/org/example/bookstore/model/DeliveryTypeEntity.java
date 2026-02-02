@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Getter
 @Setter
@@ -15,11 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "delivery_type")
-public class DeliveryType {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private int id;
+public class DeliveryTypeEntity extends BaseEntity {
 
     @Column(name = "price", nullable = false)
     private BigDecimal price;

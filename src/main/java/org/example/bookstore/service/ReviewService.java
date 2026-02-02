@@ -3,16 +3,15 @@ package org.example.bookstore.service;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.mapper.ReviewMapper;
-import org.example.bookstore.model.Book;
+import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.Review;
-import org.example.bookstore.model.User;
+import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.payload.ReviewDTO;
 import org.example.bookstore.payload.request.ReviewCreate;
 import org.example.bookstore.payload.request.ReviewUpdate;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.ReviewRepository;
 import org.example.bookstore.repository.UserRepository;
-import org.example.bookstore.service.Interface.ReviewService;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,57 +24,55 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class ReviewServiceImpl implements ReviewService {
+public class ReviewService {
 
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewMapper reviewMapper;
 
-    public ReviewServiceImpl(BookRepository bookRepository, UserRepository userRepository, ReviewRepository reviewRepository, ModelMapper modelMapper, ReviewMapper reviewMapper) {
+    public ReviewService(BookRepository bookRepository, UserRepository userRepository, ReviewRepository reviewRepository, ModelMapper modelMapper, ReviewMapper reviewMapper) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
         this.reviewMapper = reviewMapper;
     }
 
-    @Override
     public ReviewDTO addReview(ReviewCreate reviewCreate) {
 
-        Book book = bookRepository.findById(reviewCreate.getBookId())
+        BookEntity bookEntity = bookRepository.findById(reviewCreate.getBookId())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
-        User user = userRepository.findById(reviewCreate.getUserId())
+        UserEntity user = userRepository.findById(reviewCreate.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        boolean exists = reviewRepository.existsByBookAndUser(book, user);
+        boolean exists = reviewRepository.existsByBookAndUser(bookEntity, user);
         if (exists) {
             throw new AppException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
 
 
         Review review = new Review();
-        review.setBook(book);
+        review.setBookEntity(bookEntity);
         review.setCreatedAt(LocalDate.from(LocalDateTime.now()));
         review.setUser(user);
         review.setContent(reviewCreate.getContent());
         review.setRatePoint(reviewCreate.getRating());
         reviewRepository.save(review);
 
-        List<Review> reviews = book.getReviews();
+        List<Review> reviews = bookEntity.getReviews();
         reviews.add(review);
-        book.setReviews(reviews);
-        book.setAverageRating(getAvgRatingProduct(reviews));
-        bookRepository.save(book);
+        bookEntity.setReviews(reviews);
+        bookEntity.setAverageRating(getAvgRatingProduct(reviews));
+        bookRepository.save(bookEntity);
 
         ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
-        reviewDTO.setTitle(review.getBook().getTitle());
+        reviewDTO.setTitle(review.getBookEntity().getTitle());
         reviewDTO.setUsername(review.getUser().getUsername());
 
         return reviewDTO;
     }
 
     @Transactional
-    @Override
     public ReviewDTO updateReview(ReviewUpdate reviewUpdate) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -85,18 +82,18 @@ public class ReviewServiceImpl implements ReviewService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACTION);
         }
 
-        UUID bookId = review.getBook().getId();
-        Book book = bookRepository.findById(bookId)
+        Long bookId = review.getBookEntity().getId();
+        BookEntity bookEntity = bookRepository.findById(bookId)
                         .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
         review.setContent(reviewUpdate.getContent());
         review.setRatePoint(reviewUpdate.getRatePoint());
         reviewRepository.save(review);
 
-        List<Review> reviews = book.getReviews();
+        List<Review> reviews = bookEntity.getReviews();
         reviews.add(review);
-        book.setReviews(reviews);
-        book.setAverageRating(getAvgRatingProduct(reviews));
-        bookRepository.save(book);
+        bookEntity.setReviews(reviews);
+        bookEntity.setAverageRating(getAvgRatingProduct(reviews));
+        bookRepository.save(bookEntity);
 
         return reviewMapper.mapToDTO(review);
     }
@@ -110,8 +107,8 @@ public class ReviewServiceImpl implements ReviewService {
         }
         return totalStars / reviews.size();
     }
-    @Override
-    public String deleteReview(UUID reviewId) {
+    
+    public String deleteReview(Long reviewId) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Review review = reviewRepository.findById(reviewId)
@@ -121,47 +118,44 @@ public class ReviewServiceImpl implements ReviewService {
         if(!isAdmin || !review.getUser().getUsername().equals(authentication.getName())) {
             throw new AppException(ErrorCode.REVIEW_ERROR_DELETE);
         }
-        Book book = review.getBook();
-        List<Review> reviewLists = book.getReviews();
+        BookEntity bookEntity = review.getBookEntity();
+        List<Review> reviewLists = bookEntity.getReviews();
         reviewLists.remove(review);
-        book.setReviews(reviewLists);
-        book.setAverageRating(getAvgRatingProduct(reviewLists));
-        bookRepository.save(book);
+        bookEntity.setReviews(reviewLists);
+        bookEntity.setAverageRating(getAvgRatingProduct(reviewLists));
+        bookRepository.save(bookEntity);
         reviewRepository.delete(review);
         return "Delete review successfully";
     }
 
-    @Override
-    public List<ReviewDTO> getReviewsByUserId(UUID userId) {
+    public List<ReviewDTO> getReviewsByUserId(Long userId) {
         List<Review> reviews = reviewRepository.findAllReviewsByUserId(userId);
         return reviews.stream().map(review -> {
             ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
-            reviewDTO.setTitle(review.getBook().getTitle());
+            reviewDTO.setTitle(review.getBookEntity().getTitle());
             reviewDTO.setUsername(review.getUser().getUsername());
             return reviewDTO;
         }).toList();
 
     }
 
-    @Override
-    public ReviewDTO getReviewById(UUID reviewId) {
+    public ReviewDTO getReviewById(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
         ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
-        reviewDTO.setTitle(review.getBook().getTitle());
+        reviewDTO.setTitle(review.getBookEntity().getTitle());
         reviewDTO.setUsername(review.getUser().getUsername());
         return reviewDTO;
     }
 
-    @Override
-    public List<ReviewDTO> getReviewsByBookId(UUID bookId) {
-        Book book = bookRepository.findById(bookId)
+    public List<ReviewDTO> getReviewsByBookId(Long bookId) {
+        BookEntity bookEntity = bookRepository.findById(bookId)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
 
-        List<Review> reviews = book.getReviews();
+        List<Review> reviews = bookEntity.getReviews();
         return reviews.stream().map(review ->{
             ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
-            reviewDTO.setTitle(review.getBook().getTitle());
+            reviewDTO.setTitle(review.getBookEntity().getTitle());
             reviewDTO.setUsername(review.getUser().getUsername());
             return reviewDTO;
         }).toList();

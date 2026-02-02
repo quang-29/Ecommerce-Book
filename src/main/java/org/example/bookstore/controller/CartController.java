@@ -2,12 +2,12 @@ package org.example.bookstore.controller;
 
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.request.AddToCartRequest;
-import org.example.bookstore.service.Interface.CartService;
+import org.example.bookstore.service.CartService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.lang.Long;
 
 @RestController
 @RequestMapping("/api/cart")
@@ -30,14 +30,14 @@ public class CartController {
     }
 
     @DeleteMapping("/deleteBookFromCart")
-    public ResponseEntity<ServerResponseDto> deleteBookFromCart(@RequestParam UUID cartId,
-                                                                @RequestParam UUID bookId) {
+    public ResponseEntity<ServerResponseDto> deleteBookFromCart(@RequestParam Long cartId,
+                                                            @RequestParam Long bookId) {
         return ResponseEntity.ok(ServerResponseDto.success(cartService.deleteProductFromCart(cartId, bookId)));
     }
 
     @PostMapping("/decreaseBookFromCart")
-    public ResponseEntity<ServerResponseDto> decreaseBookFromCart(@RequestParam UUID cartId,
-                                                                  @RequestParam UUID bookId) {
+    public ResponseEntity<ServerResponseDto> decreaseBookFromCart(@RequestParam Long cartId,
+                                                              @RequestParam Long bookId) {
         return ResponseEntity.ok(ServerResponseDto.success(cartService.decreaseProductFromCart(cartId, bookId)));
 
     }

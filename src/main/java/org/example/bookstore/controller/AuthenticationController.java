@@ -1,154 +1,118 @@
 package org.example.bookstore.controller;
 
-import com.nimbusds.jose.JOSEException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.example.bookstore.payload.ResetPasswordDTO;
+import org.apache.coyote.BadRequestException;
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.request.*;
 import org.example.bookstore.payload.response.*;
-import org.example.bookstore.security.JwtTokenProvider;
-import org.example.bookstore.service.Interface.AuthenticationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
+import org.example.bookstore.security.CurrentUserDetails;
+import org.example.bookstore.security.CustomUserDetails;
+import org.example.bookstore.service.AuthenticationService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
-import java.text.ParseException;
-import java.time.LocalDateTime;
-import java.util.Map;
-
 
 @CrossOrigin(origins = "http://localhost:5173")
 @Slf4j
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/v1/auth")
 public class AuthenticationController {
 
-    private static final String SIGN_UP_SUCCESS = "Sign Up Successful";
-    private static final String SIGN_UP_FAILED = "Sign Up Failed";
-    private static final String LOGIN_SUCCESS = "Login Successful";
-    private static final String LOGIN_FAILED = "Login Failed";
+    private final static String USER_REFRESH_TOKEN_COOKIE = "user_refresh_token";
 
-    @Autowired
-    AuthenticationService authenticationService;
+    @Value("${app.jwt.refresh-token-expiration}")
+    private Long refreshTokenExpiration;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    public final AuthenticationService authenticationService;
 
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    public AuthenticationController(AuthenticationService authenticationService) {
+        this.authenticationService = authenticationService;
+    }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@RequestBody AuthenticationRequest authenticationRequest) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            authenticationRequest.getUsername(),
-                            authenticationRequest.getPassword()
-                    )
-            );
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            String accessToken = jwtTokenProvider.createToken(authentication);
-            String refreshedToken = jwtTokenProvider.createRefreshToken(authentication);
-
-            DataResponse dataResponse = DataResponse.builder()
-                    .code(HttpStatus.OK.value())
-                    .message("Đăng nhập thành công")
-                    .data(new AuthenticationResponse(accessToken, refreshedToken))
-                    .status(HttpStatus.OK)
-                    .timestamp(LocalDateTime.now())
-                    .build();
-
-            return ResponseEntity.ok(dataResponse);
-
-        } catch (AuthenticationException ex) {
-            DataResponse errorResponse = DataResponse.builder()
-                    .code(HttpStatus.UNAUTHORIZED.value())
-                    .message("Tên đăng nhập hoặc mật khẩu không đúng")
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .timestamp(LocalDateTime.now())
-                    .build();
-
-            return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-        }
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response ) {
+        String userAgent = request.getHeader("User-Agent");
+        String ipAddress = getClientIpAddress(request);
+        LoginResponse loginResponse = authenticationService.login(loginRequest, userAgent, ipAddress);
+        setRefreshTokenCookie(response, loginResponse.getRefreshToken(), USER_REFRESH_TOKEN_COOKIE);
+        return ResponseEntity.ok(loginResponse);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<ServerResponseDto> logout(HttpServletRequest request, HttpServletResponse response){
+        CustomUserDetails customUserDetails = CurrentUserDetails.getCurrentUser();
+        if(customUserDetails == null){
+            return ResponseEntity.ok(ServerResponseDto.success(""));
+        }
+        String refreshToken = getRefreshToken(request,USER_REFRESH_TOKEN_COOKIE);
+        authenticationService.logout(refreshToken);
+        clearRefreshTokenCookie(response,USER_REFRESH_TOKEN_COOKIE);
+        return ResponseEntity.ok(ServerResponseDto.success(""));
+    }
 
     @PostMapping("/register")
-    public ResponseEntity<DataResponse> register(@RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<ServerResponseDto> register(@RequestBody RegisterRequest registerRequest) {
         boolean isSuccess = authenticationService.register(registerRequest);
-        String message = isSuccess ? SIGN_UP_SUCCESS : SIGN_UP_FAILED;
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .data(isSuccess)
-                .message(message)
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(dataResponse);
+        return ResponseEntity.ok(ServerResponseDto.success(isSuccess));
     }
 
-    @GetMapping("/introspectToken")
-    public ResponseEntity<IntrospectTokenResponse> introspect(@RequestBody IntrospectRequest introspectRequest) throws ParseException, JOSEException {
-        IntrospectTokenResponse response = authenticationService.introspectToken(introspectRequest);
-        return ResponseEntity.ok(response);
+    @PostMapping("/refresh-user")
+    public ResponseEntity<ServerResponseDto> refreshToken() {
+        return ResponseEntity.ok(ServerResponseDto.success(authenticationService.refreshUser()));
     }
 
-    @PostMapping("/logOut")
-    public ResponseEntity<DataResponse> refreshToken(HttpServletRequest request) throws ParseException, JOSEException, ParseException, JOSEException {
-        authenticationService.logOut(request);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .message("Dang xuat thanh cong")
-                .data("")
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(dataResponse);
+    @PostMapping("/change-password")
+    public ResponseEntity<ServerResponseDto> changePassword(@RequestBody ChangePasswordRequest request) throws BadRequestException {
+        authenticationService.changePassword(request);
+        return ResponseEntity.ok(ServerResponseDto.success("Change password successfully!"));
     }
 
-//    @PostMapping("/oauth2/login")
-//    public ResponseEntity<?> oauth2Login(@RequestParam(value = "provider") String provider,
-//                                         @RequestParam(value = "code") String code){
-//        AuthResponseDTO res = authFacadeService.oauthLogin(code, provider);
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.SET_COOKIE, getRefreshTokenCookie(res.getRefreshToken()).toString())
-//                .body(Map.of(
-//                        "token", res.getAccessToken()
-//                ));
-//    }
-
-    @GetMapping("/user")
-    public String user(Principal principal) {
-//        System.out.println(principal.getName());
-        return "principal";
+    private String getRefreshToken(HttpServletRequest request, String cookieName) {
+        Cookie[] cookies = request.getCookies();
+        if(cookies != null) {
+            for(Cookie cookie: cookies){
+                if(cookieName.equals(cookie.getName())){
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
-    @PostMapping("/refreshToken")
-    public ResponseEntity<DataResponse> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) throws ParseException, JOSEException {
-        RefreshTokenResponse refreshTokenResponse = authenticationService.refreshToken(refreshTokenRequest);
-        return ResponseEntity.ok(DataResponse.builder()
-                .data(refreshTokenResponse)
-                .timestamp(LocalDateTime.now())
-                .message("Refresh Token Successfully!")
-                .status(HttpStatus.OK)
-                .code(HttpStatus.OK.value())
-                .build());
+    private void clearRefreshTokenCookie(HttpServletResponse response, String cookieName){
+        Cookie cookie = new Cookie(cookieName, "");
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ResetPasswordDTO dto){
-        authenticationService.resetPassword(dto);
-        return ResponseEntity.ok(Map.of(
-                "status", "success"
-        ));
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
+            return xForwardedFor.split(",")[0];
+        }
+
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
+            return xRealIp;
+        }
+
+        return request.getRemoteAddr();
+    }
+
+    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken, String cookieName) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            clearRefreshTokenCookie(response, cookieName);
+            return;
+        }
+        Cookie cookie = new Cookie(cookieName, refreshToken);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(refreshTokenExpiration.intValue() / 1000);
+        response.addCookie(cookie);
     }
 }

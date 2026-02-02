@@ -8,7 +8,6 @@ import lombok.Setter;
 import org.example.bookstore.enums.NotificationScope;
 
 import java.util.Date;
-import java.util.UUID;
 
 @Entity
 @Setter
@@ -16,10 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "notifications")
-public class Notifications {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class Notifications extends BaseEntity {
 
     private String content;
 
@@ -32,7 +28,7 @@ public class Notifications {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id")
-    private User receiver;
+    private UserEntity receiver;
 
     private String redirectUrl;
 

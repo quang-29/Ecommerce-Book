@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Generated;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.bookstore.enums.PaymentType;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,13 +16,13 @@ import java.util.UUID;
 public class PlaceOrderDTO {
 
     @NotBlank
-    private UUID cartId;
+    private Long cartId;
 
     @NotBlank
-    private UUID addressId;
+    private Long addressId;
 
     @NotBlank
-    private String paymentType;
+    private PaymentType paymentType;
 
     private int weight;
 

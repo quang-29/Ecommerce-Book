@@ -15,10 +15,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "category")
-public class Category {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class CategoryEntity extends BaseEntity {
 
     @Column(name = "category_name")
     private String name;
@@ -27,6 +24,6 @@ public class Category {
     private String category_img;
 
     @OneToMany(mappedBy = "category")
-    private Set<Book> books;
+    private Set<BookEntity> bookEntities;
 
 }

@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.*;
-import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.model.shipment.BasicShippingOrderInfo;
@@ -15,9 +14,6 @@ import org.example.bookstore.payload.order.PlaceOrderDTO;
 import org.example.bookstore.payload.order.PlaceSingleBookDTO;
 import org.example.bookstore.payload.response.PlaceOrderResponse;
 import org.example.bookstore.repository.*;
-import org.example.bookstore.service.Interface.CartService;
-import org.example.bookstore.service.Interface.NotificationService;
-import org.example.bookstore.service.Interface.UserAddressService;
 import org.example.bookstore.service.shipment.GHNService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -48,13 +44,9 @@ public class OrderService {
     private final GHNService ghnService;
     private final VNPayService vnPayService;
 
-    private Logger logger = LoggerFactory.getLogger(OrderService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
 
     private final UserAddressService userAddressService;
-
-
-
-
 
     public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, OrderItemRepository orderItemRepository, BookRepository bookRepository, GHNService ghnService, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, UserAddressService userAddressService) {
         this.cartRepository = cartRepository;
@@ -70,35 +62,30 @@ public class OrderService {
         this.userAddressService = userAddressService;
     }
 
-
     @Transactional
     public ServerResponseDto placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest httpServletRequest) throws Exception {
 
-        Cart cart = cartRepository.findById(placeOrderDTO.getCartId())
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+        CartEntity cartEntity = cartRepository.findById(placeOrderDTO.getCartId())
+                .orElseThrow(() -> new RuntimeException(MessageException.CART_NOT_FOUND.getMessage()));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserEntity user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
 
-        List<CartItem> cartItems = cart.getCartItems();
+        List<CartItemEntity> cartItemEntities = cartEntity.getCartItemEntities();
 
-        if (cartItems.isEmpty()) {
-            throw new AppException(ErrorCode.ORDER_ERROR);
-        }
-
-        long allBookPrice = cartItems.stream()
+        long allBookPrice = cartItemEntities.stream()
                 .mapToLong(item -> item.getBookPrice() * item.getQuantity())
                 .sum();
 
         List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
         if (placeOrderDTO.getAddressId() == null) {
-            throw new AppException(ErrorCode.INVALID_ADDRESS);
+            throw new RuntimeException(MessageException.ADDRESS_NOT_FOUND.getMessage());
         }
         UserAddress addressTo = userAddressList.stream()
                 .filter(address -> address.getId().equals(placeOrderDTO.getAddressId()))
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.ADDRESS_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(ErrorCode.ADDRESS_NOT_FOUND.getMessage()));
 
         ShipmentInfo shipmentInfo = ShipmentInfo.builder()
                 .from(new ShopAddress())
@@ -111,10 +98,10 @@ public class OrderService {
 
         long totalPay = allBookPrice + shippingFee;
 
-        PaymentType paymentType = PaymentType.fromString(placeOrderDTO.getPaymentType());
+        PaymentType paymentType = placeOrderDTO.getPaymentType();
 
         if(paymentType == null) {
-            throw new AppException(ErrorCode.PAYMENT_METHOD_NOT_FOUND);
+            throw new RuntimeException(MessageException.PAYMENT_METHOD_NOT_FOUND.getMessage());
         }
 
         Payment payment = new Payment();
@@ -135,56 +122,55 @@ public class OrderService {
             payment.setGateway(PaymentGateway.COD);
         }
 
-
-        Order order = new Order();
-        order.setCreateAt(new Date());
-        order.setUser(user);
-        order.setUserAddress(addressTo);
-        order.setPayment(payment);
-        order.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
-        orderRepository.save(order);
+        OrderEntity orderEntity = new OrderEntity();
+        orderEntity.setCreateAt(new Date());
+        orderEntity.setUser(user);
+        orderEntity.setUserAddress(addressTo);
+        orderEntity.setPayment(payment);
+        orderEntity.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
+        orderRepository.save(orderEntity);
 
         List<OrderItem> orderItems = new ArrayList<>();
 
-        for (CartItem cartItem : cartItems) {
+        for (CartItemEntity cartItemEntity : cartItemEntities) {
             OrderItem orderItem = new OrderItem();
-            orderItem.setBook(cartItem.getBook());
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setProductPrice(cartItem.getBookPrice());
-            orderItem.setOrder(order);
+            orderItem.setBookEntity(cartItemEntity.getBookEntity());
+            orderItem.setQuantity(cartItemEntity.getQuantity());
+            orderItem.setProductPrice(cartItemEntity.getBookPrice());
+            orderItem.setOrderEntity(orderEntity);
             orderItems.add(orderItem);
         }
         orderItemRepository.saveAll(orderItems);
 
-        for (int i = 0; i < cart.getCartItems().size(); i++) {
-            CartItem cartItem1 = cart.getCartItems().get(i);
-            int quantity = cartItem1.getQuantity();
-            Book book = cartItem1.getBook();
-            cartService.deleteProductFromCart(cart.getId(), book.getId());
-            book.setStock(book.getStock() - quantity);
-            book.setSold(book.getSold() + quantity);
-            bookRepository.save(book);
+        for (int i = 0; i < cartEntity.getCartItemEntities().size(); i++) {
+            CartItemEntity cartItemEntity1 = cartEntity.getCartItemEntities().get(i);
+            int quantity = cartItemEntity1.getQuantity();
+            BookEntity bookEntity = cartItemEntity1.getBookEntity();
+            cartService.deleteProductFromCart(cartEntity.getId(), bookEntity.getId());
+            bookEntity.setStock(bookEntity.getStock() - quantity);
+            bookEntity.setSold(bookEntity.getSold() + quantity);
+            bookRepository.save(bookEntity);
         }
 
         PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
-        placeOrderResponse.setOrderId(order.getId());
+        placeOrderResponse.setOrderId(orderEntity.getId());
         if(paymentType == PaymentType.BANK_TRANSFER){
-            String paymentUrl = vnPayService.createPaymentUrl(order, httpServletRequest);
+            String paymentUrl = vnPayService.createPaymentUrl(orderEntity, httpServletRequest);
             placeOrderResponse.setPaymentUrl(paymentUrl);
         }
         return ServerResponseDto.success(placeOrderResponse);
     }
 
-    public ServerResponseDto getOrder(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-        OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
-        orderDTO.setOrderItem(order.getOrderItems().stream()
+    public ServerResponseDto getOrder(Long orderId) {
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+        OrderDTO orderDTO = modelMapper.map(orderEntity, OrderDTO.class);
+        orderDTO.setOrderItem(orderEntity.getOrderItems().stream()
                 .map(orderItem -> modelMapper.map(orderItem, OrderItemDTO.class)).collect(Collectors.toList()));
         return ServerResponseDto.success(orderDTO);
     }
 
-    public ServerResponseDto getOrdersByUserId(UUID userId, int page, int size, String sortBy, String sortDirection) {
+    public ServerResponseDto getOrdersByUserId(Long userId, int page, int size, String sortBy, String sortDirection) {
 
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
@@ -195,11 +181,13 @@ public class OrderService {
 
 
     public List<OrderDTO> getAllOrders(int page, int size, String sortBy, String sortDirection) {
-        List<Order> orders = orderRepository.findAll();
-        if (orders.size() == 0) {
-            throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<OrderEntity> orderPage = orderRepository.findAll(pageable);
+        if (orderPage.getContent().isEmpty()) {
+            throw new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage());
         }
-        return orders.stream()
+        return orderPage.getContent().stream()
                 .map(order -> {
                     OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
                     orderDTO.setOrderItem(order.getOrderItems().stream()
@@ -211,61 +199,66 @@ public class OrderService {
     }
 
     @Transactional
-    public ServerResponseDto updateStatusOrder(UUID orderId, int orderStatus) {
-        Order order = orderRepository.findById(orderId)
+    public ServerResponseDto updateStatusOrder(Long orderId, int orderStatus) {
+        OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 //        order.setOrderStatus(orderStatus);
-        return ServerResponseDto.success(modelMapper.map(orderRepository.save(order), OrderDTO.class));
+        return ServerResponseDto.success(modelMapper.map(orderRepository.save(orderEntity), OrderDTO.class));
     }
 
-    public ServerResponseDto cancelOrder(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-        Payment payment = order.getPayment();
+    public ServerResponseDto cancelOrder(Long orderId) {
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+        Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.CANCELLED);
-        order.setPayment(payment);
-        orderRepository.save(order);
+        orderEntity.setPayment(payment);
+        orderRepository.save(orderEntity);
 
         List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
-        for (OrderItem orderItem : orderItems) {
-            Book book = orderItem.getBook();
-            book.setStock(book.getStock() + orderItem.getQuantity());
-             bookRepository.save(book);
+
+        Map<Long, Integer> quantityByBookId = orderItems.stream()
+                .collect(Collectors.groupingBy(oi -> oi.getBookEntity().getId(),
+                         Collectors.summingInt(OrderItem::getQuantity)));
+
+        List<BookEntity> bookEntities = bookRepository.findAllById(quantityByBookId.keySet());
+        for (BookEntity bookEntity : bookEntities) {
+            bookEntity.setStock(bookEntity.getStock() + quantityByBookId.get(bookEntity.getId()));
         }
+        bookRepository.saveAll(bookEntities);
         return ServerResponseDto.success("Order has been canceled successfully");
     }
 
-    public ServerResponseDto confirmOrder(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-        Payment payment = order.getPayment();
+    public ServerResponseDto confirmOrder(Long orderId) {
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+        Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.CONFIRMED);
-        order.setPayment(payment);
-        orderRepository.save(order);
+        orderEntity.setPayment(payment);
+        orderRepository.save(orderEntity);
         return ServerResponseDto.success("Confirm order successfully");
     }
 
-    public ServerResponseDto transitOrder(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-        Payment payment = order.getPayment();
+    public ServerResponseDto transitOrder(Long orderId) {
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+        Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.IN_TRANSIT);
-        order.setPayment(payment);
-        orderRepository.save(order);
+        orderEntity.setPayment(payment);
+        orderRepository.save(orderEntity);
         return ServerResponseDto.success("Start delivery order");
     }
 
-    public ServerResponseDto deliveryOrder(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-        Payment payment = order.getPayment();
+    public ServerResponseDto deliveryOrder(Long orderId) {
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+        Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.DELIVERED);
-        order.setPayment(payment);
-        orderRepository.save(order);
+        orderEntity.setPayment(payment);
+        orderRepository.save(orderEntity);
         return ServerResponseDto.success("Delivery order successfully");
     }
 
-    public Order getOrderById(UUID orderId) {
+    public OrderEntity getOrderById(Long orderId) {
         return orderRepository.findById(orderId).orElse(null);
     }
 
@@ -275,22 +268,21 @@ public class OrderService {
 
     @Transactional
     public ServerResponseDto buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception {
-        Book book = bookRepository.findById(placeSingleBookDTO.getBookId())
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+        BookEntity bookEntity = bookRepository.findById(placeSingleBookDTO.getBookId())
+                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
+        UserEntity user = userRepository.findUserByUsername(username)
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
 
         List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
         if (placeSingleBookDTO.getAddressId() == null) {
-            throw new AppException(ErrorCode.INVALID_ADDRESS);
+            throw new RuntimeException(MessageException.INVALID_ADDRESS.getMessage());
         }
         UserAddress addressTo = userAddressList.stream()
                 .filter(address -> address.getId().equals(placeSingleBookDTO.getAddressId()))
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.ADDRESS_NOT_FOUND));
+                .orElseThrow(() -> new RuntimeException(MessageException.ADDRESS_NOT_FOUND.getMessage()));
 
         ShipmentInfo shipmentInfo = ShipmentInfo.builder()
                 .from(new ShopAddress())
@@ -301,12 +293,12 @@ public class OrderService {
         BasicShippingOrderInfo basicShippingOrderInfo = ghnService.calculateShipmentFee(shipmentInfo);
         long shippingFee = basicShippingOrderInfo.getFee();
 
-        long totalPay = book.getPrice() + shippingFee;
+        long totalPay = bookEntity.getPrice() + shippingFee;
 
-        PaymentType paymentType = PaymentType.fromString(placeSingleBookDTO.getPaymentType());
+        PaymentType paymentType = placeSingleBookDTO.getPaymentType();
 
         if(paymentType == null) {
-            throw new AppException(ErrorCode.PAYMENT_METHOD_NOT_FOUND);
+            throw new RuntimeException(MessageException.PAYMENT_METHOD_NOT_FOUND.getMessage());
         }
 
         Payment payment = new Payment();
@@ -327,32 +319,32 @@ public class OrderService {
             payment.setGateway(PaymentGateway.COD);
         }
 
-        Order order = new Order();
-        order.setCreateAt(new Date());
-        order.setUser(user);
-        order.setUserAddress(addressTo);
-        order.setPayment(payment);
-        order.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
+        OrderEntity orderEntity = new OrderEntity();
+        orderEntity.setCreateAt(new Date());
+        orderEntity.setUser(user);
+        orderEntity.setUserAddress(addressTo);
+        orderEntity.setPayment(payment);
+        orderEntity.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
         
-        orderRepository.save(order);
+        orderRepository.save(orderEntity);
         
         OrderItem orderItem = new OrderItem();
-        orderItem.setBook(book);
+        orderItem.setBookEntity(bookEntity);
         orderItem.setQuantity(1);
-        orderItem.setProductPrice(book.getPrice());
-        orderItem.setOrder(order);
+        orderItem.setProductPrice(bookEntity.getPrice());
+        orderItem.setOrderEntity(orderEntity);
         orderItemRepository.save(orderItem);
-        order.setOrderItems(Arrays.asList(orderItem));
+        orderEntity.setOrderItems(Arrays.asList(orderItem));
 
-        book.setStock(book.getStock() - 1);
-        book.setSold(book.getSold() + 1);
-        bookRepository.save(book);
+        bookEntity.setStock(bookEntity.getStock() - 1);
+        bookEntity.setSold(bookEntity.getSold() + 1);
+        bookRepository.save(bookEntity);
 
 
         PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
-        placeOrderResponse.setOrderId(order.getId());
+        placeOrderResponse.setOrderId(orderEntity.getId());
         if(paymentType == PaymentType.BANK_TRANSFER){
-            String paymentUrl = vnPayService.createPaymentUrl(order, request);
+            String paymentUrl = vnPayService.createPaymentUrl(orderEntity, request);
             placeOrderResponse.setPaymentUrl(paymentUrl);
         }
         return ServerResponseDto.success(placeOrderResponse);

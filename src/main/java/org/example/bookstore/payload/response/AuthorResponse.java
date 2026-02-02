@@ -3,7 +3,7 @@ package org.example.bookstore.payload.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.bookstore.model.Book;
+import org.example.bookstore.model.BookEntity;
 
 import java.util.Set;
 import java.util.UUID;
@@ -12,11 +12,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AuthorResponse {
-    private UUID id;
+    private Long id;
     private String name;
     private String bio;
     private String email;
     private String address;
     private String phone;
-    private Set<Book> books;
+    private Set<BookEntity> bookEntities;
 }

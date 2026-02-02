@@ -12,7 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 public class BookDTO {
-    private UUID id;
+    private Long id;
     private String title;
     private String description;
     private BigDecimal price;

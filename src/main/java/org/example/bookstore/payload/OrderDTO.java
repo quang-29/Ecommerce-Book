@@ -22,7 +22,7 @@ import java.util.UUID;
 @Data
 public class OrderDTO {
 
-    private UUID orderId;
+    private Long orderId;
     private List<OrderItemDTO> orderItem = new ArrayList<>();
     private Date createAt;
     private Date estimatedDeliveryDate;

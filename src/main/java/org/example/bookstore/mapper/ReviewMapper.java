@@ -13,10 +13,10 @@ public class ReviewMapper {
         dto.setRatePoint(review.getRatePoint());
         dto.setCreatedAt(review.getCreatedAt());
 
-        if (review.getBook() != null) {
-            dto.setBookId(review.getBook().getId());
-            dto.setTitle(review.getBook().getTitle());
-            dto.setImagePath(review.getBook().getImagePath());
+        if (review.getBookEntity() != null) {
+            dto.setBookId(review.getBookEntity().getId());
+            dto.setTitle(review.getBookEntity().getTitle());
+            dto.setImagePath(review.getBookEntity().getImagePath());
         }
 
         if (review.getUser() != null) {

@@ -18,7 +18,7 @@ public class OrderInfoDTO {
     private String username;
     private String phoneNumber;
     private String email;
-    private UUID userAddress;
+    private Long userAddress;
     private LocalDate createAt;
     private LocalDate estimatedDeliveryDate;
     private long amount;

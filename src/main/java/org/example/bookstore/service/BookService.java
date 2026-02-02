@@ -5,17 +5,15 @@ import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.AppException;
 import org.example.bookstore.exception.ResourceNotFoundException;
-import org.example.bookstore.model.Author;
-import org.example.bookstore.model.Book;
-import org.example.bookstore.model.Category;
+import org.example.bookstore.model.AuthorEntity;
+import org.example.bookstore.model.BookEntity;
+import org.example.bookstore.model.CategoryEntity;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.request.CreateBookRequest;
-import org.example.bookstore.payload.response.BookResponse;
 import org.example.bookstore.payload.response.CloudinaryResponse;
 import org.example.bookstore.repository.AuthorRepository;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.CategoryRepository;
-import org.example.bookstore.service.Interface.AwsS3Service;
 import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,37 +26,35 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
+import java.lang.Long;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.UUID;
+
 
 @Service
 public class BookService {
-    @Autowired
-    CategoryRepository categoryRepository;
 
-    @Autowired
-    private CloudinaryServiceImpl cloudinaryServiceImpl;
+    private final CategoryRepository categoryRepository;
+    private final CloudinaryServiceImpl cloudinaryServiceImpl;
+    private final ModelMapper modelMapper;
+    private final BookRepository bookRepository;
+    private final AuthorRepository authorRepository;
 
-    @Autowired
-    private ModelMapper modelMapper;
-
-    @Autowired
-    private BookRepository bookRepository;
-    @Autowired
-    private AuthorRepository authorRepository;
-    @Autowired
-    private AwsS3Service awsS3Service;
-
-
-    public ServerResponseDto getBookById(UUID id) {
-        Book book = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
-        return ServerResponseDto.success( modelMapper.map(book, BookDTO.class));
+    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository) {
+        this.categoryRepository = categoryRepository;
+        this.cloudinaryServiceImpl = cloudinaryServiceImpl;
+        this.modelMapper = modelMapper;
+        this.bookRepository = bookRepository;
+        this.authorRepository = authorRepository;
     }
 
+    public ServerResponseDto getBookById(Long id) {
+        BookEntity bookEntity = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
+        return ServerResponseDto.success( modelMapper.map(bookEntity, BookDTO.class));
+    }
 
     public ServerResponseDto getAllBooks(int page, int size, String sortBy, String sortDirection) {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
@@ -68,7 +64,7 @@ public class BookService {
         return ServerResponseDto.success(pageBooks);
     }
 
-    public ServerResponseDto getAllBooksByAuthor(String authorName,int page, int size, String sortBy, String sortDirection) {
+    public ServerResponseDto getAllBooksByAuthor(String authorName, int page, int size, String sortBy, String sortDirection) {
 
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageDetails = PageRequest.of(page, size, Sort.by(direction, sortBy));
@@ -82,84 +78,81 @@ public class BookService {
         Pageable pageDetails = PageRequest.of(page, size, Sort.by(direction, sortBy));
         Page<BookDTO> pageBooks = bookRepository.findByCategory_Name(category, pageDetails).map(book -> modelMapper.map(book, BookDTO.class));
         return ServerResponseDto.success(pageBooks);
-
     }
 
     @Transactional
     public ServerResponseDto addBook(CreateBookRequest request) {
-        Book foundBook = bookRepository.findByName(request.getTitle());
-        if(foundBook != null) {
+        BookEntity foundBookEntity = bookRepository.findByName(request.getTitle());
+        if(foundBookEntity != null) {
             throw new RuntimeException(MessageException.BOOK_EXIST.getMessage());
         }
-        Book book = modelMapper.map(request, Book.class);
-        book.setSold(0L);
-        book.setPublishedDate(LocalDate.parse(request.getPublishedDate()));
-        Optional<Category> optionalCategory = categoryRepository.findByName(request.getCategory());
+        BookEntity bookEntity = modelMapper.map(request, BookEntity.class);
+        bookEntity.setSold(0L);
+        bookEntity.setPublishedDate(LocalDate.parse(request.getPublishedDate()));
+        Optional<CategoryEntity> optionalCategory = categoryRepository.findByName(request.getCategory());
         if(optionalCategory.isPresent()){
-            book.setCategory(optionalCategory.get());
+            bookEntity.setCategoryEntity(optionalCategory.get());
         }
-        Optional<Author> optionalAuthor = authorRepository.findByName(request.getAuthor());
+        Optional<AuthorEntity> optionalAuthor = authorRepository.findByName(request.getAuthor());
         if(optionalAuthor.isPresent()){
-            book.setAuthor(optionalAuthor.get());
+            bookEntity.setAuthorEntity(optionalAuthor.get());
         } else {
-            Author author = new Author();
-            author.setName(request.getAuthor());
-            authorRepository.save(author);
-            book.setAuthor(author);
+            AuthorEntity authorEntity = new AuthorEntity();
+            authorEntity.setName(request.getAuthor());
+            authorRepository.save(authorEntity);
+            bookEntity.setAuthorEntity(authorEntity);
         }
-        Book bookSaved = bookRepository.save(book);
-        BookDTO bookDTO = modelMapper.map(bookSaved, BookDTO.class);
-        bookDTO.setAuthorName(bookSaved.getAuthor().getName());
+        BookEntity bookEntitySaved = bookRepository.save(bookEntity);
+        BookDTO bookDTO = modelMapper.map(bookEntitySaved, BookDTO.class);
+        bookDTO.setAuthorName(bookEntitySaved.getAuthorEntity().getName());
         return ServerResponseDto.success(bookDTO);
-
 
     }
 
     @Transactional
-    public ServerResponseDto uploadImageBook(UUID id, MultipartFile file) {
+    public ServerResponseDto uploadImageBook(Long id, MultipartFile file) {
             try {
-                Optional<Book> optionalBook = bookRepository.findById(id);
+                Optional<BookEntity> optionalBook = bookRepository.findById(id);
                 if(optionalBook.isEmpty()){
                     throw new AppException(ErrorCode.BOOK_NOT_FOUND);
                 }
-                Book book = optionalBook.get();
+                BookEntity bookEntity = optionalBook.get();
                 FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
                 final String fileName = FileUploadUtil.getFileName(file.getOriginalFilename());
                 final CloudinaryResponse response = cloudinaryServiceImpl.uploadFile(file, fileName);
-                book.setImagePath(response.getUrl());
-                bookRepository.save(book);
+                bookEntity.setImagePath(response.getUrl());
+                bookRepository.save(bookEntity);
                 return ServerResponseDto.success(response);
             } catch (Exception ex){
                 throw new RuntimeException(ex.getMessage());
             }
         }
 
-
-    public ServerResponseDto updateBook(UUID id, BookDTO bookDTO) {
-        Book bookFound = bookRepository.findById(id)
+    public ServerResponseDto updateBook(Long id, BookDTO bookDTO) {
+        BookEntity bookEntityFound = bookRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
-        modelMapper.map(bookDTO, bookFound);
-        Author author = authorRepository.findByName(bookDTO.getAuthorName())
+        modelMapper.map(bookDTO, bookEntityFound);
+        AuthorEntity authorEntity = authorRepository.findByName(bookDTO.getAuthorName())
                 .orElseThrow(() -> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
-        bookFound.setAuthor(author);
-        Category category = categoryRepository.findByName(bookDTO.getCategoryName())
+        bookEntityFound.setAuthorEntity(authorEntity);
+        CategoryEntity categoryEntity = categoryRepository.findByName(bookDTO.getCategoryName())
                 .orElseGet(() -> {
-                    Category newCategory = new Category();
-                    newCategory.setName(bookDTO.getCategoryName());
-                    return categoryRepository.save(newCategory);
+                    CategoryEntity newCategoryEntity = new CategoryEntity();
+                    newCategoryEntity.setName(bookDTO.getCategoryName());
+                    return categoryRepository.save(newCategoryEntity);
                 });
-        bookFound.setCategory(category);
-        Book savedBook = bookRepository.save(bookFound);
-        BookDTO updatedBookDTO = modelMapper.map(savedBook, BookDTO.class);
-        updatedBookDTO.setAuthorName(savedBook.getAuthor().getName());
-        updatedBookDTO.setCategoryName(savedBook.getCategory().getName());
+        bookEntityFound.setCategoryEntity(categoryEntity);
+        BookEntity savedBookEntity = bookRepository.save(bookEntityFound);
+        BookDTO updatedBookDTO = modelMapper.map(savedBookEntity, BookDTO.class);
+        updatedBookDTO.setAuthorName(savedBookEntity.getAuthorEntity().getName());
+        updatedBookDTO.setCategoryName(savedBookEntity.getCategoryEntity().getName());
         return ServerResponseDto.success(updatedBookDTO);
     }
 
-    public ServerResponseDto deleteBook(UUID id) {
-        Book book = bookRepository.findById(id)
+    public ServerResponseDto deleteBook(Long id) {
+        BookEntity bookEntity = bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Book","bookId", id));
-        bookRepository.delete(book);
+        bookRepository.delete(bookEntity);
         return ServerResponseDto.success("Delete book Successfully");
     }
 
@@ -179,37 +172,35 @@ public class BookService {
         return ServerResponseDto.success(pageBooks);
     }
 
-
     public ServerResponseDto getBookByTitle(String title) {
-        List<Book> bookList = bookRepository.getBookByTitle(title);
+        List<BookEntity> bookEntityList = bookRepository.getBookByTitle(title);
 
-        List<BookDTO> bookDTOList = bookList.stream().map(book -> modelMapper.map(book, BookDTO.class)).toList();
+        List<BookDTO> bookDTOList = bookEntityList.stream().map(book -> modelMapper.map(book, BookDTO.class)).toList();
         return ServerResponseDto.success(bookDTOList) ;
     }
 
     public ServerResponseDto getBookByISBN(String isbn) {
-        Book book = bookRepository.findBookByIsbn(isbn);
-        if(book == null) {
+        BookEntity bookEntity = bookRepository.findBookByIsbn(isbn);
+        if(bookEntity == null) {
             throw new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage());
         }
 
-        return ServerResponseDto.success(modelMapper.map(book, BookDTO.class));
+        return ServerResponseDto.success(modelMapper.map(bookEntity, BookDTO.class));
     }
-
 
     public ServerResponseDto searchBookByContent(String content) {
         String cleanText = normalizeText(content);
-        List<Book> allBooks = bookRepository.findAll();
+        List<BookEntity> allBookEntities = bookRepository.findAll();
 
-        Book bestMatch = null;
+        BookEntity bestMatch = null;
         double highestScore = 0.0;
 
-        for (Book book : allBooks) {
-            String combined = (book.getTitle() + " " + book.getAuthor() + " " + book.getDescription()).toLowerCase();
+        for (BookEntity bookEntity : allBookEntities) {
+            String combined = (bookEntity.getTitle() + " " + bookEntity.getAuthorEntity() + " " + bookEntity.getDescription()).toLowerCase();
             double score = similarity(cleanText, combined);
             if (score > highestScore) {
                 highestScore = score;
-                bestMatch = book;
+                bestMatch = bookEntity;
             }
         }
 
@@ -255,6 +246,5 @@ public class BookService {
         }
         return dp[s1.length()][s2.length()];
     }
-
 
 }

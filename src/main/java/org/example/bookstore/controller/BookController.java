@@ -3,16 +3,15 @@ package org.example.bookstore.controller;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.request.CreateBookRequest;
-import org.example.bookstore.payload.response.DataResponse;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.service.BookService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.time.LocalDateTime;
-import java.util.UUID;
+
+import java.lang.Long;
+
 
 @RestController
 @RequestMapping("/api/book")
@@ -27,7 +26,7 @@ public class BookController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ServerResponseDto> getBookById(@PathVariable UUID id) {
+    public ResponseEntity<ServerResponseDto> getBookById(@PathVariable Long id) {
         return ResponseEntity.ok(bookService.getBookById(id));
     }
 
@@ -40,66 +39,66 @@ public class BookController {
     @PostMapping("/uploadImageBook/{bookId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ServerResponseDto> uploadImageBook(
-            @PathVariable UUID bookId,
+            @PathVariable Long bookId,
             @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(bookService.uploadImageBook(bookId,file));
     }
 
     @GetMapping("/books")
     public ResponseEntity<ServerResponseDto> getAllBooks(@RequestParam(defaultValue = "0") Integer page,
-                                                         @RequestParam(defaultValue = "20") Integer size,
-                                                         @RequestParam(required = false) String sortBy,
-                                                         @RequestParam(required = false) String sortDirection) {
+                                                     @RequestParam(defaultValue = "20") Integer size,
+                                                     @RequestParam(required = false) String sortBy,
+                                                     @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(bookService.getAllBooks(page, size, sortBy, sortDirection));
     }
 
 
     @GetMapping("/books/{authorName}")
     public ResponseEntity<ServerResponseDto> getBooksByAuthor(@PathVariable String authorName,
-                                                              @RequestParam(defaultValue = "0") Integer page,
-                                                              @RequestParam(defaultValue = "10") Integer size,
-                                                              @RequestParam(required = false) String sortBy,
-                                                              @RequestParam(required = false) String sortDirection) {
+                                                          @RequestParam(defaultValue = "0") Integer page,
+                                                          @RequestParam(defaultValue = "10") Integer size,
+                                                          @RequestParam(required = false) String sortBy,
+                                                          @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(bookService.getAllBooksByAuthor(authorName, page, size, sortBy, sortDirection));
     }
 
 
     @GetMapping("/books/{category}")
     public ResponseEntity<ServerResponseDto> getBooksByCategory(@PathVariable String category,
-                                                                @RequestParam(defaultValue = "0") Integer page,
-                                                                @RequestParam(defaultValue = "10") Integer size,
-                                                                @RequestParam(required = false) String sortBy,
-                                                                @RequestParam(required = false) String sortDirection) {
+                                                            @RequestParam(defaultValue = "0") Integer page,
+                                                            @RequestParam(defaultValue = "10") Integer size,
+                                                            @RequestParam(required = false) String sortBy,
+                                                            @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(bookService.getAllBooksByCategory(category, page, size, sortBy, sortDirection));
     }
 
     @PutMapping("book/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> updateBook(@PathVariable UUID id, @RequestBody BookDTO bookDTO) {
+    public ResponseEntity<ServerResponseDto> updateBook(@PathVariable Long id, @RequestBody BookDTO bookDTO) {
         return ResponseEntity.ok( bookService.updateBook(id, bookDTO));
     }
 
 
     @DeleteMapping("deleteBook/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> deleteBook(@PathVariable UUID id) {
+    public ResponseEntity<ServerResponseDto> deleteBook(@PathVariable Long id) {
         return ResponseEntity.ok(bookService.deleteBook(id));
     }
 
     @GetMapping("/upSaleBook")
     public ResponseEntity<ServerResponseDto> upSaleBook(@RequestParam(defaultValue = "0") int page,
-                                                        @RequestParam(defaultValue = "10") int size,
-                                                        @RequestParam(required = false) String sortBy,
-                                                        @RequestParam(required = false) String sortDirection
+                                                    @RequestParam(defaultValue = "10") int size,
+                                                    @RequestParam(required = false) String sortBy,
+                                                    @RequestParam(required = false) String sortDirection
     ){
         return ResponseEntity.ok(bookService.getBookUpSale(page, size, sortBy, sortDirection));
     }
 
     @GetMapping("/getNewReleaseBook")
     public ResponseEntity<ServerResponseDto> getNewReleaseBook(@RequestParam(defaultValue = "0") Integer page,
-                                                                @RequestParam(defaultValue = "10") Integer size,
-                                                                @RequestParam(required = false) String sortBy,
-                                                                @RequestParam(required = false) String sortDirection) {
+                                                           @RequestParam(defaultValue = "10") Integer size,
+                                                           @RequestParam(required = false) String sortBy,
+                                                           @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(bookService.getNewReleaseBook(page, size, sortBy, sortDirection));
     }
 

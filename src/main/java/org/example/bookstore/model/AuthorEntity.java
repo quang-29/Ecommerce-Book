@@ -2,7 +2,6 @@ package org.example.bookstore.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,10 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "author")
-public class Author {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class AuthorEntity extends BaseEntity {
 
     @Size(min = 3, max = 20, message = "Author Name must be between 5 and 20 characters long")
     @Column(name = "author_name")
@@ -48,6 +44,6 @@ public class Author {
     private String image_path;
 
     @OneToMany(mappedBy = "author")
-    private Set<Book> books;
+    private Set<BookEntity> bookEntities;
 
 }

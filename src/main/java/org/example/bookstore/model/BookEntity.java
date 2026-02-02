@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -16,21 +15,18 @@ import java.util.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "book")
-public class Book {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class BookEntity extends BaseEntity {
 
     @Column(name = "title")
     private String title;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
-    private Category category;
+    private CategoryEntity categoryEntity;
 
     @ManyToOne
     @JoinColumn(name = "author_id")
-    private Author author;
+    private AuthorEntity authorEntity;
 
     @Column(name = "price", nullable = false)
     private long price;
@@ -76,7 +72,7 @@ public class Book {
     private List<OrderItem> orderDetails;
 
     @ManyToMany(mappedBy = "likedBooks")
-    private Set<User> likedByUsers = new HashSet<>();
+    private Set<UserEntity> likedByUsers = new HashSet<>();
 
 
 }

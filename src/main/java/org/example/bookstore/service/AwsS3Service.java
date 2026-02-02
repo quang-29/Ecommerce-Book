@@ -9,14 +9,13 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.exception.AppException;
-import org.example.bookstore.service.Interface.AwsS3Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 @Service
-public class AwsS3ServiceImpl implements AwsS3Service {
+public class AwsS3Service {
 
     @Value("${aws.s3.bucketName}")
     private String bucketName;
@@ -27,7 +26,6 @@ public class AwsS3ServiceImpl implements AwsS3Service {
     @Value("${aws.s3.secret.key}")
     private String awsS3SecretKey;
 
-    @Override
     public String saveImageToS3(MultipartFile photo) {
         String s3LocationImage = null;
         try {

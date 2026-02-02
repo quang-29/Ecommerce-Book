@@ -2,7 +2,6 @@ package org.example.bookstore.service;
 
 import org.example.bookstore.model.ShopAddress;
 import org.example.bookstore.model.UserAddress;
-import org.example.bookstore.model.address.Address;
 import org.example.bookstore.model.address.District;
 import org.example.bookstore.model.address.Province;
 import org.example.bookstore.model.address.Ward;
@@ -13,7 +12,6 @@ import org.example.bookstore.repository.DistrictRepository;
 import org.example.bookstore.repository.ProvinceRepository;
 import org.example.bookstore.repository.UserAddressRepository;
 import org.example.bookstore.repository.WardRepository;
-import org.example.bookstore.service.Interface.UserAddressService;
 import org.example.bookstore.service.shipment.GHNService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,30 +19,28 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class UserAddressServiceImpl implements UserAddressService {
-
-    @Autowired
-    private UserAddressRepository userAddressRepository;
-
-    @Autowired
-    private DistrictRepository districtRepository;
-
-    @Autowired
-    private ProvinceRepository provinceRepository;
-
-    @Autowired
-    private WardRepository wardRepository;
+public class UserAddressService {
 
 
-    @Autowired
-    private GHNService ghnService;
+    private final UserAddressRepository userAddressRepository;
+    private final DistrictRepository districtRepository;
+    private final ProvinceRepository provinceRepository;
+    private final WardRepository wardRepository;
+    private final GHNService ghnService;
 
-    @Override
+    public UserAddressService(UserAddressRepository userAddressRepository, DistrictRepository districtRepository, ProvinceRepository provinceRepository, WardRepository wardRepository, GHNService ghnService) {
+        this.userAddressRepository = userAddressRepository;
+        this.districtRepository = districtRepository;
+        this.provinceRepository = provinceRepository;
+        this.wardRepository = wardRepository;
+        this.ghnService = ghnService;
+    }
+
+
     public List<UserAddress> getAddressListByUser(String username) {
         return userAddressRepository.findByUsername(username) ;
     }
 
-    @Override
     public void save(UserAddressRequest userAddressRequest) {
         UserAddress userAddress = new UserAddress();
         userAddress.setUsername(userAddressRequest.getUsername());
@@ -88,37 +84,30 @@ public class UserAddressServiceImpl implements UserAddressService {
         userAddressRepository.save(userAddress);
     }
 
-    @Override
     public List<Province> getProvinceList() {
         return provinceRepository.findAll();
     }
 
-    @Override
     public Province findProvinceByName(String name) {
         return provinceRepository.findByName(name);
     }
-
-    @Override
     public List<District> findDistrictByName(String name) {
         return districtRepository.findByName(name);
     }
 
-    @Override
+
     public List<Ward> findWardByName(String name) {
         return wardRepository.findByName(name);
     }
 
-    @Override
     public List<District> findDistrictListByProvinceId(int provinceId) {
         return districtRepository.findAllByProvinceId(provinceId);
     }
 
-    @Override
     public List<Ward> findWardListByDistrictId(int districtId) {
         return wardRepository.findAllByDistrictId(districtId);
     }
 
-    @Override
     public BasicShippingOrderInfo getBasicShipmentInfo(UserAddress addressTo) throws Exception {
         ShopAddress addressFrom = new ShopAddress();
         int weight = 4000;

@@ -9,6 +9,7 @@ public enum ResponseCase {
     RECORD_ALREADY_EXIST(6, "RECORD_ALREADY_EXIST"),
     DATA_INVALID(7, "DATA_INVALID"),
     SEND_OTP_SUCCESS(8, "SEND_OTP_SUCCESS"),
+    UNAUTHORIZED(1500,"User are unauthorized"),
 
     DUPLICATE(1020, "Duplicate"),
     NOT_FOUND(1404, "Cannot found!"),

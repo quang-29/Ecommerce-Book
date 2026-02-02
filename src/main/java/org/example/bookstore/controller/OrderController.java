@@ -13,12 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.Long;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/order")
+@RequestMapping("/v1/order")
 public class OrderController {
 
     private final OrderService orderService;
@@ -35,21 +35,21 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ServerResponseDto> getOrderByUserId(@PathVariable UUID userId,
-                                                              @RequestParam(defaultValue = "0") int page,
-                                                              @RequestParam(defaultValue = "10") int size,
-                                                              @RequestParam(required = false) String sortBy,
-                                                              @RequestParam(required = false) String sortDirection) {
+    public ResponseEntity<ServerResponseDto> getOrderByUserId(@PathVariable Long userId,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size,
+                                                          @RequestParam(required = false) String sortBy,
+                                                          @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(orderService.getOrdersByUserId(userId, page, size, sortBy, sortDirection));
     }
 
-    @GetMapping("getOrderByOrderId/{orderId}")
+    @GetMapping("/{orderId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
-    public ResponseEntity<ServerResponseDto> getOrderByOrderId(@PathVariable UUID orderId) {
+    public ResponseEntity<ServerResponseDto> getOrderByOrderId(@PathVariable Long orderId) {
         return ResponseEntity.ok(ServerResponseDto.success(orderService.getOrder(orderId)));
     }
 
-    @GetMapping("/getAllOrders")
+    @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DataResponse> getAllOrders(@RequestParam(defaultValue = "0") int page,
                                                      @RequestParam(defaultValue = "10") int size,
@@ -66,37 +66,37 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
     }
 
-    @PostMapping("/updateOrder")
+    @PostMapping("/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> updateOrder(@RequestParam UUID orderId,
-                                                         @RequestParam int orderStatus) {
+    public ResponseEntity<ServerResponseDto> updateOrder(@RequestParam Long orderId,
+                                                     @RequestParam int orderStatus) {
         return ResponseEntity.ok(orderService.updateStatusOrder(orderId, orderStatus));
 
     }
-    @PostMapping("/cancelOrder")
-    public ResponseEntity<ServerResponseDto> cancelOrder(@RequestParam UUID orderId) {
+    @PostMapping("/cancel")
+    public ResponseEntity<ServerResponseDto> cancelOrder(@RequestParam Long orderId) {
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
     }
 
-    @PostMapping("/confirmOrder/{id}")
+    @PostMapping("/confirm/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> confirmOrder(@PathVariable("id") UUID orderId) {
+    public ResponseEntity<ServerResponseDto> confirmOrder(@PathVariable("id") Long orderId) {
         return ResponseEntity.ok(orderService.confirmOrder(orderId));
     }
 
-    @PostMapping("/transitOrder/{id}")
+    @PostMapping("/transit/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> transitOrder(@PathVariable("id") UUID orderId) {
+    public ResponseEntity<ServerResponseDto> transitOrder(@PathVariable("id") Long orderId) {
         return ResponseEntity.ok(orderService.transitOrder(orderId));
     }
 
-    @PostMapping("/deliveryOrder/{id}")
+    @PostMapping("/delivery/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> deliveryOrder(@PathVariable("id") UUID orderId) {
+    public ResponseEntity<ServerResponseDto> deliveryOrder(@PathVariable("id") Long orderId) {
         return ResponseEntity.ok(orderService.deliveryOrder(orderId));
     }
 
-    @GetMapping("/getNumberOfOrders")
+    @GetMapping("/number")
     public ResponseEntity<ServerResponseDto> getNumberOfOrders() {
         return ResponseEntity.ok(ServerResponseDto.success(orderRepository.countOrder()));
     }

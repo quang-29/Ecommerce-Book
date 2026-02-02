@@ -4,7 +4,7 @@ import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.AppException;
-import org.example.bookstore.model.Category;
+import org.example.bookstore.model.CategoryEntity;
 import org.example.bookstore.payload.CategoryDTO;
 import org.example.bookstore.repository.CategoryRepository;
 import org.modelmapper.ModelMapper;
@@ -14,7 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.lang.Long;
+
 
 
 @Service
@@ -31,32 +32,32 @@ public class CategoryService {
         if (categoryRepository.existsByName(name)) {
             throw new RuntimeException(MessageException.CATEGORY_ALREADY_EXISTS.getMessage());
         }
-        Category category = new Category();
-        category.setName(name);
-        categoryRepository.save(category);
+        CategoryEntity categoryEntity = new CategoryEntity();
+        categoryEntity.setName(name);
+        categoryRepository.save(categoryEntity);
         return ServerResponseDto.success("Add category successfully!");
     }
 
-    public ServerResponseDto getCategoryById(UUID id) {
-        Category category = categoryRepository.findById(id)
+    public ServerResponseDto getCategoryById(Long id) {
+        CategoryEntity categoryEntity = categoryRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        return ServerResponseDto.success(modelMapper.map(category, CategoryDTO.class));
+        return ServerResponseDto.success(modelMapper.map(categoryEntity, CategoryDTO.class));
     }
 
 
     public ServerResponseDto getAllCategories(int page, int size, String sortBy, String sortDirection) {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<CategoryDTO> categoryDTOPage = categoryRepository.findAll(pageable).map(category -> modelMapper.map(category, CategoryDTO.class));
+        Page<CategoryDTO> categoryDTOPage = categoryRepository.findAll(pageable).map(categoryEntity -> modelMapper.map(categoryEntity, CategoryDTO.class));
         return ServerResponseDto.success(categoryDTOPage);
     }
 
-    public ServerResponseDto updateCategory(UUID id, CategoryDTO categoryDTO) {
-        Category category = categoryRepository.findById(id)
+    public ServerResponseDto updateCategory(Long id, CategoryDTO categoryDTO) {
+        CategoryEntity categoryEntity = categoryRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        category.setName(categoryDTO.getCategoryName());
+        categoryEntity.setName(categoryDTO.getCategoryName());
 
-        categoryRepository.save(category);
+        categoryRepository.save(categoryEntity);
         return ServerResponseDto.success("Update category successfully");
     }
 

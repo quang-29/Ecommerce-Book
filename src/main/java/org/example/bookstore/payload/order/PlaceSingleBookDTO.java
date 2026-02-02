@@ -3,6 +3,7 @@ package org.example.bookstore.payload.order;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.bookstore.enums.PaymentType;
 
 import java.util.UUID;
 
@@ -10,10 +11,10 @@ import java.util.UUID;
 @Setter
 public class PlaceSingleBookDTO {
     @NotBlank
-    private UUID bookId;
+    private Long bookId;
     @NotBlank
-    private UUID addressId;
+    private Long addressId;
     @NotBlank
-    private String paymentType;
+    private PaymentType paymentType;
     private int weight;
 }

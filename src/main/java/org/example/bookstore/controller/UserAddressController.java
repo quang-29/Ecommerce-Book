@@ -1,13 +1,10 @@
 package org.example.bookstore.controller;
 
 import org.example.bookstore.model.UserAddress;
-import org.example.bookstore.model.address.Address;
 import org.example.bookstore.model.shipment.BasicShippingOrderInfo;
-import org.example.bookstore.model.shipment.ShipmentInfo;
 import org.example.bookstore.payload.request.UserAddressRequest;
 import org.example.bookstore.payload.response.DataResponse;
-import org.example.bookstore.payload.userAddress.UserAddressDTO;
-import org.example.bookstore.service.Interface.UserAddressService;
+import org.example.bookstore.service.UserAddressService;
 import org.example.bookstore.service.shipment.GHNService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

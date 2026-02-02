@@ -3,8 +3,7 @@ package org.example.bookstore.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.bookstore.enums.NotificationScope;
-import org.example.bookstore.exception.AppException;
-import org.example.bookstore.service.Interface.NotificationService;
+import org.example.bookstore.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,7 +40,7 @@ public class NotificationController {
     }
 
     @PostMapping("/mark_as_read")
-    public ResponseEntity<?> markAsRead(@RequestParam(required = false) UUID notiId){
+    public ResponseEntity<?> markAsRead(@RequestParam(required = false) Long notiId){
         if(notiId == null){
             notificationService.markAllAsRead();
         }

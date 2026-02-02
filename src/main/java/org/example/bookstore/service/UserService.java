@@ -4,7 +4,6 @@ import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.AppException;
-import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.CartDTO;
@@ -14,13 +13,10 @@ import org.example.bookstore.payload.request.ChangeAvatar;
 import org.example.bookstore.payload.request.EditUser;
 import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.CloudinaryResponse;
-import org.example.bookstore.payload.response.UserResponse;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.UserRepository;
-import org.example.bookstore.service.Interface.CartService;
 import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -58,15 +54,15 @@ public class UserService {
 
     }
 
-    public ServerResponseDto getUserById(UUID userId) {
-        User user = userRepository.findById(userId)
+    public ServerResponseDto getUserById(Long userId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
 
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
-        CartDTO cart = modelMapper.map(user.getCart(), CartDTO.class);
+        CartDTO cart = modelMapper.map(user.getCartEntity(), CartDTO.class);
 
-        List<CartItemDTO> cartItemDTOS = user.getCart().getCartItems().stream()
-                .map(item -> modelMapper.map(item.getBook(), CartItemDTO.class)).collect(Collectors.toList());
+        List<CartItemDTO> cartItemDTOS = user.getCartEntity().getCartItemEntities().stream()
+                .map(item -> modelMapper.map(item.getBookEntity(), CartItemDTO.class)).collect(Collectors.toList());
         userDTO.setCart(cart);
 
         userDTO.getCart().setCartItem(cartItemDTOS);
@@ -74,7 +70,7 @@ public class UserService {
     }
     
     public ServerResponseDto updateUser(UserUpdate userUpdate) {
-        User user = userRepository.findUserByUsername(userUpdate.getUsername())
+        UserEntity user = userRepository.findUserByUsername(userUpdate.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         user.setFirstName(userUpdate.getFirstName());
@@ -82,26 +78,26 @@ public class UserService {
         user.setPhoneNumber(userUpdate.getPhoneNumber());
         userRepository.save(user);
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
-        CartDTO cart = modelMapper.map(user.getCart(), CartDTO.class);
-        List<CartItemDTO> cartItemDTOS = user.getCart().getCartItems().stream()
-                .map(item -> modelMapper.map(item.getBook(), CartItemDTO.class)).collect(Collectors.toList());
+        CartDTO cart = modelMapper.map(user.getCartEntity(), CartDTO.class);
+        List<CartItemDTO> cartItemDTOS = user.getCartEntity().getCartItemEntities().stream()
+                .map(item -> modelMapper.map(item.getBookEntity(), CartItemDTO.class)).collect(Collectors.toList());
         userDTO.setCart(cart);
         userDTO.getCart().setCartItem(cartItemDTOS);
         return ServerResponseDto.success(userDTO);
     }
 
-    public ServerResponseDto deleteUser(UUID userId) {
-        User user = userRepository.findById(userId)
+    public ServerResponseDto deleteUser(Long userId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        List<CartItem> cartItems = user.getCart().getCartItems();
-        Cart cart = user.getCart();
+        List<CartItemEntity> cartItemEntities = user.getCartEntity().getCartItemEntities();
+        CartEntity cartEntity = user.getCartEntity();
 
-        cartItems.forEach(item -> {
+        cartItemEntities.forEach(item -> {
 
-            UUID bookId = item.getBook().getId();
+            Long bookId = item.getBookEntity().getId();
 
-            cartService.deleteProductFromCart(cart.getId(), bookId);
+            cartService.deleteProductFromCart(cartEntity.getId(), bookId);
         });
 
         userRepository.delete(user);
@@ -109,60 +105,60 @@ public class UserService {
     }
 
     public ServerResponseDto getMyProfile(String username) {
-        User user = userRepository.findUserByUsername(username)
+        UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
         return ServerResponseDto.success(modelMapper.map(user, UserDTO.class));
     }
     
-    public ServerResponseDto likedBooks(UUID userId, UUID bookId) {
-        User user = userRepository.findById(userId)
+    public ServerResponseDto likedBooks(Long userId, Long bookId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
-        Book book = bookRepository.findById(bookId)
+        BookEntity bookEntity = bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
 
-        Set<Book> likedBooks = user.getLikedBooks();
+        Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
 
-        if (!likedBooks.contains(book)) {
-            likedBooks.add(book);
+        if (!likedBookEntities.contains(bookEntity)) {
+            likedBookEntities.add(bookEntity);
             userRepository.save(user);
             return ServerResponseDto.success("Like book successfully");
         }
         return ServerResponseDto.success("Book already liked!");
     }
 
-    public ServerResponseDto removeLikedBooks(UUID userId, UUID bookId) {
-        User user = userRepository.findById(userId)
+    public ServerResponseDto removeLikedBooks(Long userId, Long bookId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
-        Book book = bookRepository.findById(bookId)
+        BookEntity bookEntity = bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
 
-        Set<Book> likedBooks = user.getLikedBooks();
-        if (likedBooks.contains(book)) {
-            likedBooks.remove(book);
+        Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
+        if (likedBookEntities.contains(bookEntity)) {
+            likedBookEntities.remove(bookEntity);
             userRepository.save(user);
             return ServerResponseDto.success("Dislike book successfully!!!");
         }
         return ServerResponseDto.success("Book was not liked before!");
     }
 
-    public ServerResponseDto listBooksLikedByUser(UUID userId) {
-        User user = userRepository.findById(userId)
+    public ServerResponseDto listBooksLikedByUser(Long userId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
 
-        return ServerResponseDto.success(user.getLikedBooks().stream()
+        return ServerResponseDto.success(user.getLikedBookEntities().stream()
                 .map(book -> modelMapper.map(book, BookDTO.class))
                 .collect(Collectors.toSet()));
     }
 
-    public UUID getCurrentUserId(Authentication authentication) {
+    public Long getCurrentUserId(Authentication authentication) {
         String username = authentication.getName();
-        User user = userRepository.findUserByUsername(username)
+        UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
         return user.getId();
     }
 
     public ServerResponseDto editUser(EditUser editUser) {
-        User user = userRepository.findById(editUser.getId())
+        UserEntity user = userRepository.findById(editUser.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         user.setFirstName(editUser.getFirstName());
         user.setLastName(editUser.getLastName());
@@ -172,14 +168,14 @@ public class UserService {
         return ServerResponseDto.success("Edit user successfully");
     }
 
-    public ServerResponseDto changeAvatar(UUID userId, MultipartFile file) {
+    public ServerResponseDto changeAvatar(Long userId, MultipartFile file) {
         ChangeAvatar changeAvatar = new ChangeAvatar();
         try {
-            Optional<User> userFound = userRepository.findById(userId);
+            Optional<UserEntity> userFound = userRepository.findById(userId);
             if (userFound.isEmpty()) {
                 throw new RuntimeException(MessageException.USER_NOT_FOUND.getMessage());
             }
-            User user = userFound.get();
+            UserEntity user = userFound.get();
             FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
             final String fileName = FileUploadUtil.getFileName(file.getOriginalFilename());
             final CloudinaryResponse response = cloudinaryServiceImpl.uploadFile(file, fileName);

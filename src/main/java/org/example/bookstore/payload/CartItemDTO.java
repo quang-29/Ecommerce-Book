@@ -3,10 +3,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.bookstore.model.Book;
-import org.example.bookstore.model.Cart;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -14,7 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartItemDTO {
-    private UUID cartItemId;
+    private Long cartItemId;
     private BookDTO book;
     private Integer quantity;
     private long bookPrice;

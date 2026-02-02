@@ -3,7 +3,7 @@ package org.example.bookstore.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.bookstore.model.address.District;
 import org.example.bookstore.model.address.Ward;
-import org.example.bookstore.service.Interface.UserAddressService;
+import org.example.bookstore.service.UserAddressService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

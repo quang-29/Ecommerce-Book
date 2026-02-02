@@ -4,14 +4,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.example.bookstore.repository.PaymentRepository;
-import org.example.bookstore.service.Interface.PaymentService;
+import org.example.bookstore.service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.Long;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -21,14 +21,13 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
 
-
     public PaymentController(PaymentService paymentService, PaymentRepository paymentRepository) {
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
     }
 
     @GetMapping("/payment_url")
-    public ResponseEntity<?> getPaymentUrl(@RequestParam UUID orderId,
+    public ResponseEntity<?> getPaymentUrl(@RequestParam Long orderId,
                                            HttpServletRequest request) {
         return ResponseEntity.ok().body(Map.of(
                 "url", paymentService.getPaymentUrl(orderId, request)

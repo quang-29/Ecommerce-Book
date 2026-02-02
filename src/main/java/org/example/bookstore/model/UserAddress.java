@@ -17,8 +17,8 @@ import java.util.UUID;
 @Table(name = "user_address")
 public class UserAddress extends Address {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     private String username;
 
