@@ -8,7 +8,6 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.AppException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,7 +43,7 @@ public class AwsS3Service {
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new AppException(ErrorCode.FILE_UPLOAD_ERROR);
+            throw new RuntimeException(e.getMessage());
         }
     }
 }

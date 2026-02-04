@@ -12,7 +12,7 @@ import java.lang.Long;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
-@RequestMapping("/api/category")
+@RequestMapping("/v1/category")
 public class CategoryController {
     private final CategoryService categoryService;
 
@@ -21,17 +21,17 @@ public class CategoryController {
     }
 
     @PostMapping("/add")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> addCategory(@RequestParam String name) {
         return ResponseEntity.ok(ServerResponseDto.success(categoryService.addCategory(name)));
     }
 
-    @GetMapping("/getCategoryById/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<ServerResponseDto> getCategoryById(@PathVariable Long id) {
         return ResponseEntity.ok(ServerResponseDto.success(categoryService.getCategoryById(id)));
     }
 
-    @GetMapping("/getAllCategories")
+    @GetMapping("/all")
     public ResponseEntity<ServerResponseDto> getAllCategories(@RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "10") int size,
                                                           @RequestParam(required = false) String sortBy,
@@ -39,8 +39,8 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getAllCategories(page, size, sortBy, sortDirection));
     }
 
-    @PutMapping("/updateCategory/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/update/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto>  updateCategory(@PathVariable Long id,
                                                          @RequestBody CategoryDTO categoryDTO) {
         return ResponseEntity.ok(categoryService.updateCategory(id, categoryDTO));

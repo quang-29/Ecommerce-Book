@@ -45,12 +45,12 @@ public class AuthenticationController {
     public ResponseEntity<ServerResponseDto> logout(HttpServletRequest request, HttpServletResponse response){
         CustomUserDetails customUserDetails = CurrentUserDetails.getCurrentUser();
         if(customUserDetails == null){
-            return ResponseEntity.ok(ServerResponseDto.success(""));
+            return ResponseEntity.ok(ServerResponseDto.success("Log out successfully!"));
         }
         String refreshToken = getRefreshToken(request,USER_REFRESH_TOKEN_COOKIE);
         authenticationService.logout(refreshToken);
         clearRefreshTokenCookie(response,USER_REFRESH_TOKEN_COOKIE);
-        return ResponseEntity.ok(ServerResponseDto.success(""));
+        return ResponseEntity.ok(ServerResponseDto.success("Log out successfully!"));
     }
 
     @PostMapping("/register")

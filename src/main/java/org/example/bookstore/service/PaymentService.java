@@ -3,9 +3,10 @@ package org.example.bookstore.service;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.example.bookstore.enums.ErrorCode;
+import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.enums.PaymentGateway;
 import org.example.bookstore.enums.PaymentStatus;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.OrderEntity;
 import org.example.bookstore.model.payment.Payment;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class PaymentService {
     public String getPaymentUrl(Long orderId, HttpServletRequest request) {
         OrderEntity orderEntity = orderService.getOrderById(orderId);
         if(orderEntity == null)
-            throw new RuntimeException("Order not found");
+            throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
         return vnPayService.createPaymentUrl(orderEntity, request);
     }
 
@@ -43,7 +44,7 @@ public class PaymentService {
             log.info("Check id order txn ref: {}", LongStr);
             OrderEntity orderEntity = orderService.getOrderById(Long.valueOf(LongStr));
             if (orderEntity == null)
-                throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+                throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
             boolean ok = vnPayService.checkPayment(orderEntity, params);
             if(ok){
                 Payment payment = orderEntity.getPayment();

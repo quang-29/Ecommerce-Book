@@ -45,12 +45,12 @@ public enum MessageException {
     ADDRESS_NOT_FOUND("Address not found"),
     INVALID_ADDRESS("Address ID cannot be null."),
     NOTIFICATION_NOT_FOUND("Notification not found"),
-    EMAIL_INVALID("Email address is invalid"),;
+    EMAIL_INVALID("Email address is invalid");
 
-    public final String message;
+    private final String message;
+
 
     MessageException(String message) {
         this.message = message;
     }
-
 }

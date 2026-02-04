@@ -2,6 +2,8 @@ package org.example.bookstore.service;
 
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.enums.ResponseCase;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.payload.AuthorDTO;
 import org.example.bookstore.repository.AuthorRepository;
@@ -28,7 +30,7 @@ public class AuthorService {
     public ServerResponseDto createAuthor(AuthorDTO authorDTO) {
         boolean existedAuthor = authorRepository.existsByName(authorDTO.getName());
         if(existedAuthor){
-            throw new RuntimeException(MessageException.AUTHOR_EXISTED.getMessage());
+            throw new ResourceNotFoundException(MessageException.AUTHOR_EXISTED);
         }
         AuthorEntity authorEntity = modelMapper.map(authorDTO, AuthorEntity.class);
         AuthorEntity savedAuthorEntity = authorRepository.save(authorEntity);
@@ -38,7 +40,7 @@ public class AuthorService {
 
     public ServerResponseDto updateAuthor(Long id, AuthorDTO authorDTO) {
         AuthorEntity authorEntity = authorRepository.findById(id).orElseThrow(
-                () -> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage())
+                () -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND)
         );
         authorEntity.setName(authorDTO.getName());
         authorEntity.setBiography(authorDTO.getBiography());
@@ -53,14 +55,14 @@ public class AuthorService {
 
     public ServerResponseDto deleteAuthor(Long id) {
         AuthorEntity authorEntity = authorRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         authorRepository.delete(authorEntity);
         return ServerResponseDto.success("Delete author successfully!");
     }
 
     public ServerResponseDto getAuthorById(Long id) {
         AuthorEntity authorEntity = authorRepository.findById(id)
-                .orElseThrow(()-> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         return ServerResponseDto.success(modelMapper.map(authorEntity, AuthorDTO.class));
     }
 
@@ -73,7 +75,7 @@ public class AuthorService {
 
     public ServerResponseDto getAuthorByName(String authorName) {
         AuthorEntity authorEntity = authorRepository.findByName(authorName)
-                .orElseThrow(()-> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
+                .orElseThrow(()-> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         return ServerResponseDto.success(modelMapper.map(authorEntity, AuthorDTO.class));
     }
 }

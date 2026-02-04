@@ -18,10 +18,10 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    @GetMapping("/getCartByUserName/{userName}")
-    @PreAuthorize("#userName == authentication.name or hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> getCartByUserId(@PathVariable String userName) {
-        return ResponseEntity.ok(ServerResponseDto.success(cartService.getCartByUserName(userName)));
+    @GetMapping("/userid/{userId}")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isMySelf(#userId)")
+    public ResponseEntity<ServerResponseDto> getCartByUserId(@PathVariable String userId) {
+        return ResponseEntity.ok(ServerResponseDto.success(cartService.getCartByUserId(userId)));
     }
 
     @PostMapping("/addBookToCart")

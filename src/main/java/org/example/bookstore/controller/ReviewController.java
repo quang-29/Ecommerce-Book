@@ -1,5 +1,6 @@
 package org.example.bookstore.controller;
 
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.ReviewDTO;
 import org.example.bookstore.payload.request.ReviewCreate;
 import org.example.bookstore.payload.request.ReviewUpdate;
@@ -25,83 +26,35 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    @PostMapping("/createReview")
-    public ResponseEntity<DataResponse> addReview(@RequestBody ReviewCreate reviewCreate) {
-
-        ReviewDTO reviewDTO = reviewService.addReview(reviewCreate);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.CREATED.value())
-                .status(HttpStatus.CREATED)
-                .timestamp(LocalDateTime.now())
-                .message("Review created!")
-                .data(reviewDTO).build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
+    @PostMapping("/create")
+    public ResponseEntity<ServerResponseDto> addReview(@RequestBody ReviewCreate reviewCreate) {
+        return ResponseEntity.ok(reviewService.addReview(reviewCreate));
     }
 
-    @PostMapping("/updateReview")
-    public ResponseEntity<DataResponse> updateReview(@RequestBody ReviewUpdate reviewUpdate) {
-        ReviewDTO reviewDTO1 = reviewService.updateReview(reviewUpdate);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review created!")
-                .data(reviewDTO1)
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @PostMapping("/update")
+    public ResponseEntity<ServerResponseDto> updateReview(@RequestBody ReviewUpdate reviewUpdate) {
+        return ResponseEntity.ok(reviewService.updateReview(reviewUpdate));
     }
 
-    @DeleteMapping("/deleteReview/{reviewId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<DataResponse> deleteReview(@PathVariable Long reviewId) {
-        String result = reviewService.deleteReview(reviewId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review deleted!")
-                .data(result).build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @DeleteMapping("/delete/{reviewId}")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> deleteReview(@PathVariable Long reviewId) {
+        return ResponseEntity.ok(reviewService.deleteReview(reviewId));
     }
 
-    @GetMapping("/getReviewByBookId/{bookId}")
-    public ResponseEntity<DataResponse> getReviewByBookId(@PathVariable Long bookId) {
-        List<ReviewDTO> reviewDTOS = reviewService.getReviewsByBookId(bookId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review found!")
-                .data(reviewDTOS).build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @GetMapping("/bookId/{bookId}")
+    public ResponseEntity<ServerResponseDto> getReviewByBookId(@PathVariable Long bookId) {
+        return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId));
     }
 
-    @GetMapping("/getReviewById/{reviewId}")
-    public ResponseEntity<DataResponse> getReviewById(@PathVariable Long reviewId) {
-        ReviewDTO reviewDTO = reviewService.getReviewById(reviewId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review found!")
-                .data(reviewDTO)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @GetMapping("/{reviewId}")
+    public ResponseEntity<ServerResponseDto> getReviewById(@PathVariable Long reviewId) {
+        return ResponseEntity.ok(reviewService.getReviewById(reviewId));
     }
 
-    @GetMapping("/getReviewsByUserId/{userId}")
-    public ResponseEntity<DataResponse> getReviewsByUserId(@PathVariable Long userId) {
-        List<ReviewDTO> reviewDTOS = reviewService.getReviewsByUserId(userId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review found!")
-                .data(reviewDTOS)
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @GetMapping("/userId/{userId}")
+    public ResponseEntity<ServerResponseDto> getReviewsByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(reviewService.getReviewsByUserId(userId));
     }
 
 }

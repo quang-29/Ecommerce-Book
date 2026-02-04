@@ -2,8 +2,8 @@ package org.example.bookstore.service;
 
 
 import jakarta.transaction.Transactional;
-import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.CartEntity;
 import org.example.bookstore.model.CartItemEntity;
@@ -44,30 +44,26 @@ public class CartService {
     public CartDTO addProductToCart(Long cartId, Long bookId, Integer quantity) {
 
         CartEntity cartEntity = cartRepository.findById(cartId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
         BookEntity bookEntity = bookRepository.findById(bookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
 
-        // Kiểm tra số lượng tồn kho
         if (bookEntity.getStock() < quantity) {
-            throw new AppException(ErrorCode.BOOK_STOCK_PROBLEM);
+            throw new ResourceNotFoundException(MessageException.BOOK_STOCK_PROBLEM);
         }
 
-        // Tìm CartItem trong giỏ hàng
         CartItemEntity cartItemEntity = cartItemRepository.findCartItemByCartIdAndBookId(cartId, bookId);
 
         if (cartItemEntity != null) {
-            // Nếu sản phẩm đã có trong giỏ hàng, cập nhật số lượng và giá
             cartItemEntity.setQuantity(cartItemEntity.getQuantity() + quantity);
             cartItemEntity.setBookPrice(cartItemEntity.getBookEntity().getPrice());
             cartItemRepository.save(cartItemEntity);
         } else {
-            // Nếu sản phẩm chưa có, tạo mới CartItem
             CartItemEntity newCartItemEntity = new CartItemEntity();
             newCartItemEntity.setCartEntity(cartEntity);
             newCartItemEntity.setBookEntity(bookEntity);
             newCartItemEntity.setQuantity(quantity);
-            newCartItemEntity.setBookPrice(bookEntity.getPrice()); // Tính giá đúng
+            newCartItemEntity.setBookPrice(bookEntity.getPrice());
             cartItemRepository.save(newCartItemEntity);
         }
 
@@ -102,8 +98,8 @@ public class CartService {
 
     public List<CartDTO> getAllCarts() {
         List<CartEntity> cartEntities = cartRepository.findAll();
-        if (cartEntities.size() == 0) {
-            throw new AppException(ErrorCode.CART_NOT_FOUND);
+        if (cartEntities.isEmpty()) {
+            throw new ResourceNotFoundException(MessageException.CART_NOT_FOUND);
         }
         List<CartDTO> cartDTOs = cartEntities.stream().map(cart -> {
             CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
@@ -115,12 +111,12 @@ public class CartService {
         return cartDTOs;
     }
 
-    public CartDTO getCartByUserName(String userName) {
-        CartEntity cartEntity = cartRepository.getCartByUserName(userName);
+    public CartDTO getCartByUserId(String userId) {
+        CartEntity cartEntity = cartRepository.getCartByUserId(userId);
         CartDTO cartDTO = new CartDTO();
         cartDTO.setCartId(cartEntity.getId());
         cartDTO.setTotalPrice(cartEntity.getTotalPrice());
-        if(cartEntity.getCartItemEntities().size() == 0){
+        if(cartEntity.getCartItemEntities().isEmpty()){
             logger.info("Empty cart!");
             cartDTO.setTotalPrice(0);
         }
@@ -140,12 +136,12 @@ public class CartService {
     @Transactional
     public boolean deleteProductFromCart(Long cartId, Long bookId) {
         CartEntity cartEntity = cartRepository.findById(cartId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
 
         CartItemEntity cartItemEntity = cartItemRepository.findCartItemByCartIdAndBookId(cartId, bookId);
 
         if (cartItemEntity == null) {
-            throw new AppException(ErrorCode.CART_NO_FOUND_BOOK);
+            throw new ResourceNotFoundException(MessageException.CART_NO_FOUND_BOOK);
         }
 
         cartEntity.setTotalPrice((cartEntity.getTotalPrice()- cartItemEntity.getBookPrice())* cartItemEntity.getQuantity());
@@ -157,12 +153,10 @@ public class CartService {
 
     }
 
+    @Transactional
     public CartDTO decreaseProductFromCart(Long cartId, Long bookId) {
-            BookEntity bookEntity = bookRepository.findById(bookId)
-                    .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
-
             CartEntity cartEntity = cartRepository.findById(cartId)
-                    .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
+                    .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
 
             CartItemEntity cartItemEntity = cartItemRepository.findCartItemByCartIdAndBookId(cartId, bookId);
             if(cartItemEntity.getQuantity() == 1){

@@ -1,12 +1,9 @@
 package org.example.bookstore.service;
 
 import org.apache.coyote.BadRequestException;
-import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.enums.Roles;
-import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.*;
-import org.example.bookstore.payload.ResetPasswordDTO;
 import org.example.bookstore.payload.request.ChangePasswordRequest;
 import org.example.bookstore.payload.request.LoginRequest;
 import org.example.bookstore.payload.request.RegisterRequest;

@@ -11,38 +11,42 @@ import org.springframework.web.bind.annotation.*;
 import java.lang.Long;
 
 @RestController
-@RequestMapping("/api/author")
+@RequestMapping("/v1/author")
 public class AuthorController {
 
-    @Autowired
-    private AuthorService authorService;
 
-    @PostMapping("/addAuthor")
-    @PreAuthorize("hasRole('ADMIN')")
+    private final AuthorService authorService;
+
+    public AuthorController(AuthorService authorService) {
+        this.authorService = authorService;
+    }
+
+    @PostMapping("/add")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> addAuthor(@RequestBody AuthorDTO authorDTO) {
         return ResponseEntity.ok(authorService.createAuthor(authorDTO));
     }
 
-    @PutMapping("/updateAuthor/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/update/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> editAuthor(@PathVariable Long id, @RequestBody AuthorDTO newAuthorDTO) {
         return ResponseEntity.ok(authorService.updateAuthor(id, newAuthorDTO));
     }
 
-    @DeleteMapping("/deleteAuthor/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> deleteAuthor(@PathVariable Long id) {
         return ResponseEntity.ok(authorService.deleteAuthor(id));
     }
 
-    @GetMapping("/getAuthorById/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> getAuthorById(@PathVariable Long id) {
         return ResponseEntity.ok(authorService.getAuthorById(id));
 
     }
 
-    @GetMapping("/getAllAuthors")
+    @GetMapping("/all")
     public ResponseEntity<ServerResponseDto> getAllAuthors(@RequestParam(defaultValue = "0") int size,
                                                        @RequestParam(defaultValue = "10") int page,
                                                        @RequestParam(required = false) String sortBy,
@@ -50,7 +54,7 @@ public class AuthorController {
         return ResponseEntity.ok(authorService.getAllAuthors(page, size, sortBy, sortDirection));
     }
 
-    @GetMapping("/getAuthorByName/{authorName}")
+    @GetMapping("/name/{authorName}")
     public ResponseEntity<ServerResponseDto> getAuthorByName(@RequestParam String authorName) {
         return ResponseEntity.ok(authorService.getAuthorByName(authorName));
     }

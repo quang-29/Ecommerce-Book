@@ -2,8 +2,9 @@ package org.example.bookstore.service;
 
 import jakarta.transaction.Transactional;
 import org.example.bookstore.enums.ErrorCode;
+import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.enums.NotificationScope;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.Notifications;
 import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.payload.NotificationsDTO;
@@ -18,7 +19,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class NotificationService {
@@ -67,7 +67,7 @@ public class NotificationService {
 
     public Notifications getNotificationById(Long id) {
         return notificationRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.NOTIFICATION_NOT_FOUND));
     }
 
     public List<Notifications> getList(UserEntity receiver, NotificationScope scope, int offset, int limit) {
@@ -82,11 +82,11 @@ public class NotificationService {
     @Transactional
     public void markAsRead(Long notiId) {
         Notifications notification = notificationRepository.findById(notiId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOTIFICATION_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.NOTIFICATION_NOT_FOUND));
 
         UserEntity user = getCurrentUser();
         if (!notification.getReceiver().equals(user)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
+            throw new ResourceNotFoundException(MessageException.UNAUTHORIZED);
         }
 
         notification.setRead(true);
@@ -118,7 +118,7 @@ public class NotificationService {
     private UserEntity getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
     }
 
     private NotificationsDTO toDTO(Notifications notification) {

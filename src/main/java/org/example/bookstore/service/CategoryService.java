@@ -1,9 +1,8 @@
 package org.example.bookstore.service;
 
 import org.example.bookstore.config.dto.ServerResponseDto;
-import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.CategoryEntity;
 import org.example.bookstore.payload.CategoryDTO;
 import org.example.bookstore.repository.CategoryRepository;
@@ -30,7 +29,7 @@ public class CategoryService {
 
     public ServerResponseDto addCategory(String name) {
         if (categoryRepository.existsByName(name)) {
-            throw new RuntimeException(MessageException.CATEGORY_ALREADY_EXISTS.getMessage());
+            throw new ResourceNotFoundException(MessageException.CATEGORY_ALREADY_EXISTS);
         }
         CategoryEntity categoryEntity = new CategoryEntity();
         categoryEntity.setName(name);
@@ -40,7 +39,7 @@ public class CategoryService {
 
     public ServerResponseDto getCategoryById(Long id) {
         CategoryEntity categoryEntity = categoryRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.CATEGORY_NOT_FOUND));
         return ServerResponseDto.success(modelMapper.map(categoryEntity, CategoryDTO.class));
     }
 
@@ -54,7 +53,7 @@ public class CategoryService {
 
     public ServerResponseDto updateCategory(Long id, CategoryDTO categoryDTO) {
         CategoryEntity categoryEntity = categoryRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.CATEGORY_NOT_FOUND));
         categoryEntity.setName(categoryDTO.getCategoryName());
 
         categoryRepository.save(categoryEntity);

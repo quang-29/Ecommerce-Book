@@ -1,9 +1,8 @@
 package org.example.bookstore.service;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
-import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
-import org.example.bookstore.exception.AppException;
 import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.model.BookEntity;
@@ -16,7 +15,6 @@ import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.CategoryRepository;
 import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -52,7 +50,7 @@ public class BookService {
 
     public ServerResponseDto getBookById(Long id) {
         BookEntity bookEntity = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         return ServerResponseDto.success( modelMapper.map(bookEntity, BookDTO.class));
     }
 
@@ -84,7 +82,7 @@ public class BookService {
     public ServerResponseDto addBook(CreateBookRequest request) {
         BookEntity foundBookEntity = bookRepository.findByName(request.getTitle());
         if(foundBookEntity != null) {
-            throw new RuntimeException(MessageException.BOOK_EXIST.getMessage());
+            throw new ResourceNotFoundException(MessageException.BOOK_EXIST);
         }
         BookEntity bookEntity = modelMapper.map(request, BookEntity.class);
         bookEntity.setSold(0L);
@@ -110,11 +108,11 @@ public class BookService {
     }
 
     @Transactional
-    public ServerResponseDto uploadImageBook(Long id, MultipartFile file) {
+    public ServerResponseDto uploadImageBook(Long id, MultipartFile file) throws FileUploadException {
             try {
                 Optional<BookEntity> optionalBook = bookRepository.findById(id);
                 if(optionalBook.isEmpty()){
-                    throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+                    throw new ResourceNotFoundException(MessageException.ROLE_NOT_FOUND);
                 }
                 BookEntity bookEntity = optionalBook.get();
                 FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
@@ -123,17 +121,17 @@ public class BookService {
                 bookEntity.setImagePath(response.getUrl());
                 bookRepository.save(bookEntity);
                 return ServerResponseDto.success(response);
-            } catch (Exception ex){
-                throw new RuntimeException(ex.getMessage());
+            } catch (FileUploadException ex){
+                throw new FileUploadException(ex.getMessage());
             }
         }
 
     public ServerResponseDto updateBook(Long id, BookDTO bookDTO) {
         BookEntity bookEntityFound = bookRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         modelMapper.map(bookDTO, bookEntityFound);
         AuthorEntity authorEntity = authorRepository.findByName(bookDTO.getAuthorName())
-                .orElseThrow(() -> new RuntimeException(MessageException.AUTHOR_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         bookEntityFound.setAuthorEntity(authorEntity);
         CategoryEntity categoryEntity = categoryRepository.findByName(bookDTO.getCategoryName())
                 .orElseGet(() -> {
@@ -151,7 +149,7 @@ public class BookService {
 
     public ServerResponseDto deleteBook(Long id) {
         BookEntity bookEntity = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Book","bookId", id));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         bookRepository.delete(bookEntity);
         return ServerResponseDto.success("Delete book Successfully");
     }
@@ -182,7 +180,7 @@ public class BookService {
     public ServerResponseDto getBookByISBN(String isbn) {
         BookEntity bookEntity = bookRepository.findBookByIsbn(isbn);
         if(bookEntity == null) {
-            throw new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage());
+            throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
         }
 
         return ServerResponseDto.success(modelMapper.map(bookEntity, BookDTO.class));

@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: BookStore
+
+  datasource:
+    url: jdbc:mysql://localhost:3308/bookstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+    username:
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# JWT
+jwt:
+  signing:
+    key:
+
+app:
+  jwt:
+    secret:
+    expiration-in-ms:
+    refresh-expiration-in-ms:
+
+  cors:
+    allowedOrigins: http://localhost:3000
+
+# Cloudinary
+cloudinary:
+  cloud-name:
+  api-key:
+  api-secret:
+
+# AWS S3
+aws:
+  s3:
+    bucketName: BookStore
+    secret:
+      key:
+    access:
+      key:
+
+# VNPay
+payment:
+  vnPay:
+    url:
+    tmnCode:
+    secretKey:
+    returnUrl:
+    version:
+    command:
+    orderType:
+    max_time:
+
+# GHN
+GHN:
+  TOKEN:
+  SHOPID:
+
+# Base URL
+baseUrl: http://localhost:8080
+
+# Chat API
+chat:
+  api:
+    key:
+    endpoint:

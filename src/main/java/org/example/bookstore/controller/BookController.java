@@ -1,5 +1,6 @@
 package org.example.bookstore.controller;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.request.CreateBookRequest;
@@ -14,7 +15,7 @@ import java.lang.Long;
 
 
 @RestController
-@RequestMapping("/api/book")
+@RequestMapping("/v1/book")
 public class BookController {
 
     private final BookService bookService;
@@ -30,21 +31,21 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBookById(id));
     }
 
-    @PostMapping("/addBook")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/add")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> addBook(@RequestBody CreateBookRequest request) {
         return ResponseEntity.ok(bookService.addBook(request));
     }
 
-    @PostMapping("/uploadImageBook/{bookId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/uploadImage/{bookId}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> uploadImageBook(
             @PathVariable Long bookId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file) throws FileUploadException {
         return ResponseEntity.ok(bookService.uploadImageBook(bookId,file));
     }
 
-    @GetMapping("/books")
+    @GetMapping("/all")
     public ResponseEntity<ServerResponseDto> getAllBooks(@RequestParam(defaultValue = "0") Integer page,
                                                      @RequestParam(defaultValue = "20") Integer size,
                                                      @RequestParam(required = false) String sortBy,
@@ -72,20 +73,20 @@ public class BookController {
         return ResponseEntity.ok(bookService.getAllBooksByCategory(category, page, size, sortBy, sortDirection));
     }
 
-    @PutMapping("book/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/book/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> updateBook(@PathVariable Long id, @RequestBody BookDTO bookDTO) {
         return ResponseEntity.ok( bookService.updateBook(id, bookDTO));
     }
 
 
-    @DeleteMapping("deleteBook/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> deleteBook(@PathVariable Long id) {
         return ResponseEntity.ok(bookService.deleteBook(id));
     }
 
-    @GetMapping("/upSaleBook")
+    @GetMapping("/get-upsale-books")
     public ResponseEntity<ServerResponseDto> upSaleBook(@RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size,
                                                     @RequestParam(required = false) String sortBy,
@@ -94,7 +95,7 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBookUpSale(page, size, sortBy, sortDirection));
     }
 
-    @GetMapping("/getNewReleaseBook")
+    @GetMapping("/get-new-release-books")
     public ResponseEntity<ServerResponseDto> getNewReleaseBook(@RequestParam(defaultValue = "0") Integer page,
                                                            @RequestParam(defaultValue = "10") Integer size,
                                                            @RequestParam(required = false) String sortBy,
@@ -107,18 +108,18 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBookByTitle(name));
     }
 
-    @GetMapping("/searchByISBN")
+    @GetMapping("/search-by-ISBN")
     public ResponseEntity<ServerResponseDto> searchByISBN(@RequestParam String isbn) {
         return ResponseEntity.ok(bookService.getBookByISBN(isbn));
     }
 
-    @GetMapping("/getNumberOfBooks")
+    @GetMapping("/get-number-of-books")
     public ResponseEntity<?> getNumberOfBooks(){
         int number = bookRepository.countBook();
         return ResponseEntity.ok(number);
     }
 
-    @GetMapping("/searchByContent")
+    @GetMapping("/search-by-content")
     public ResponseEntity<ServerResponseDto> searchBookByContent(@RequestParam String text) {
         return ResponseEntity.ok(bookService.searchBookByContent(text));
     }

@@ -1,9 +1,9 @@
 package org.example.bookstore.service;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
-import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.CartDTO;
@@ -56,7 +56,7 @@ public class UserService {
 
     public ServerResponseDto getUserById(Long userId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         CartDTO cart = modelMapper.map(user.getCartEntity(), CartDTO.class);
@@ -71,7 +71,7 @@ public class UserService {
     
     public ServerResponseDto updateUser(UserUpdate userUpdate) {
         UserEntity user = userRepository.findUserByUsername(userUpdate.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         user.setFirstName(userUpdate.getFirstName());
         user.setLastName(userUpdate.getLastName());
@@ -88,7 +88,7 @@ public class UserService {
 
     public ServerResponseDto deleteUser(Long userId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         List<CartItemEntity> cartItemEntities = user.getCartEntity().getCartItemEntities();
         CartEntity cartEntity = user.getCartEntity();
@@ -106,15 +106,15 @@ public class UserService {
 
     public ServerResponseDto getMyProfile(String username) {
         UserEntity user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         return ServerResponseDto.success(modelMapper.map(user, UserDTO.class));
     }
     
     public ServerResponseDto likedBooks(Long userId, Long bookId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         BookEntity bookEntity = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
 
         Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
 
@@ -128,9 +128,9 @@ public class UserService {
 
     public ServerResponseDto removeLikedBooks(Long userId, Long bookId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         BookEntity bookEntity = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
 
         Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
         if (likedBookEntities.contains(bookEntity)) {
@@ -143,7 +143,7 @@ public class UserService {
 
     public ServerResponseDto listBooksLikedByUser(Long userId) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         return ServerResponseDto.success(user.getLikedBookEntities().stream()
                 .map(book -> modelMapper.map(book, BookDTO.class))
@@ -153,13 +153,13 @@ public class UserService {
     public Long getCurrentUserId(Authentication authentication) {
         String username = authentication.getName();
         UserEntity user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         return user.getId();
     }
 
     public ServerResponseDto editUser(EditUser editUser) {
         UserEntity user = userRepository.findById(editUser.getId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         user.setFirstName(editUser.getFirstName());
         user.setLastName(editUser.getLastName());
         user.setPhoneNumber(editUser.getPhoneNumber());
@@ -168,12 +168,12 @@ public class UserService {
         return ServerResponseDto.success("Edit user successfully");
     }
 
-    public ServerResponseDto changeAvatar(Long userId, MultipartFile file) {
+    public ServerResponseDto changeAvatar(Long userId, MultipartFile file) throws FileUploadException {
         ChangeAvatar changeAvatar = new ChangeAvatar();
         try {
             Optional<UserEntity> userFound = userRepository.findById(userId);
             if (userFound.isEmpty()) {
-                throw new RuntimeException(MessageException.USER_NOT_FOUND.getMessage());
+                throw new ResourceNotFoundException(MessageException.USER_NOT_FOUND);
             }
             UserEntity user = userFound.get();
             FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
@@ -183,8 +183,8 @@ public class UserService {
             userRepository.save(user);
             changeAvatar.setSuccess(true);
             changeAvatar.setUrl(user.getAvatarUrl());
-        } catch (Exception ex) {
-            throw new RuntimeException(ex.getMessage());
+        } catch (FileUploadException ex) {
+            throw new FileUploadException(ex.getMessage());
         }
         return ServerResponseDto.success(changeAvatar);
     }

@@ -29,7 +29,7 @@ public class OrderController {
         this.orderRepository = orderRepository;
     }
 
-    @PutMapping("/placeOrder")
+    @PutMapping("/place")
     public ResponseEntity<ServerResponseDto> placeOrder(@RequestBody PlaceOrderDTO placeOrderDTO, HttpServletRequest request) throws Exception {
         return ResponseEntity.ok(orderService.placeOrder(placeOrderDTO, request));
     }
@@ -44,13 +44,13 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> getOrderByOrderId(@PathVariable Long orderId) {
         return ResponseEntity.ok(ServerResponseDto.success(orderService.getOrder(orderId)));
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<DataResponse> getAllOrders(@RequestParam(defaultValue = "0") int page,
                                                      @RequestParam(defaultValue = "10") int size,
                                                      @RequestParam(required = false) String sortBy,
@@ -67,7 +67,7 @@ public class OrderController {
     }
 
     @PostMapping("/update")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> updateOrder(@RequestParam Long orderId,
                                                      @RequestParam int orderStatus) {
         return ResponseEntity.ok(orderService.updateStatusOrder(orderId, orderStatus));
@@ -79,19 +79,19 @@ public class OrderController {
     }
 
     @PostMapping("/confirm/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> confirmOrder(@PathVariable("id") Long orderId) {
         return ResponseEntity.ok(orderService.confirmOrder(orderId));
     }
 
     @PostMapping("/transit/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> transitOrder(@PathVariable("id") Long orderId) {
         return ResponseEntity.ok(orderService.transitOrder(orderId));
     }
 
     @PostMapping("/delivery/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> deliveryOrder(@PathVariable("id") Long orderId) {
         return ResponseEntity.ok(orderService.deliveryOrder(orderId));
     }

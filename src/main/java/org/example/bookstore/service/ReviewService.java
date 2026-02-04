@@ -1,7 +1,8 @@
 package org.example.bookstore.service;
 
-import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.config.dto.ServerResponseDto;
+import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.mapper.ReviewMapper;
 import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.Review;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class ReviewService {
@@ -38,19 +38,18 @@ public class ReviewService {
         this.reviewMapper = reviewMapper;
     }
 
-    public ReviewDTO addReview(ReviewCreate reviewCreate) {
+    public ServerResponseDto addReview(ReviewCreate reviewCreate) {
 
         BookEntity bookEntity = bookRepository.findById(reviewCreate.getBookId())
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         UserEntity user = userRepository.findById(reviewCreate.getUserId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         boolean exists = reviewRepository.existsByBookAndUser(bookEntity, user);
         if (exists) {
-            throw new AppException(ErrorCode.REVIEW_ALREADY_EXISTS);
+            throw new ResourceNotFoundException(MessageException.REVIEW_ALREADY_EXISTS);
         }
-
-
+        
         Review review = new Review();
         review.setBookEntity(bookEntity);
         review.setCreatedAt(LocalDate.from(LocalDateTime.now()));
@@ -69,22 +68,22 @@ public class ReviewService {
         reviewDTO.setTitle(review.getBookEntity().getTitle());
         reviewDTO.setUsername(review.getUser().getUsername());
 
-        return reviewDTO;
+        return ServerResponseDto.success(reviewDTO);
     }
 
     @Transactional
-    public ReviewDTO updateReview(ReviewUpdate reviewUpdate) {
+    public ServerResponseDto updateReview(ReviewUpdate reviewUpdate) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         Review review = reviewRepository.findById(reviewUpdate.getId())
-                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.REVIEW_NOT_FOUND));
         if(!review.getUser().getUsername().equals(authentication.getName())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACTION);
+            throw new ResourceNotFoundException(MessageException.UNAUTHORIZED_ACTION);
         }
 
         Long bookId = review.getBookEntity().getId();
         BookEntity bookEntity = bookRepository.findById(bookId)
-                        .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                        .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         review.setContent(reviewUpdate.getContent());
         review.setRatePoint(reviewUpdate.getRatePoint());
         reviewRepository.save(review);
@@ -95,7 +94,7 @@ public class ReviewService {
         bookEntity.setAverageRating(getAvgRatingProduct(reviews));
         bookRepository.save(bookEntity);
 
-        return reviewMapper.mapToDTO(review);
+        return ServerResponseDto.success(reviewMapper.mapToDTO(review));
     }
     private double getAvgRatingProduct(List<Review> reviews) {
         if (reviews == null || reviews.isEmpty()) {
@@ -108,15 +107,15 @@ public class ReviewService {
         return totalStars / reviews.size();
     }
     
-    public String deleteReview(Long reviewId) {
+    public ServerResponseDto deleteReview(Long reviewId) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.REVIEW_NOT_FOUND));
         boolean isAdmin = authentication.getAuthorities()
                 .stream().anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
         if(!isAdmin || !review.getUser().getUsername().equals(authentication.getName())) {
-            throw new AppException(ErrorCode.REVIEW_ERROR_DELETE);
+            throw new ResourceNotFoundException(MessageException.REVIEW_ERROR_DELETE);
         }
         BookEntity bookEntity = review.getBookEntity();
         List<Review> reviewLists = bookEntity.getReviews();
@@ -125,40 +124,42 @@ public class ReviewService {
         bookEntity.setAverageRating(getAvgRatingProduct(reviewLists));
         bookRepository.save(bookEntity);
         reviewRepository.delete(review);
-        return "Delete review successfully";
+        return ServerResponseDto.success("Delete review successfully");
     }
 
-    public List<ReviewDTO> getReviewsByUserId(Long userId) {
+    public ServerResponseDto getReviewsByUserId(Long userId) {
         List<Review> reviews = reviewRepository.findAllReviewsByUserId(userId);
-        return reviews.stream().map(review -> {
+        List<ReviewDTO> reviewDTOS = reviews.stream().map(review -> {
             ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
             reviewDTO.setTitle(review.getBookEntity().getTitle());
             reviewDTO.setUsername(review.getUser().getUsername());
             return reviewDTO;
         }).toList();
+        return ServerResponseDto.success(reviewDTOS);
 
     }
 
-    public ReviewDTO getReviewById(Long reviewId) {
+    public ServerResponseDto getReviewById(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new AppException(ErrorCode.REVIEW_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.REVIEW_NOT_FOUND));
         ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
         reviewDTO.setTitle(review.getBookEntity().getTitle());
         reviewDTO.setUsername(review.getUser().getUsername());
-        return reviewDTO;
+        return ServerResponseDto.success(reviewDTO);
     }
 
-    public List<ReviewDTO> getReviewsByBookId(Long bookId) {
+    public ServerResponseDto getReviewsByBookId(Long bookId) {
         BookEntity bookEntity = bookRepository.findById(bookId)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
 
         List<Review> reviews = bookEntity.getReviews();
-        return reviews.stream().map(review ->{
+        List<ReviewDTO> reviewDTOS = reviews.stream().map(review ->{
             ReviewDTO reviewDTO = reviewMapper.mapToDTO(review);
             reviewDTO.setTitle(review.getBookEntity().getTitle());
             reviewDTO.setUsername(review.getUser().getUsername());
             return reviewDTO;
         }).toList();
+        return ServerResponseDto.success(reviewDTOS);
 
     }
 }

@@ -35,7 +35,7 @@ public class UserController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> getAllUsers(@RequestParam(defaultValue = "0") Integer page,
                                                          @RequestParam(defaultValue = "10") Integer size,
                                                          @RequestParam(defaultValue = "username") String sortBy,
@@ -51,13 +51,13 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PutMapping("/update")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> updateUser(@RequestBody UserUpdate userUpdate) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long currentUserId = userService.getCurrentUserId(authentication);
@@ -68,7 +68,7 @@ public class UserController {
     }
 
     @DeleteMapping("/delete")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> deleteUser(@RequestParam Long userId) {
         return ResponseEntity.ok(userService.deleteUser(userId));
     }
@@ -86,7 +86,7 @@ public class UserController {
     }
 
     @GetMapping("/listBooksLikedByUser")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> listBooksLikedByUser(@RequestParam Long userId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long currentUserId = userService.getCurrentUserId(authentication);

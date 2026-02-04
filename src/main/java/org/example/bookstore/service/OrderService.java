@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.*;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.model.shipment.BasicShippingOrderInfo;
@@ -66,11 +67,11 @@ public class OrderService {
     public ServerResponseDto placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest httpServletRequest) throws Exception {
 
         CartEntity cartEntity = cartRepository.findById(placeOrderDTO.getCartId())
-                .orElseThrow(() -> new RuntimeException(MessageException.CART_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         UserEntity user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         List<CartItemEntity> cartItemEntities = cartEntity.getCartItemEntities();
 
@@ -80,12 +81,12 @@ public class OrderService {
 
         List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
         if (placeOrderDTO.getAddressId() == null) {
-            throw new RuntimeException(MessageException.ADDRESS_NOT_FOUND.getMessage());
+            throw new ResourceNotFoundException(MessageException.ADDRESS_NOT_FOUND);
         }
         UserAddress addressTo = userAddressList.stream()
                 .filter(address -> address.getId().equals(placeOrderDTO.getAddressId()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(ErrorCode.ADDRESS_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ADDRESS_NOT_FOUND));
 
         ShipmentInfo shipmentInfo = ShipmentInfo.builder()
                 .from(new ShopAddress())
@@ -101,7 +102,7 @@ public class OrderService {
         PaymentType paymentType = placeOrderDTO.getPaymentType();
 
         if(paymentType == null) {
-            throw new RuntimeException(MessageException.PAYMENT_METHOD_NOT_FOUND.getMessage());
+            throw new ResourceNotFoundException(MessageException.PAYMENT_METHOD_NOT_FOUND);
         }
 
         Payment payment = new Payment();
@@ -163,7 +164,7 @@ public class OrderService {
 
     public ServerResponseDto getOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
         OrderDTO orderDTO = modelMapper.map(orderEntity, OrderDTO.class);
         orderDTO.setOrderItem(orderEntity.getOrderItems().stream()
                 .map(orderItem -> modelMapper.map(orderItem, OrderItemDTO.class)).collect(Collectors.toList()));
@@ -185,7 +186,7 @@ public class OrderService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         Page<OrderEntity> orderPage = orderRepository.findAll(pageable);
         if (orderPage.getContent().isEmpty()) {
-            throw new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage());
+            throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
         }
         return orderPage.getContent().stream()
                 .map(order -> {
@@ -201,14 +202,14 @@ public class OrderService {
     @Transactional
     public ServerResponseDto updateStatusOrder(Long orderId, int orderStatus) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
 //        order.setOrderStatus(orderStatus);
         return ServerResponseDto.success(modelMapper.map(orderRepository.save(orderEntity), OrderDTO.class));
     }
 
     public ServerResponseDto cancelOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
         Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.CANCELLED);
         orderEntity.setPayment(payment);
@@ -230,7 +231,7 @@ public class OrderService {
 
     public ServerResponseDto confirmOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
         Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.CONFIRMED);
         orderEntity.setPayment(payment);
@@ -240,7 +241,7 @@ public class OrderService {
 
     public ServerResponseDto transitOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
         Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.IN_TRANSIT);
         orderEntity.setPayment(payment);
@@ -250,7 +251,7 @@ public class OrderService {
 
     public ServerResponseDto deliveryOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException(MessageException.ORDER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
         Payment payment = orderEntity.getPayment();
         payment.setStatus(PaymentStatus.DELIVERED);
         orderEntity.setPayment(payment);
@@ -269,20 +270,20 @@ public class OrderService {
     @Transactional
     public ServerResponseDto buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception {
         BookEntity bookEntity = bookRepository.findById(placeSingleBookDTO.getBookId())
-                .orElseThrow(() -> new RuntimeException(MessageException.BOOK_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         UserEntity user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
         List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
         if (placeSingleBookDTO.getAddressId() == null) {
-            throw new RuntimeException(MessageException.INVALID_ADDRESS.getMessage());
+            throw new ResourceNotFoundException(MessageException.INVALID_ADDRESS);
         }
         UserAddress addressTo = userAddressList.stream()
                 .filter(address -> address.getId().equals(placeSingleBookDTO.getAddressId()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(MessageException.ADDRESS_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ADDRESS_NOT_FOUND));
 
         ShipmentInfo shipmentInfo = ShipmentInfo.builder()
                 .from(new ShopAddress())
@@ -298,7 +299,7 @@ public class OrderService {
         PaymentType paymentType = placeSingleBookDTO.getPaymentType();
 
         if(paymentType == null) {
-            throw new RuntimeException(MessageException.PAYMENT_METHOD_NOT_FOUND.getMessage());
+            throw new ResourceNotFoundException(MessageException.PAYMENT_METHOD_NOT_FOUND);
         }
 
         Payment payment = new Payment();
@@ -339,7 +340,6 @@ public class OrderService {
         bookEntity.setStock(bookEntity.getStock() - 1);
         bookEntity.setSold(bookEntity.getSold() + 1);
         bookRepository.save(bookEntity);
-
 
         PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
         placeOrderResponse.setOrderId(orderEntity.getId());
