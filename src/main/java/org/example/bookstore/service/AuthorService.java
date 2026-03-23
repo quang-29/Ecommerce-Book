@@ -57,7 +57,7 @@ public class AuthorService {
         AuthorEntity authorEntity = authorRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         authorRepository.delete(authorEntity);
-        return ServerResponseDto.success("Delete author successfully!");
+        return ServerResponseDto.SUCCESS;
     }
 
     public ServerResponseDto getAuthorById(Long id) {

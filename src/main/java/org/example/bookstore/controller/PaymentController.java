@@ -34,22 +34,6 @@ public class PaymentController {
         ));
     }
 
-//    @GetMapping("/check")
-//    public void checkPayment(@RequestParam String gateway,
-//                                          @RequestParam Map<String, String> params,
-//                                          HttpServletResponse response) throws IOException {
-//        boolean ok = paymentService.checkPayment(gateway, params);
-//        String txnRef = params.get("vnp_TxnRef");
-//        if(ok){
-//            response.sendRedirect("bookstore://payment/success?orderId=" + txnRef);
-//        } else {
-//            response.sendRedirect("bookstore://payment/failed?orderId=" + txnRef);
-//        }
-//        return ResponseEntity.ok().body(Map.of(
-//                "status", ok ? "success" : "failed"
-//        ));
-//    }
-
 
     @GetMapping("/check")
     public void checkPayment(@RequestParam String gateway,

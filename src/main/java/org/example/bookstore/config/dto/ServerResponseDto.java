@@ -9,6 +9,9 @@ public class ServerResponseDto {
     private final ResponseCase status;
     private Object data;
 
+    public static final ServerResponseDto SUCCESS = new ServerResponseDto(ResponseCase.SUCCESS);
+    public static final ServerResponseDto ERROR = new ServerResponseDto(ResponseCase.ERROR);
+
     private ServerResponseDto(ResponseCase responseCase) {
         this.status = responseCase;
     }

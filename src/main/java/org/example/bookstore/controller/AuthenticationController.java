@@ -45,12 +45,12 @@ public class AuthenticationController {
     public ResponseEntity<ServerResponseDto> logout(HttpServletRequest request, HttpServletResponse response){
         CustomUserDetails customUserDetails = CurrentUserDetails.getCurrentUser();
         if(customUserDetails == null){
-            return ResponseEntity.ok(ServerResponseDto.success("Log out successfully!"));
+            return ResponseEntity.ok(ServerResponseDto.ERROR);
         }
         String refreshToken = getRefreshToken(request,USER_REFRESH_TOKEN_COOKIE);
         authenticationService.logout(refreshToken);
         clearRefreshTokenCookie(response,USER_REFRESH_TOKEN_COOKIE);
-        return ResponseEntity.ok(ServerResponseDto.success("Log out successfully!"));
+        return ResponseEntity.ok(ServerResponseDto.SUCCESS);
     }
 
     @PostMapping("/register")
@@ -67,7 +67,7 @@ public class AuthenticationController {
     @PostMapping("/change-password")
     public ResponseEntity<ServerResponseDto> changePassword(@RequestBody ChangePasswordRequest request) throws BadRequestException {
         authenticationService.changePassword(request);
-        return ResponseEntity.ok(ServerResponseDto.success("Change password successfully!"));
+        return ResponseEntity.ok(ServerResponseDto.SUCCESS);
     }
 
     private String getRefreshToken(HttpServletRequest request, String cookieName) {

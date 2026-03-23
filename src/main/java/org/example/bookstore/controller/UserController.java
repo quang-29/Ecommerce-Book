@@ -1,5 +1,6 @@
 package org.example.bookstore.controller;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.model.UserEntity;
@@ -108,7 +109,7 @@ public class UserController {
 
     @PutMapping("/changeAvatar/{userId}")
     public ResponseEntity<ServerResponseDto> changeAvatar(@PathVariable Long userId,
-                                                      @RequestParam("file") MultipartFile file) {
+                                                      @RequestParam("file") MultipartFile file) throws FileUploadException {
         return ResponseEntity.ok(userService.changeAvatar(userId,file));
     }
 
@@ -121,9 +122,4 @@ public class UserController {
         }
         return ResponseEntity.ok(ServerResponseDto.success(Map.of("avatarUrl", user.get().getAvatarUrl())));
     }
-
-
-
-
-
 }
