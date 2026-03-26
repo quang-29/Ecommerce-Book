@@ -2,7 +2,6 @@ package org.example.bookstore.service;
 
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
-import org.example.bookstore.enums.ResponseCase;
 import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.payload.AuthorDTO;
@@ -42,13 +41,7 @@ public class AuthorService {
         AuthorEntity authorEntity = authorRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND)
         );
-        authorEntity.setName(authorDTO.getName());
-        authorEntity.setBiography(authorDTO.getBiography());
-        authorEntity.setEmail(authorDTO.getEmail());
-        authorEntity.setCountry(authorDTO.getCountry());
-        authorEntity.setWebsite(authorDTO.getWebsite());
-        authorEntity.setImage_path(authorDTO.getImage_path());
-        authorEntity.setBirth_date(authorDTO.getBirth_date());
+        authorEntity.mapToAuthorEntity(authorDTO);
         AuthorEntity savedAuthorEntity = authorRepository.save(authorEntity);
         return ServerResponseDto.success(modelMapper.map(savedAuthorEntity, AuthorDTO.class));
     }

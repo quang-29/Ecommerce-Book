@@ -1,5 +1,6 @@
 package org.example.bookstore.controller;
 
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.model.UserAddress;
 import org.example.bookstore.model.shipment.BasicShippingOrderInfo;
 import org.example.bookstore.payload.request.UserAddressRequest;
@@ -18,49 +19,28 @@ import java.util.List;
 public class UserAddressController {
     private final UserAddressService userAddressService;
 
-    private final GHNService ghnService;
-
-    public UserAddressController(UserAddressService userAddressService, GHNService ghnService) {
+    public UserAddressController(UserAddressService userAddressService) {
         this.userAddressService = userAddressService;
-        this.ghnService = ghnService;
     }
 
     @GetMapping("/{username}")
-    public ResponseEntity<DataResponse> getUsername(@PathVariable String username) {
+    public ResponseEntity<ServerResponseDto> getUsername(@PathVariable String username) {
 
         List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .data(userAddressList)
-                .timestamp(LocalDateTime.now())
-                .message("Success")
-                .build();
-        return new ResponseEntity<>(dataResponse, HttpStatus.OK);
+        return ResponseEntity.ok(ServerResponseDto.success(userAddressList));
     }
 
     @PostMapping("/addUserAddress")
-    public ResponseEntity<DataResponse> addUserAddress(@RequestBody UserAddressRequest userAddressRequest) {
+    public ResponseEntity<ServerResponseDto> addUserAddress(@RequestBody UserAddressRequest userAddressRequest) {
          userAddressService.save(userAddressRequest);
-         DataResponse dataResponse = DataResponse.builder()
-                 .code(HttpStatus.OK.value())
-                 .timestamp(LocalDateTime.now())
-                 .message("Success")
-                 .build();
-         return new ResponseEntity<>(dataResponse, HttpStatus.OK);
+         return ResponseEntity.ok(ServerResponseDto.SUCCESS);
     }
 
 
     @PostMapping("/getBasicShipmentInfo")
-    public ResponseEntity<DataResponse> getBasicShipmentInfo(@RequestBody UserAddress addressTo) throws Exception {
+    public ResponseEntity<ServerResponseDto> getBasicShipmentInfo(@RequestBody UserAddress addressTo) throws Exception {
         BasicShippingOrderInfo basicShippingOrderInfo = userAddressService.getBasicShipmentInfo(addressTo);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .data(basicShippingOrderInfo)
-                .timestamp(LocalDateTime.now())
-                .message("Success")
-                .build();
-
-        return new ResponseEntity<>(dataResponse, HttpStatus.OK);
+        return ResponseEntity.ok(ServerResponseDto.success(basicShippingOrderInfo));
     }
 
 }

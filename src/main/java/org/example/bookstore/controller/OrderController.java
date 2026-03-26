@@ -51,19 +51,12 @@ public class OrderController {
 
     @GetMapping("/all")
     @PreAuthorize("@authorizationService.isAdmin()")
-    public ResponseEntity<DataResponse> getAllOrders(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<ServerResponseDto> getAllOrders(@RequestParam(defaultValue = "0") int page,
                                                      @RequestParam(defaultValue = "10") int size,
                                                      @RequestParam(required = false) String sortBy,
                                                      @RequestParam(required = false) String sortDirection) {
         List<OrderDTO> orderDTOList = orderService.getAllOrders(page, size, sortBy, sortDirection);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .message("Success")
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .data(orderDTOList)
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+        return ResponseEntity.status(HttpStatus.OK).body(ServerResponseDto.success(orderDTOList));
     }
 
     @PostMapping("/update")

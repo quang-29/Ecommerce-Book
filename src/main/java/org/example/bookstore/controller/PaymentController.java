@@ -59,7 +59,6 @@ public class PaymentController {
                     "bookstore://payment/success?orderId=" + txnRef :
                     "bookstore://payment/failed?orderId=" + txnRef;
 
-            // Fallback URL cho trường hợp không mở được app
             String fallbackUrl = "https://your-website.com/order/" + txnRef;
 
             out.println("<!DOCTYPE html>");

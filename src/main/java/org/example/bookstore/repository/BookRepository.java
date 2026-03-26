@@ -35,8 +35,8 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
             nativeQuery = true)
     Page<BookEntity> getBookByCategory(@Param("category") String category, Pageable pageable);
 
-    @Query(value = "SELECT * FROM book WHERE average_rating > 4.5", nativeQuery = true)
-    Page<BookEntity> getNewReleasedBooks(Pageable pageable);
+    @Query(value = "SELECT * FROM book WHERE average_rating > 4.5 and title LIKE %:keyword% ", nativeQuery = true)
+    Page<BookEntity> getNewReleasedBooks(Pageable pageable, String keyword);
 
     @Query(value = "SELECT * FROM book WHERE title LIKE %:title%", nativeQuery = true)
     List<BookEntity> getBookByTitle(@Param("title") String title);

@@ -6,6 +6,8 @@ import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.request.CreateBookRequest;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.service.BookService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -97,10 +99,12 @@ public class BookController {
 
     @GetMapping("/get-new-release-books")
     public ResponseEntity<ServerResponseDto> getNewReleaseBook(@RequestParam(defaultValue = "0") Integer page,
-                                                           @RequestParam(defaultValue = "10") Integer size,
-                                                           @RequestParam(required = false) String sortBy,
-                                                           @RequestParam(required = false) String sortDirection) {
-        return ResponseEntity.ok(bookService.getNewReleaseBook(page, size, sortBy, sortDirection));
+                                                               @RequestParam(defaultValue = "10") Integer size,
+                                                               @RequestParam(required = false) String sortBy,
+                                                               @RequestParam(required = false) String sortDirection,
+                                                               @RequestParam(required = false) String keyword, Sort sort) {
+        Page<BookDTO> bookDTOPage = bookService.getNewReleaseBook(page, size, sortBy, sortDirection, keyword);
+        return ResponseEntity.ok(ServerResponseDto.success(bookDTOPage));
     }
 
     @GetMapping("/search")

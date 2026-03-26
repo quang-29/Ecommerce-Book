@@ -7,10 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.bookstore.payload.AuthorDTO;
 
 import java.util.Date;
 import java.util.Set;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -34,16 +34,26 @@ public class AuthorEntity extends BaseEntity {
     @Column(name = "website")
     private String website;
 
-    @Column(name = "birth_date")
-    private Date birth_date;
+    @Column(name = "dob")
+    private Date dob;
 
     @Column(name = "country")
     private String country;
 
-    @Column(name = "image_path")
-    private String image_path;
+    @Column(name = "imageUrl")
+    private String imageUrl;
 
     @OneToMany(mappedBy = "author")
     private Set<BookEntity> bookEntities;
+    
+    public void mapToAuthorEntity(AuthorDTO authorDTO){
+        this.name = authorDTO.getName();
+        this.biography = authorDTO.getBiography();
+        this.email = authorDTO.getEmail();
+        this.country = authorDTO.getCountry();
+        this.website = authorDTO.getWebsite();
+        this.imageUrl = authorDTO.getImageUrl();
+        this.dob = authorDTO.getDob();
+    }
 
 }

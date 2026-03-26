@@ -4,6 +4,7 @@ import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.ResourceNotFoundException;
+import org.example.bookstore.mapper.BookMapper;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.CategoryEntity;
@@ -39,13 +40,15 @@ public class BookService {
     private final ModelMapper modelMapper;
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
+    private final BookMapper bookMapper;
 
-    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository) {
+    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository, BookMapper bookMapper) {
         this.categoryRepository = categoryRepository;
         this.cloudinaryServiceImpl = cloudinaryServiceImpl;
         this.modelMapper = modelMapper;
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
+        this.bookMapper = bookMapper;
     }
 
     public ServerResponseDto getBookById(Long id) {
@@ -162,12 +165,20 @@ public class BookService {
         return ServerResponseDto.success(pageBooks);
     }
 
-    public ServerResponseDto getNewReleaseBook(int pageNumber, int pageSize, String sortBy, String sortDirection) {
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+    public Page<BookDTO> getNewReleaseBook(int pageNumber, int pageSize, String sortBy, String sortDirection, String keyword) {
 
+        Page<BookEntity> listBooks = findBookBy(keyword, pageNumber, pageSize, sortBy, sortDirection);
+        return listBooks.map(book -> mapToBookDto(book));
+    }
+
+    public Page<BookEntity> findBookBy(String keyword, int pageNumber, int pageSize, String sortBy, String sortDirection){
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageDetails = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
-        Page<BookDTO> pageBooks = bookRepository.getNewReleasedBooks(pageDetails).map(book -> modelMapper.map(book, BookDTO.class));
-        return ServerResponseDto.success(pageBooks);
+       return bookRepository.getNewReleasedBooks(pageDetails, keyword);
+    }
+
+    public BookDTO mapToBookDto(BookEntity bookEntity) {
+        return bookMapper.mapBookEntityToDto(bookEntity);
     }
 
     public ServerResponseDto getBookByTitle(String title) {
