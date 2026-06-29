@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @AllArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -17,10 +19,13 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        if (username == null || username.isBlank()) {
+            throw new UsernameNotFoundException(MessageException.USER_NOT_FOUND.getMessage());
+        }
 
         UserEntity user = userRepository.findUserByUsername(username)
-                .or(() -> userRepository.findUserByEmail(username))
-                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+                .or(() -> username.contains("@") ? userRepository.findUserByEmail(username) : Optional.empty())
+                .orElseThrow(() -> new UsernameNotFoundException(MessageException.USER_NOT_FOUND.getMessage()));
 
         return CustomUserDetails.builder()
                 .userId(user.getId())
