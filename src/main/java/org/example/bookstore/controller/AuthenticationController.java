@@ -8,12 +8,14 @@ import org.apache.coyote.BadRequestException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.request.*;
 import org.example.bookstore.payload.response.*;
-import org.example.bookstore.security.CurrentUserDetails;
-import org.example.bookstore.security.CustomUserDetails;
 import org.example.bookstore.service.AuthenticationService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Duration;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @Slf4j
@@ -23,7 +25,7 @@ public class AuthenticationController {
 
     private final static String USER_REFRESH_TOKEN_COOKIE = "user_refresh_token";
 
-    @Value("${app.jwt.refresh-token-expiration}")
+    @Value("${app.jwt.refresh-expiration-in-ms}")
     private Long refreshTokenExpiration;
 
     public final AuthenticationService authenticationService;
@@ -38,15 +40,12 @@ public class AuthenticationController {
         String ipAddress = getClientIpAddress(request);
         LoginResponse loginResponse = authenticationService.login(loginRequest, userAgent, ipAddress);
         setRefreshTokenCookie(response, loginResponse.getRefreshToken(), USER_REFRESH_TOKEN_COOKIE);
+        loginResponse.setRefreshToken(null);
         return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<ServerResponseDto> logout(HttpServletRequest request, HttpServletResponse response){
-        CustomUserDetails customUserDetails = CurrentUserDetails.getCurrentUser();
-        if(customUserDetails == null){
-            return ResponseEntity.ok(ServerResponseDto.ERROR);
-        }
         String refreshToken = getRefreshToken(request,USER_REFRESH_TOKEN_COOKIE);
         authenticationService.logout(refreshToken);
         clearRefreshTokenCookie(response,USER_REFRESH_TOKEN_COOKIE);
@@ -60,8 +59,16 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh-user")
-    public ResponseEntity<ServerResponseDto> refreshToken() {
-        return ResponseEntity.ok(ServerResponseDto.success(authenticationService.refreshUser()));
+    public ResponseEntity<ServerResponseDto> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = getRefreshToken(request, USER_REFRESH_TOKEN_COOKIE);
+        LoginResponse loginResponse = authenticationService.refreshUser(
+                refreshToken,
+                request.getHeader("User-Agent"),
+                getClientIpAddress(request)
+        );
+        setRefreshTokenCookie(response, loginResponse.getRefreshToken(), USER_REFRESH_TOKEN_COOKIE);
+        loginResponse.setRefreshToken(null);
+        return ResponseEntity.ok(ServerResponseDto.success(loginResponse));
     }
 
     @PostMapping("/change-password")
@@ -71,7 +78,7 @@ public class AuthenticationController {
     }
 
     private String getRefreshToken(HttpServletRequest request, String cookieName) {
-        Cookie[] cookies = request.getCookies();
+        var cookies = request.getCookies();
         if(cookies != null) {
             for(Cookie cookie: cookies){
                 if(cookieName.equals(cookie.getName())){
@@ -83,11 +90,14 @@ public class AuthenticationController {
     }
 
     private void clearRefreshTokenCookie(HttpServletResponse response, String cookieName){
-        Cookie cookie = new Cookie(cookieName, "");
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(cookieName, "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
@@ -109,10 +119,13 @@ public class AuthenticationController {
             clearRefreshTokenCookie(response, cookieName);
             return;
         }
-        Cookie cookie = new Cookie(cookieName, refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(refreshTokenExpiration.intValue() / 1000);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(cookieName, refreshToken)
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofMillis(refreshTokenExpiration))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

@@ -23,7 +23,7 @@ public class CategoryEntity extends BaseEntity {
     @Column(name = "category_img")
     private String category_img;
 
-    @OneToMany(mappedBy = "category")
+    @OneToMany(mappedBy = "categoryEntity")
     private Set<BookEntity> bookEntities;
 
 }

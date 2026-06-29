@@ -66,13 +66,16 @@ public class BookEntity extends BaseEntity {
     @Column(name = "publishedDate", nullable = false)
     private LocalDate publishedDate;
 
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "bookEntity")
     private List<Review> reviews;
 
-    @OneToMany(mappedBy = "book")
+    @OneToMany(mappedBy = "bookEntity")
     private List<OrderItem> orderDetails;
 
-    @ManyToMany(mappedBy = "likedBooks")
+    @OneToMany(mappedBy = "bookEntity")
+    private List<StoreBookEntity> storeBooks;
+
+    @ManyToMany(mappedBy = "likedBookEntities")
     private Set<UserEntity> likedByUsers = new HashSet<>();
 
 

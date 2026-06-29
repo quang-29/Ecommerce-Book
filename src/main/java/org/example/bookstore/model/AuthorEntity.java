@@ -43,7 +43,7 @@ public class AuthorEntity extends BaseEntity {
     @Column(name = "imageUrl")
     private String imageUrl;
 
-    @OneToMany(mappedBy = "author")
+    @OneToMany(mappedBy = "authorEntity")
     private Set<BookEntity> bookEntities;
     
     public void mapToAuthorEntity(AuthorDTO authorDTO){

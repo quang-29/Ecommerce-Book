@@ -11,7 +11,10 @@ import java.util.UUID;
 @Setter
 public class PlaceSingleBookDTO {
     @NotBlank
+    private Long storeBookId;
+    @NotBlank
     private Long bookId;
+    private Long storeId;
     @NotBlank
     private Long addressId;
     @NotBlank

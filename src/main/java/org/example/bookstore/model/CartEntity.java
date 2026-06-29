@@ -21,7 +21,7 @@ public class CartEntity extends BaseEntity {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    @OneToMany(mappedBy = "cart")
+    @OneToMany(mappedBy = "cartEntity")
     private List<CartItemEntity> cartItemEntities;
 
     private long totalPrice = 0;

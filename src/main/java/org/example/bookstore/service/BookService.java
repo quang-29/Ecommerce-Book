@@ -4,7 +4,6 @@ import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.ResourceNotFoundException;
-import org.example.bookstore.mapper.BookMapper;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.CategoryEntity;
@@ -40,44 +39,42 @@ public class BookService {
     private final ModelMapper modelMapper;
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
-    private final BookMapper bookMapper;
 
-    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository, BookMapper bookMapper) {
+    private static final String DEFAULT_SORT_BY = "id";
+    private static final String DEFAULT_SORT_DIRECTION = "ASC";
+    private static final double SEARCH_MATCH_THRESHOLD = 0.5;
+
+    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository) {
         this.categoryRepository = categoryRepository;
         this.cloudinaryServiceImpl = cloudinaryServiceImpl;
         this.modelMapper = modelMapper;
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
-        this.bookMapper = bookMapper;
     }
 
     public ServerResponseDto getBookById(Long id) {
         BookEntity bookEntity = bookRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
-        return ServerResponseDto.success( modelMapper.map(bookEntity, BookDTO.class));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
+        return ServerResponseDto.success(mapToBookDto(bookEntity));
     }
 
     public ServerResponseDto getAllBooks(int page, int size, String sortBy, String sortDirection) {
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = createPageable(page, size, sortBy, sortDirection);
 
-        Page<BookDTO> pageBooks = bookRepository.findAll(pageable).map(book -> modelMapper.map(book, BookDTO.class));
+        Page<BookDTO> pageBooks = bookRepository.findAll(pageable).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
     public ServerResponseDto getAllBooksByAuthor(String authorName, int page, int size, String sortBy, String sortDirection) {
 
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
-        Pageable pageDetails = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<BookDTO> pageBooks = bookRepository.findByAuthor_Name(authorName, pageDetails).map(book -> modelMapper.map(book, BookDTO.class));
+        Pageable pageDetails = createPageable(page, size, sortBy, sortDirection);
+        Page<BookDTO> pageBooks = bookRepository.findByAuthor_Name(authorName, pageDetails).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
     public ServerResponseDto getAllBooksByCategory(String category, int page, int size, String sortBy, String sortDirection) {
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
-
-        Pageable pageDetails = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<BookDTO> pageBooks = bookRepository.findByCategory_Name(category, pageDetails).map(book -> modelMapper.map(book, BookDTO.class));
+        Pageable pageDetails = createPageable(page, size, sortBy, sortDirection);
+        Page<BookDTO> pageBooks = bookRepository.findByCategory_Name(category, pageDetails).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
@@ -90,10 +87,13 @@ public class BookService {
         BookEntity bookEntity = modelMapper.map(request, BookEntity.class);
         bookEntity.setSold(0L);
         bookEntity.setPublishedDate(LocalDate.parse(request.getPublishedDate()));
-        Optional<CategoryEntity> optionalCategory = categoryRepository.findByName(request.getCategory());
-        if(optionalCategory.isPresent()){
-            bookEntity.setCategoryEntity(optionalCategory.get());
-        }
+        CategoryEntity categoryEntity = categoryRepository.findByName(request.getCategory())
+                .orElseGet(() -> {
+                    CategoryEntity newCategoryEntity = new CategoryEntity();
+                    newCategoryEntity.setName(request.getCategory());
+                    return categoryRepository.save(newCategoryEntity);
+                });
+        bookEntity.setCategoryEntity(categoryEntity);
         Optional<AuthorEntity> optionalAuthor = authorRepository.findByName(request.getAuthor());
         if(optionalAuthor.isPresent()){
             bookEntity.setAuthorEntity(optionalAuthor.get());
@@ -104,9 +104,7 @@ public class BookService {
             bookEntity.setAuthorEntity(authorEntity);
         }
         BookEntity bookEntitySaved = bookRepository.save(bookEntity);
-        BookDTO bookDTO = modelMapper.map(bookEntitySaved, BookDTO.class);
-        bookDTO.setAuthorName(bookEntitySaved.getAuthorEntity().getName());
-        return ServerResponseDto.success(bookDTO);
+        return ServerResponseDto.success(mapToBookDto(bookEntitySaved));
 
     }
 
@@ -115,7 +113,7 @@ public class BookService {
             try {
                 Optional<BookEntity> optionalBook = bookRepository.findById(id);
                 if(optionalBook.isEmpty()){
-                    throw new ResourceNotFoundException(MessageException.ROLE_NOT_FOUND);
+                    throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
                 }
                 BookEntity bookEntity = optionalBook.get();
                 FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
@@ -144,10 +142,7 @@ public class BookService {
                 });
         bookEntityFound.setCategoryEntity(categoryEntity);
         BookEntity savedBookEntity = bookRepository.save(bookEntityFound);
-        BookDTO updatedBookDTO = modelMapper.map(savedBookEntity, BookDTO.class);
-        updatedBookDTO.setAuthorName(savedBookEntity.getAuthorEntity().getName());
-        updatedBookDTO.setCategoryName(savedBookEntity.getCategoryEntity().getName());
-        return ServerResponseDto.success(updatedBookDTO);
+        return ServerResponseDto.success(mapToBookDto(savedBookEntity));
     }
 
     public ServerResponseDto deleteBook(Long id) {
@@ -158,10 +153,8 @@ public class BookService {
     }
 
     public ServerResponseDto getBookUpSale(int pageNumber, int pageSize, String sortBy, String sortDirection) {
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
-
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
-        Page<BookDTO> pageBooks = bookRepository.getBookUpSale(pageable).map(book -> modelMapper.map(book, BookDTO.class));
+        Pageable pageable = createPageable(pageNumber, pageSize, sortBy, sortDirection);
+        Page<BookDTO> pageBooks = bookRepository.getBookUpSale(pageable).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
@@ -172,19 +165,27 @@ public class BookService {
     }
 
     public Page<BookEntity> findBookBy(String keyword, int pageNumber, int pageSize, String sortBy, String sortDirection){
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
-        Pageable pageDetails = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
-       return bookRepository.getNewReleasedBooks(pageDetails, keyword);
+        Pageable pageDetails = createPageable(pageNumber, pageSize, sortBy, sortDirection);
+        return bookRepository.getNewReleasedBooks(pageDetails, keyword == null ? "" : keyword);
     }
 
     public BookDTO mapToBookDto(BookEntity bookEntity) {
-        return bookMapper.mapBookEntityToDto(bookEntity);
+        BookDTO bookDTO = modelMapper.map(bookEntity, BookDTO.class);
+        bookDTO.setPublishedDate(bookEntity.getPublishedDate() == null ? null : bookEntity.getPublishedDate().toString());
+        bookDTO.setStock(getTotalStock(bookEntity));
+        if (bookEntity.getAuthorEntity() != null) {
+            bookDTO.setAuthorName(bookEntity.getAuthorEntity().getName());
+        }
+        if (bookEntity.getCategoryEntity() != null) {
+            bookDTO.setCategoryName(bookEntity.getCategoryEntity().getName());
+        }
+        return bookDTO;
     }
 
     public ServerResponseDto getBookByTitle(String title) {
         List<BookEntity> bookEntityList = bookRepository.getBookByTitle(title);
 
-        List<BookDTO> bookDTOList = bookEntityList.stream().map(book -> modelMapper.map(book, BookDTO.class)).toList();
+        List<BookDTO> bookDTOList = bookEntityList.stream().map(this::mapToBookDto).toList();
         return ServerResponseDto.success(bookDTOList) ;
     }
 
@@ -194,18 +195,25 @@ public class BookService {
             throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
         }
 
-        return ServerResponseDto.success(modelMapper.map(bookEntity, BookDTO.class));
+        return ServerResponseDto.success(mapToBookDto(bookEntity));
     }
 
     public ServerResponseDto searchBookByContent(String content) {
         String cleanText = normalizeText(content);
+        if (cleanText.isBlank()) {
+            throw new NoSuchElementException("Không tìm thấy sách");
+        }
         List<BookEntity> allBookEntities = bookRepository.findAll();
 
         BookEntity bestMatch = null;
         double highestScore = 0.0;
 
         for (BookEntity bookEntity : allBookEntities) {
-            String combined = (bookEntity.getTitle() + " " + bookEntity.getAuthorEntity() + " " + bookEntity.getDescription()).toLowerCase();
+            String combined = normalizeText(String.join(" ",
+                    nullToEmpty(bookEntity.getTitle()),
+                    bookEntity.getAuthorEntity() == null ? "" : nullToEmpty(bookEntity.getAuthorEntity().getName()),
+                    nullToEmpty(bookEntity.getDescription())
+            ));
             double score = similarity(cleanText, combined);
             if (score > highestScore) {
                 highestScore = score;
@@ -217,18 +225,45 @@ public class BookService {
             throw new NoSuchElementException("Không tìm thấy sách ");
         }
 
-        if (bestMatch != null && highestScore >= 0.5) {
-            return ServerResponseDto.success(modelMapper.map(bestMatch, BookDTO.class));
+        if (highestScore >= SEARCH_MATCH_THRESHOLD) {
+            return ServerResponseDto.success(mapToBookDto(bestMatch));
         }
 
-        return null;
+        throw new NoSuchElementException("Không tìm thấy sách");
     }
 
     private String normalizeText(String input) {
+        if (input == null) {
+            return "";
+        }
         return input.toLowerCase()
-                .replaceAll("[^a-zA-Z0-9\\s]", "")
+                .replaceAll("[^\\p{L}\\p{N}\\s]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private Pageable createPageable(int page, int size, String sortBy, String sortDirection) {
+        String resolvedSortBy = isBlank(sortBy) ? DEFAULT_SORT_BY : sortBy;
+        String resolvedSortDirection = isBlank(sortDirection) ? DEFAULT_SORT_DIRECTION : sortDirection;
+        Sort.Direction direction = Sort.Direction.fromString(resolvedSortDirection);
+        return PageRequest.of(page, size, Sort.by(direction, resolvedSortBy));
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private Long getTotalStock(BookEntity bookEntity) {
+        if (bookEntity.getStoreBooks() == null || bookEntity.getStoreBooks().isEmpty()) {
+            return bookEntity.getStock();
+        }
+        return bookEntity.getStoreBooks().stream()
+                .mapToLong(storeBook -> storeBook.getStock() == null ? 0L : storeBook.getStock())
+                .sum();
     }
 
     private double similarity(String s1, String s2) {

@@ -11,6 +11,8 @@ import java.util.UUID;
 @NoArgsConstructor
 public class OrderItemDTO {
     private Long orderItemId;
+    private Long storeId;
+    private String storeName;
     private BookDTO book;
     private Integer quantity;
     private long productPrice;

@@ -7,6 +7,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.NonFinal;
 import org.example.bookstore.enums.ErrorCode;
+import org.example.bookstore.exception.AppException;
 import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.repository.InvalidTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;

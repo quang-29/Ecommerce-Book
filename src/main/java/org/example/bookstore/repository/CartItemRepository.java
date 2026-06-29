@@ -8,16 +8,29 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.Long;
+import java.util.List;
 
 @Repository
 public interface CartItemRepository extends JpaRepository<CartItemEntity, Long> {
 
-    @Query("SELECT ci FROM CartItemEntity ci WHERE ci.cart.id = ?1 AND ci.book.id = ?2")
+    @Query("SELECT ci FROM CartItemEntity ci WHERE ci.cartEntity.id = ?1 AND ci.bookEntity.id = ?2")
     CartItemEntity findCartItemByCartIdAndBookId(Long cartId, Long bookId);
+
+    CartItemEntity findByCartEntityIdAndStoreBookEntityId(Long cartId, Long storeBookId);
+
+    List<CartItemEntity> findByCartEntityId(Long cartId);
 
     @Transactional
     @Modifying
-    @Query("DELETE FROM CartItemEntity ci WHERE ci.cart.id = ?1 AND ci.book.id = ?2")
+    @Query("DELETE FROM CartItemEntity ci WHERE ci.cartEntity.id = ?1 AND ci.bookEntity.id = ?2")
     void deleteCartItemByCartIdAndBookId(Long cartId, Long bookId);
+
+    @Transactional
+    @Modifying
+    void deleteByCartEntityIdAndStoreBookEntityId(Long cartId, Long storeBookId);
+
+    @Transactional
+    @Modifying
+    void deleteByCartEntityId(Long cartId);
 
 }

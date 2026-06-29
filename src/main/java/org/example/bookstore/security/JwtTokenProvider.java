@@ -63,9 +63,10 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetail.getUsername())
+                .setId(UUID.randomUUID().toString())
                 .setIssuedAt(now)
                 .setExpiration(expiredDate)
-                .signWith(SIGNATURE_ALGORITHM, jwtSecret)
+                .signWith(key, SIGNATURE_ALGORITHM)
                 .compact();
     }
 
@@ -149,7 +150,7 @@ public class JwtTokenProvider {
     }
 
     public String getTokenId(String token) {
-        String tokenIdStr = parseClaims(token).get("id", String.class);
+        String tokenIdStr = parseClaims(token).getId();
         if (tokenIdStr == null) {
             throw new RuntimeException("Token ID is missing from JWT");
         }

@@ -22,7 +22,7 @@ public class OrderEntity extends BaseEntity {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
-    @OneToMany(mappedBy = "order", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @OneToMany(mappedBy = "orderEntity", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<OrderItem> orderItems;
 
     private Date createAt;

@@ -26,19 +26,23 @@ public class CartController {
 
     @PostMapping("/addBookToCart")
     public ResponseEntity<ServerResponseDto> addBookToCart(@RequestBody AddToCartRequest request) {
-        return ResponseEntity.ok(ServerResponseDto.success(cartService.addProductToCart(request.getCartId(), request.getBookId(), request.getQuantity())));
+        return ResponseEntity.ok(ServerResponseDto.success(cartService.addProductToCart(request.getCartId(), request.getStoreBookId(), request.getBookId(), request.getStoreId(), request.getQuantity())));
     }
 
     @DeleteMapping("/deleteBookFromCart")
     public ResponseEntity<ServerResponseDto> deleteBookFromCart(@RequestParam Long cartId,
-                                                            @RequestParam Long bookId) {
-        return ResponseEntity.ok(ServerResponseDto.success(cartService.deleteProductFromCart(cartId, bookId)));
+                                                            @RequestParam(required = false) Long storeBookId,
+                                                            @RequestParam(required = false) Long bookId,
+                                                            @RequestParam(required = false) Long storeId) {
+        return ResponseEntity.ok(ServerResponseDto.success(cartService.deleteProductFromCart(cartId, storeBookId, bookId, storeId)));
     }
 
     @PostMapping("/decreaseBookFromCart")
     public ResponseEntity<ServerResponseDto> decreaseBookFromCart(@RequestParam Long cartId,
-                                                              @RequestParam Long bookId) {
-        return ResponseEntity.ok(ServerResponseDto.success(cartService.decreaseProductFromCart(cartId, bookId)));
+                                                              @RequestParam(required = false) Long storeBookId,
+                                                              @RequestParam(required = false) Long bookId,
+                                                              @RequestParam(required = false) Long storeId) {
+        return ResponseEntity.ok(ServerResponseDto.success(cartService.decreaseProductFromCart(cartId, storeBookId, bookId, storeId)));
 
     }
 }

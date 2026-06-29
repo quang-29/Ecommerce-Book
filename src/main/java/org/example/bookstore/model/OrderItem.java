@@ -19,6 +19,10 @@ public class OrderItem extends BaseEntity {
     private BookEntity bookEntity;
 
     @ManyToOne
+    @JoinColumn(name = "store_book_id")
+    private StoreBookEntity storeBookEntity;
+
+    @ManyToOne
     @JoinColumn(name = "order_id")
     private OrderEntity orderEntity;
 

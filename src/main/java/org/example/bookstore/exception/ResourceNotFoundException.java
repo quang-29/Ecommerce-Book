@@ -4,18 +4,20 @@ import org.example.bookstore.enums.MessageException;
 
 public class ResourceNotFoundException extends RuntimeException {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	String message;
+    private final String message;
 
-	public ResourceNotFoundException() {
-	}
+    public ResourceNotFoundException() {
+        this.message = null;
+    }
 
-	public ResourceNotFoundException(MessageException messageException) {
-		this.message = messageException.getMessage();
-	}
+    public ResourceNotFoundException(MessageException messageException) {
+        this.message = messageException.getMessage();
+    }
 
-
-
-
+    @Override
+    public String getMessage() {
+        return message;
+    }
 }

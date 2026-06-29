@@ -1,6 +1,5 @@
 package org.example.bookstore.mapper;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.payload.BookDTO;
@@ -19,14 +18,23 @@ public class BookMapper {
         bookDTO.setIsbn(bookEntity.getIsbn());
         bookDTO.setLanguage(bookEntity.getLanguage());
         bookDTO.setImagePath(bookEntity.getImagePath());
-        bookDTO.setStock(bookEntity.getStock());
+        bookDTO.setStock(bookEntity.getStoreBooks() == null || bookEntity.getStoreBooks().isEmpty()
+                ? bookEntity.getStock()
+                : bookEntity.getStoreBooks().stream()
+                .mapToLong(storeBook -> storeBook.getStock() == null ? 0L : storeBook.getStock())
+                .sum());
         bookDTO.setSold(bookEntity.getSold());
         bookDTO.setPage(bookEntity.getPage());
         bookDTO.setReprint(bookEntity.getReprint());
         bookDTO.setPublishedDate(String.valueOf(bookEntity.getPublishedDate()));
         bookDTO.setAverageRating(bookEntity.getAverageRating());
-        bookDTO.setCategoryName(bookEntity.getCategoryEntity().getName());
-        bookDTO.setAuthorName(bookEntity.getAuthorEntity().getName());
+        if (bookEntity.getCategoryEntity() != null) {
+            bookDTO.setCategoryName(bookEntity.getCategoryEntity().getName());
+        }
+        if (bookEntity.getAuthorEntity() != null) {
+            bookDTO.setAuthorName(bookEntity.getAuthorEntity().getName());
+        }
+        return bookDTO;
 
     }
 

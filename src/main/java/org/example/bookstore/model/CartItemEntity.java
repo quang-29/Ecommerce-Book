@@ -25,6 +25,10 @@ public class CartItemEntity extends BaseEntity {
     @JoinColumn(name = "book_id")
     private BookEntity bookEntity;
 
+    @ManyToOne
+    @JoinColumn(name = "store_book_id")
+    private StoreBookEntity storeBookEntity;
+
     private Integer quantity;
 
     private long bookPrice;

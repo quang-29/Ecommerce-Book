@@ -28,6 +28,10 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private static final String[] PERMISSION_LIST = {
+            "/v1/auth/login",
+            "/v1/auth/register",
+            "/v1/auth/refresh-user",
+            "/v1/auth/logout",
             "/api/auth/**",
             "/api/author/getAllAuthors",
             "/api/author/getAuthorByName/{authorName}",

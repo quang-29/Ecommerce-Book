@@ -8,7 +8,6 @@ import org.example.bookstore.payload.request.ChangePasswordRequest;
 import org.example.bookstore.payload.request.LoginRequest;
 import org.example.bookstore.payload.request.RegisterRequest;
 import org.example.bookstore.payload.response.*;
-import org.example.bookstore.repository.InvalidTokenRepository;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.security.CurrentUserDetails;
 import org.example.bookstore.security.CustomUserDetails;
@@ -33,7 +32,7 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
 
-    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, InvalidTokenRepository invalidTokenRepository, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService) {
+    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -52,8 +51,7 @@ public class AuthenticationService {
             var userDetail = (CustomUserDetails) authentication.getPrincipal();
 
             String accessToken = jwtTokenProvider.generateToken(userDetail);
-            RefreshTokenEntity refreshTokenEntity = refreshTokenService.createRefreshToken(userDetail, userAgent, ipAddress);
-            String refreshToken = refreshTokenEntity.getToken();
+            String refreshToken = refreshTokenService.createRefreshToken(userDetail, userAgent, ipAddress);
 
             return LoginResponse.builder()
                     .token(accessToken)
@@ -62,7 +60,7 @@ public class AuthenticationService {
                     .build();
 
         } catch (AuthenticationException ex) {
-            return null;
+            throw new RuntimeException(MessageException.UNAUTHENTICATED.getMessage());
         }
     }
 
@@ -96,12 +94,20 @@ public class AuthenticationService {
         return true;
     }
 
-    public LoginResponse refreshUser() {
-        var user = CurrentUserDetails.getCurrentUser();
-        String token = jwtTokenProvider.generateToken(user);
+    public LoginResponse refreshUser(String refreshToken, String userAgent, String ipAddress) {
+        RefreshTokenEntity oldRefreshToken = refreshTokenService.verifyRefreshToken(refreshToken);
+        refreshTokenService.revokeRefreshToken(refreshToken);
+
+        UserEntity user = userRepository.findById(oldRefreshToken.getUserId())
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+        CustomUserDetails userDetails = toUserDetails(user);
+
+        String accessToken = jwtTokenProvider.generateToken(userDetails);
+        String newRefreshToken = refreshTokenService.createRefreshToken(userDetails, userAgent, ipAddress);
         return LoginResponse.builder()
-                .userDetails(user)
-                .token(token)
+                .userDetails(userDetails)
+                .token(accessToken)
+                .refreshToken(newRefreshToken)
                 .build();
     }
 
@@ -124,8 +130,20 @@ public class AuthenticationService {
         if(passwordEncoder.matches(newPassword, user.getPassword())){
             throw new BadRequestException("New password cannot be the same as the old password");
         }
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    private CustomUserDetails toUserDetails(UserEntity user) {
+        return CustomUserDetails.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .name(user.getFirstName())
+                .phone(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .password(user.getPassword())
+                .avatarUrl(user.getAvatarUrl())
+                .build();
     }
 
 }
