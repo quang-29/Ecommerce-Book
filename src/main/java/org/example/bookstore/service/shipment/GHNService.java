@@ -18,8 +18,8 @@ import java.util.*;
 @Service
 public class GHNService implements IShipmentService{
 
-    @Value("${GHN.SHOPID}")
-    private int shopId;
+    @Value("${GHN.SHOPID:}")
+    private String shopId;
 
     @Value("${GHN.TOKEN}")
     private String token;
@@ -65,7 +65,7 @@ public class GHNService implements IShipmentService{
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("token", token);
-        headers.add("ShopId", String.valueOf(shopId));
+        headers.add("ShopId", String.valueOf(getShopId()));
         Map<String, Object> body = new HashMap<>();
         body.put("service_id" , serviceId);
         body.put("from_district_id" , fromDistricId);
@@ -89,7 +89,7 @@ public class GHNService implements IShipmentService{
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("token", token);
-        headers.add("ShopId", String.valueOf(shopId));
+        headers.add("ShopId", String.valueOf(getShopId()));
         Map<String, Object> body = new HashMap<>();
         body.put("service_id" , serviceId);
         body.put("from_district_id" , fromDistricId);
@@ -195,7 +195,7 @@ public class GHNService implements IShipmentService{
         headers.add("token", token);
 
         Map<String, Object> body = new HashMap<>();
-        body.put("shop_id", shopId);
+        body.put("shop_id", getShopId());
         body.put("from_district", fromDistrict);
         body.put("to_district", toDistrict);
 
@@ -214,6 +214,13 @@ public class GHNService implements IShipmentService{
             }
         }
         return res;
+    }
+
+    private int getShopId() {
+        if (shopId == null || shopId.isBlank()) {
+            return 0;
+        }
+        return Integer.parseInt(shopId.trim());
     }
 
 }

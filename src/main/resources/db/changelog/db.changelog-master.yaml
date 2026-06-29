@@ -10,15 +10,15 @@ databaseChangeLog:
   - include:
       file: db/changelog/catalog/book.sql
   - include:
-      file: db/changelog/store/store.sql
-  - include:
-      file: db/changelog/data/sample-data.sql
-  - include:
       file: db/changelog/cart/cart.sql
   - include:
       file: db/changelog/payment/payment.sql
   - include:
       file: db/changelog/order/order.sql
+  - include:
+      file: db/changelog/store/store.sql
+  - include:
+      file: db/changelog/data/sample-data.sql
   - include:
       file: db/changelog/review/review.sql
   - include:
