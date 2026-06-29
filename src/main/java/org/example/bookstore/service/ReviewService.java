@@ -45,7 +45,7 @@ public class ReviewService {
         UserEntity user = userRepository.findById(reviewCreate.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
-        boolean exists = reviewRepository.existsByBookAndUser(bookEntity, user);
+        boolean exists = reviewRepository.existsByBookEntityAndUser(bookEntity, user);
         if (exists) {
             throw new ResourceNotFoundException(MessageException.REVIEW_ALREADY_EXISTS);
         }

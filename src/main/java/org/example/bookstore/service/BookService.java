@@ -68,13 +68,13 @@ public class BookService {
     public ServerResponseDto getAllBooksByAuthor(String authorName, int page, int size, String sortBy, String sortDirection) {
 
         Pageable pageDetails = createPageable(page, size, sortBy, sortDirection);
-        Page<BookDTO> pageBooks = bookRepository.findByAuthor_Name(authorName, pageDetails).map(this::mapToBookDto);
+        Page<BookDTO> pageBooks = bookRepository.findByAuthorEntity_Name(authorName, pageDetails).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
     public ServerResponseDto getAllBooksByCategory(String category, int page, int size, String sortBy, String sortDirection) {
         Pageable pageDetails = createPageable(page, size, sortBy, sortDirection);
-        Page<BookDTO> pageBooks = bookRepository.findByCategory_Name(category, pageDetails).map(this::mapToBookDto);
+        Page<BookDTO> pageBooks = bookRepository.findByCategoryEntity_Name(category, pageDetails).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 

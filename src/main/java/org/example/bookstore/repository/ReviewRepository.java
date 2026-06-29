@@ -12,7 +12,7 @@ import java.util.List;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
-    boolean existsByBookAndUser(BookEntity bookEntity, UserEntity user);
+    boolean existsByBookEntityAndUser(BookEntity bookEntity, UserEntity user);
 
 
     @Query("select r from Review r where r.user.id = ?1")

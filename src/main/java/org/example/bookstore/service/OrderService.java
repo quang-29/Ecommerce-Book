@@ -225,7 +225,7 @@ public class OrderService {
         orderEntity.setPayment(payment);
         orderRepository.save(orderEntity);
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderEntity_Id(orderId);
 
         Map<Long, Integer> quantityByStoreBookId = orderItems.stream()
                 .filter(orderItem -> orderItem.getStoreBookEntity() != null)
@@ -402,7 +402,7 @@ public class OrderService {
     }
 
     private void increaseSoldCount(Long orderId) {
-        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderEntity_Id(orderId);
         Map<Long, Integer> quantityByBookId = orderItems.stream()
                 .collect(Collectors.groupingBy(orderItem -> orderItem.getBookEntity().getId(),
                         Collectors.summingInt(OrderItem::getQuantity)));
@@ -414,7 +414,7 @@ public class OrderService {
     }
 
     private void decreaseSoldCount(Long orderId) {
-        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderEntity_Id(orderId);
         Map<Long, Integer> quantityByBookId = orderItems.stream()
                 .collect(Collectors.groupingBy(orderItem -> orderItem.getBookEntity().getId(),
                         Collectors.summingInt(OrderItem::getQuantity)));
