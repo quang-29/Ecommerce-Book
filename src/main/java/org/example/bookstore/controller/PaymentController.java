@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/payment")
+@RequestMapping("/api/v1/payment")
 public class PaymentController {
 
     private final PaymentService paymentService;

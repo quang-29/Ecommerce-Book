@@ -16,6 +16,7 @@ public class CreateBookRequest {
     private int page;
     private int reprint;
     private long price;
+    private Integer discountPercent;
     private Long stock;
     private String publisher;
     private String isbn;

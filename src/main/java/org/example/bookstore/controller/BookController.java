@@ -17,7 +17,7 @@ import java.lang.Long;
 
 
 @RestController
-@RequestMapping("/v1/book")
+@RequestMapping("/api/v1/book")
 public class BookController {
 
     private final BookService bookService;

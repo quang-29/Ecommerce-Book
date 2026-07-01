@@ -32,6 +32,8 @@ public class BookEntity extends BaseEntity {
     @Column(name = "price", nullable = false)
     private long price;
 
+    @Column(name = "discount_percent", nullable = false)
+    private Integer discountPercent = 0;
 
     @Column(name = "average_rating")
     private Double averageRating = 0.0;

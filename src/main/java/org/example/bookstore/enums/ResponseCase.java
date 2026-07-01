@@ -94,7 +94,9 @@ public enum ResponseCase {
     ADDRESS_NOT_FOUND(1532,"Address not found"),
     INVALID_ADDRESS(1533,"Address ID cannot be null."),
     NOTIFICATION_NOT_FOUND(1534,"Notification not found"),
-    EMAIL_INVALID(1535,"Email address is invalid");;
+    EMAIL_INVALID(1535,"Email address is invalid"),
+    VOUCHER_NOT_FOUND(1536,"Voucher not found"),
+    VOUCHER_INVALID(1537,"Voucher is invalid");;
 
     public final int code;
     public final String message;

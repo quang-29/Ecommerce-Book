@@ -17,4 +17,6 @@ public class CartItemDTO {
     private BookDTO book;
     private Integer quantity;
     private long bookPrice;
+    private Integer discountPercent;
+    private long discountAmount;
 }

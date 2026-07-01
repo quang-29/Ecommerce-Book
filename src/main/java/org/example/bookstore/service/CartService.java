@@ -264,6 +264,8 @@ public class CartService {
                 cartItemDTO.setQuantity(quantity);
                 cartItemDTO.setBook(modelMapper.map(bookEntity, BookDTO.class));
                 cartItemDTO.setBookPrice(storeBookEntity.getEffectivePrice());
+                cartItemDTO.setDiscountPercent(storeBookEntity.getDiscountPercent());
+                cartItemDTO.setDiscountAmount(storeBookEntity.getDiscountAmount());
                 totalPrice += cartItemDTO.getBookPrice() * quantity;
                 cartItemDTOS.add(cartItemDTO);
             }
@@ -307,6 +309,10 @@ public class CartService {
         cartItemDTO.setQuantity(cartItem.getQuantity());
         cartItemDTO.setBook(modelMapper.map(cartItem.getBookEntity(), BookDTO.class));
         cartItemDTO.setBookPrice(cartItem.getBookPrice());
+        if (cartItem.getStoreBookEntity() != null) {
+            cartItemDTO.setDiscountPercent(cartItem.getStoreBookEntity().getDiscountPercent());
+            cartItemDTO.setDiscountAmount(cartItem.getStoreBookEntity().getDiscountAmount());
+        }
         return cartItemDTO;
     }
 

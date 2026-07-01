@@ -20,7 +20,7 @@ import java.time.Duration;
 @CrossOrigin(origins = "http://localhost:5173")
 @Slf4j
 @RestController
-@RequestMapping("/v1/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthenticationController {
 
     private final static String USER_REFRESH_TOKEN_COOKIE = "user_refresh_token";

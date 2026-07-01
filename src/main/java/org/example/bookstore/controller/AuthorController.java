@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.lang.Long;
 
 @RestController
-@RequestMapping("/v1/author")
+@RequestMapping("/api/v1/author")
 public class AuthorController {
 
 

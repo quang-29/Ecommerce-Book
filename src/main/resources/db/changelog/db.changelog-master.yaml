@@ -18,11 +18,15 @@ databaseChangeLog:
   - include:
       file: db/changelog/store/store.sql
   - include:
+      file: db/changelog/store/discount-voucher.sql
+  - include:
       file: db/changelog/data/sample-data.sql
   - include:
       file: db/changelog/review/review.sql
   - include:
       file: db/changelog/notification/notification.sql
+  - include:
+      file: db/changelog/notification/web-push-subscription.sql
   - include:
       file: db/changelog/delivery/delivery.sql
   - include:

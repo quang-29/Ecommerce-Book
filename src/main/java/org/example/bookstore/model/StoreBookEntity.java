@@ -39,7 +39,20 @@ public class StoreBookEntity extends BaseEntity {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
-    public long getEffectivePrice() {
+    public long getBasePrice() {
         return price == null ? bookEntity.getPrice() : price;
+    }
+
+    public int getDiscountPercent() {
+        Integer discountPercent = bookEntity.getDiscountPercent();
+        return discountPercent == null ? 0 : Math.max(0, Math.min(100, discountPercent));
+    }
+
+    public long getEffectivePrice() {
+        return getBasePrice() * (100 - getDiscountPercent()) / 100;
+    }
+
+    public long getDiscountAmount() {
+        return getBasePrice() - getEffectivePrice();
     }
 }

@@ -86,6 +86,7 @@ public class BookService {
         }
         BookEntity bookEntity = modelMapper.map(request, BookEntity.class);
         bookEntity.setSold(0L);
+        bookEntity.setDiscountPercent(clampDiscountPercent(request.getDiscountPercent()));
         bookEntity.setPublishedDate(LocalDate.parse(request.getPublishedDate()));
         CategoryEntity categoryEntity = categoryRepository.findByName(request.getCategory())
                 .orElseGet(() -> {
@@ -131,6 +132,7 @@ public class BookService {
         BookEntity bookEntityFound = bookRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         modelMapper.map(bookDTO, bookEntityFound);
+        bookEntityFound.setDiscountPercent(clampDiscountPercent(bookDTO.getDiscountPercent()));
         AuthorEntity authorEntity = authorRepository.findByName(bookDTO.getAuthorName())
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         bookEntityFound.setAuthorEntity(authorEntity);
@@ -173,6 +175,9 @@ public class BookService {
         BookDTO bookDTO = modelMapper.map(bookEntity, BookDTO.class);
         bookDTO.setPublishedDate(bookEntity.getPublishedDate() == null ? null : bookEntity.getPublishedDate().toString());
         bookDTO.setStock(getTotalStock(bookEntity));
+        int discountPercent = bookEntity.getDiscountPercent() == null ? 0 : Math.max(0, Math.min(100, bookEntity.getDiscountPercent()));
+        bookDTO.setDiscountPercent(discountPercent);
+        bookDTO.setDiscountPrice(bookEntity.getPrice() * (100 - discountPercent) / 100);
         if (bookEntity.getAuthorEntity() != null) {
             bookDTO.setAuthorName(bookEntity.getAuthorEntity().getName());
         }
@@ -251,6 +256,13 @@ public class BookService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private int clampDiscountPercent(Integer value) {
+        if (value == null) {
+            return 0;
+        }
+        return Math.max(0, Math.min(100, value));
     }
 
     private String nullToEmpty(String value) {

@@ -26,6 +26,8 @@ public class Payment {
 
     private long feeShip;
 
+    private long discountAmount;
+
     private PaymentGateway gateway;
 
     private PaymentType type;

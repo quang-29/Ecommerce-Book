@@ -44,6 +44,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final BookRepository bookRepository;
     private final StoreBookRepository storeBookRepository;
+    private final StoreVoucherRepository storeVoucherRepository;
     private final GHNService ghnService;
     private final VNPayService vnPayService;
 
@@ -51,7 +52,7 @@ public class OrderService {
 
     private final UserAddressService userAddressService;
 
-    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, GHNService ghnService, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, UserAddressService userAddressService) {
+    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreVoucherRepository storeVoucherRepository, GHNService ghnService, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, UserAddressService userAddressService) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
@@ -62,6 +63,7 @@ public class OrderService {
         this.orderItemRepository = orderItemRepository;
         this.bookRepository = bookRepository;
         this.storeBookRepository = storeBookRepository;
+        this.storeVoucherRepository = storeVoucherRepository;
         this.ghnService = ghnService;
         this.vnPayService = vnPayService;
         this.userAddressService = userAddressService;
@@ -85,6 +87,7 @@ public class OrderService {
         long allBookPrice = cartItemEntities.stream()
                 .mapToLong(item -> item.getBookPrice() * item.getQuantity())
                 .sum();
+        long voucherDiscount = calculateVoucherDiscount(cartItemEntities, placeOrderDTO.getVoucherCodes());
 
         List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
         if (placeOrderDTO.getAddressId() == null) {
@@ -104,7 +107,7 @@ public class OrderService {
         BasicShippingOrderInfo basicShippingOrderInfo = ghnService.calculateShipmentFee(shipmentInfo);
         long shippingFee = basicShippingOrderInfo.getFee();
 
-        long totalPay = allBookPrice + shippingFee;
+        long totalPay = Math.max(0, allBookPrice - voucherDiscount) + shippingFee;
 
         PaymentType paymentType = placeOrderDTO.getPaymentType();
 
@@ -116,6 +119,7 @@ public class OrderService {
         payment.setType(paymentType);
         payment.setCreatedAt(new Date());
         payment.setFeeShip(shippingFee);
+        payment.setDiscountAmount(voucherDiscount);
         payment.setAmount(totalPay);
         if(payment.getType() != PaymentType.COD) {
             Calendar calendar = Calendar.getInstance();
@@ -148,6 +152,10 @@ public class OrderService {
             orderItem.setStoreBookEntity(cartItemEntity.getStoreBookEntity());
             orderItem.setQuantity(cartItemEntity.getQuantity());
             orderItem.setProductPrice(cartItemEntity.getBookPrice());
+            if (cartItemEntity.getStoreBookEntity() != null) {
+                orderItem.setDiscountPercent(cartItemEntity.getStoreBookEntity().getDiscountPercent());
+                orderItem.setDiscountAmount(cartItemEntity.getStoreBookEntity().getDiscountAmount());
+            }
             orderItem.setOrderEntity(orderEntity);
             orderItems.add(orderItem);
         }
@@ -316,7 +324,8 @@ public class OrderService {
         BasicShippingOrderInfo basicShippingOrderInfo = ghnService.calculateShipmentFee(shipmentInfo);
         long shippingFee = basicShippingOrderInfo.getFee();
 
-        long totalPay = storeBookEntity.getEffectivePrice() + shippingFee;
+        long voucherDiscount = calculateVoucherDiscount(storeBookEntity, placeSingleBookDTO.getVoucherCode());
+        long totalPay = Math.max(0, storeBookEntity.getEffectivePrice() - voucherDiscount) + shippingFee;
 
         PaymentType paymentType = placeSingleBookDTO.getPaymentType();
 
@@ -328,6 +337,7 @@ public class OrderService {
         payment.setType(paymentType);
         payment.setCreatedAt(new Date());
         payment.setFeeShip(shippingFee);
+        payment.setDiscountAmount(voucherDiscount);
         payment.setAmount(totalPay);
         if(payment.getType() != PaymentType.COD) {
             Calendar calendar = Calendar.getInstance();
@@ -358,6 +368,8 @@ public class OrderService {
         orderItem.setStoreBookEntity(storeBookEntity);
         orderItem.setQuantity(1);
         orderItem.setProductPrice(storeBookEntity.getEffectivePrice());
+        orderItem.setDiscountPercent(storeBookEntity.getDiscountPercent());
+        orderItem.setDiscountAmount(storeBookEntity.getDiscountAmount());
         orderItem.setOrderEntity(orderEntity);
         orderItemRepository.save(orderItem);
         orderEntity.setOrderItems(Arrays.asList(orderItem));
@@ -424,6 +436,50 @@ public class OrderService {
             bookEntity.setSold(Math.max(0L, sold - quantityByBookId.get(bookEntity.getId())));
         }
         bookRepository.saveAll(bookEntities);
+    }
+
+    private long calculateVoucherDiscount(List<CartItemEntity> cartItemEntities, Map<Long, String> voucherCodes) {
+        if (voucherCodes == null || voucherCodes.isEmpty()) {
+            return 0L;
+        }
+
+        Map<Long, Long> subtotalByStoreId = cartItemEntities.stream()
+                .filter(item -> item.getStoreBookEntity() != null)
+                .collect(Collectors.groupingBy(item -> item.getStoreBookEntity().getStoreEntity().getId(),
+                        Collectors.summingLong(item -> item.getBookPrice() * item.getQuantity())));
+
+        long voucherDiscount = 0L;
+        for (Map.Entry<Long, String> entry : voucherCodes.entrySet()) {
+            Long storeId = entry.getKey();
+            String voucherCode = entry.getValue();
+            if (voucherCode == null || voucherCode.trim().isEmpty()) {
+                continue;
+            }
+            long storeSubtotal = subtotalByStoreId.getOrDefault(storeId, 0L);
+            if (storeSubtotal <= 0) {
+                throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
+            }
+            StoreVoucherEntity voucher = storeVoucherRepository.findByStoreEntityIdAndVoucherCodeIgnoreCase(storeId, voucherCode.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException(MessageException.VOUCHER_NOT_FOUND));
+            if (!voucher.isUsableNow()) {
+                throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
+            }
+            voucherDiscount += voucher.calculateDiscount(storeSubtotal);
+        }
+        return voucherDiscount;
+    }
+
+    private long calculateVoucherDiscount(StoreBookEntity storeBookEntity, String voucherCode) {
+        if (voucherCode == null || voucherCode.trim().isEmpty()) {
+            return 0L;
+        }
+        StoreVoucherEntity voucher = storeVoucherRepository.findByStoreEntityIdAndVoucherCodeIgnoreCase(
+                        storeBookEntity.getStoreEntity().getId(), voucherCode.trim())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.VOUCHER_NOT_FOUND));
+        if (!voucher.isUsableNow()) {
+            throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
+        }
+        return voucher.calculateDiscount(storeBookEntity.getEffectivePrice());
     }
 
     private OrderItemDTO mapToOrderItemDto(OrderItem orderItem) {

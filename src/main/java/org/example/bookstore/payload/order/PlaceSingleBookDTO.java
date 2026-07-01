@@ -20,4 +20,5 @@ public class PlaceSingleBookDTO {
     @NotBlank
     private PaymentType paymentType;
     private int weight;
+    private String voucherCode;
 }

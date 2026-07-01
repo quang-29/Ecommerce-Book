@@ -14,6 +14,7 @@ public class PaymentDTO {
 
     private long amount;
     private long feeShip;
+    private long discountAmount;
     private PaymentGateway gateway;
     private PaymentType type;
     private PaymentStatus status;

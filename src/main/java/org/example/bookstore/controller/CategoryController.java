@@ -12,7 +12,7 @@ import java.lang.Long;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
-@RequestMapping("/v1/category")
+@RequestMapping("/api/v1/category")
 public class CategoryController {
     private final CategoryService categoryService;
 

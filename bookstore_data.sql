@@ -201,7 +201,8 @@ CREATE TABLE `cart_items` (
   `book_price` bigint(20) NOT NULL,
   `quantity` int(11) DEFAULT NULL,
   `book_id` BIGINT DEFAULT NULL,
-  `cart_id` BIGINT DEFAULT NULL
+  `cart_id` BIGINT DEFAULT NULL,
+  `store_book_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -603,7 +604,8 @@ CREATE TABLE `order_items` (
   `product_price` bigint(20) NOT NULL,
   `quantity` int(11) DEFAULT NULL,
   `book_id` BIGINT DEFAULT NULL,
-  `order_id` BIGINT DEFAULT NULL
+  `order_id` BIGINT DEFAULT NULL,
+  `store_book_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1039,6 +1041,74 @@ INSERT INTO `review` (`id`, `content`, `created_at`, `rate_point`, `book_id`, `u
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `store`
+--
+
+CREATE TABLE `store` (
+  `id` BIGINT NOT NULL,
+  `code` binary(16) DEFAULT NULL,
+  `created_time` datetime DEFAULT NULL,
+  `updated_time` datetime DEFAULT NULL,
+  `created_by_user_id` BIGINT DEFAULT NULL,
+  `updated_by_user_id` BIGINT DEFAULT NULL,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `store_name` varchar(255) NOT NULL,
+  `phone_number` varchar(32) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `province_id` BIGINT DEFAULT NULL,
+  `district_id` BIGINT DEFAULT NULL,
+  `ward_id` varchar(64) DEFAULT NULL,
+  `address_detail` varchar(500) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `store`
+--
+
+INSERT INTO `store` (`id`, `store_name`, `address_detail`, `active`, `is_deleted`) VALUES
+(1, 'Default Store', '144 Chien Thang', 1, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `store_book`
+--
+
+CREATE TABLE `store_book` (
+  `id` BIGINT NOT NULL,
+  `code` binary(16) DEFAULT NULL,
+  `created_time` datetime DEFAULT NULL,
+  `updated_time` datetime DEFAULT NULL,
+  `created_by_user_id` BIGINT DEFAULT NULL,
+  `updated_by_user_id` BIGINT DEFAULT NULL,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `store_id` BIGINT NOT NULL,
+  `book_id` BIGINT NOT NULL,
+  `stock` BIGINT NOT NULL DEFAULT 0,
+  `price` BIGINT DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `store_book`
+--
+
+INSERT INTO `store_book` (`id`, `store_id`, `book_id`, `stock`, `price`, `active`, `is_deleted`)
+SELECT ROW_NUMBER() OVER (ORDER BY `id`) AS `id`, 1, `id`, COALESCE(`stock`, 0), `price`, 1, 0
+FROM `bookEntity`;
+
+UPDATE `cart_items` ci
+JOIN `store_book` sb ON sb.`book_id` = ci.`book_id` AND sb.`store_id` = 1
+SET ci.`store_book_id` = sb.`id`;
+
+UPDATE `order_items` oi
+JOIN `store_book` sb ON sb.`book_id` = oi.`book_id` AND sb.`store_id` = 1
+SET oi.`store_book_id` = sb.`id`;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `roles`
 --
 
@@ -1354,7 +1424,8 @@ ALTER TABLE `cartEntities`
 ALTER TABLE `cart_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FKd5p1jgglnj3gl89odc95hurot` (`book_id`),
-  ADD KEY `FKpcttvuq4mxppo8sxggjtn5i2c` (`cart_id`);
+  ADD KEY `FKpcttvuq4mxppo8sxggjtn5i2c` (`cart_id`),
+  ADD KEY `fk_cart_items_store_book` (`store_book_id`);
 
 --
 -- Indexes for table `categoryEntity`
@@ -1403,7 +1474,8 @@ ALTER TABLE `orders`
 ALTER TABLE `order_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FKqscqcme08spiyt2guyqdj72eh` (`book_id`),
-  ADD KEY `FKbioxgbv59vetrxe0ejfubep1w` (`order_id`);
+  ADD KEY `FKbioxgbv59vetrxe0ejfubep1w` (`order_id`),
+  ADD KEY `fk_order_items_store_book` (`store_book_id`);
 
 --
 -- Indexes for table `payment`
@@ -1424,6 +1496,23 @@ ALTER TABLE `review`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FK70yrt09r4r54tcgkrwbeqenbs` (`book_id`),
   ADD KEY `FKiyf57dy48lyiftdrf7y87rnxi` (`user_id`);
+
+--
+-- Indexes for table `store`
+--
+ALTER TABLE `store`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_store_province` (`province_id`),
+  ADD KEY `fk_store_district` (`district_id`),
+  ADD KEY `fk_store_ward` (`ward_id`);
+
+--
+-- Indexes for table `store_book`
+--
+ALTER TABLE `store_book`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_store_book_store_book` (`store_id`,`book_id`),
+  ADD KEY `fk_store_book_book` (`book_id`);
 
 --
 -- Indexes for table `roles`
@@ -1516,6 +1605,18 @@ ALTER TABLE `room`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
+-- AUTO_INCREMENT for table `store`
+--
+ALTER TABLE `store`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `store_book`
+--
+ALTER TABLE `store_book`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -1537,7 +1638,8 @@ ALTER TABLE `cartEntities`
 --
 ALTER TABLE `cart_items`
   ADD CONSTRAINT `FKd5p1jgglnj3gl89odc95hurot` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
-  ADD CONSTRAINT `FKpcttvuq4mxppo8sxggjtn5i2c` FOREIGN KEY (`cart_id`) REFERENCES `cartEntities` (`id`);
+  ADD CONSTRAINT `FKpcttvuq4mxppo8sxggjtn5i2c` FOREIGN KEY (`cart_id`) REFERENCES `cartEntities` (`id`),
+  ADD CONSTRAINT `fk_cart_items_store_book` FOREIGN KEY (`store_book_id`) REFERENCES `store_book` (`id`);
 
 --
 -- Constraints for table `notifications`
@@ -1558,7 +1660,8 @@ ALTER TABLE `orders`
 --
 ALTER TABLE `order_items`
   ADD CONSTRAINT `FKbioxgbv59vetrxe0ejfubep1w` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
-  ADD CONSTRAINT `FKqscqcme08spiyt2guyqdj72eh` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`);
+  ADD CONSTRAINT `FKqscqcme08spiyt2guyqdj72eh` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
+  ADD CONSTRAINT `fk_order_items_store_book` FOREIGN KEY (`store_book_id`) REFERENCES `store_book` (`id`);
 
 --
 -- Constraints for table `review`
@@ -1566,6 +1669,21 @@ ALTER TABLE `order_items`
 ALTER TABLE `review`
   ADD CONSTRAINT `FK70yrt09r4r54tcgkrwbeqenbs` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
   ADD CONSTRAINT `FKiyf57dy48lyiftdrf7y87rnxi` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
+
+--
+-- Constraints for table `store`
+--
+ALTER TABLE `store`
+  ADD CONSTRAINT `fk_store_district` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`),
+  ADD CONSTRAINT `fk_store_province` FOREIGN KEY (`province_id`) REFERENCES `provinces` (`id`),
+  ADD CONSTRAINT `fk_store_ward` FOREIGN KEY (`ward_id`) REFERENCES `wards` (`id`);
+
+--
+-- Constraints for table `store_book`
+--
+ALTER TABLE `store_book`
+  ADD CONSTRAINT `fk_store_book_book` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
+  ADD CONSTRAINT `fk_store_book_store` FOREIGN KEY (`store_id`) REFERENCES `store` (`id`);
 
 --
 -- Constraints for table `users_liked_books`

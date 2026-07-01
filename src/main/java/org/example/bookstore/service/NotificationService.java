@@ -14,7 +14,6 @@ import org.example.bookstore.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.ScrollPosition;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -25,14 +24,14 @@ public class NotificationService {
 
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
-    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final WebPushNotificationService webPushNotificationService;
     private final ModelMapper modelMapper;
 
     public NotificationService(NotificationRepository notificationRepository,
-                               SimpMessagingTemplate simpMessagingTemplate,
+                               WebPushNotificationService webPushNotificationService,
                                UserRepository userRepository, ModelMapper modelMapper) {
         this.notificationRepository = notificationRepository;
-        this.simpMessagingTemplate = simpMessagingTemplate;
+        this.webPushNotificationService = webPushNotificationService;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
     }
@@ -46,23 +45,19 @@ public class NotificationService {
     }
 
     public void sendNotification(Notifications notification) {
-        notificationRepository.save(notification);
-        simpMessagingTemplate.convertAndSendToUser(
-                notification.getReceiver().getUsername(),
-                "/notify",
-                toDTO(notification)
-        );
+        Notifications savedNotification = notificationRepository.save(notification);
+        webPushNotificationService.send(savedNotification.getReceiver(), toDTO(savedNotification));
     }
 
     public void sendAllNotis(List<Notifications> notiList) {
-        notificationRepository.saveAll(notiList);
-        for (Notifications noti : notiList) {
-            simpMessagingTemplate.convertAndSendToUser(
-                    noti.getReceiver().getUsername(),
-                    "/notify",
-                    toDTO(noti)
-            );
+        Iterable<Notifications> savedNotifications = notificationRepository.saveAll(notiList);
+        for (Notifications noti : savedNotifications) {
+            webPushNotificationService.send(noti.getReceiver(), toDTO(noti));
         }
+    }
+
+    public String getVapidPublicKey() {
+        return webPushNotificationService.getPublicKey();
     }
 
     public Notifications getNotificationById(Long id) {

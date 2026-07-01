@@ -16,6 +16,8 @@ public class BookDTO {
     private String title;
     private String description;
     private Long price;
+    private Integer discountPercent;
+    private Long discountPrice;
     private String publisher;
     private String isbn;
     private String language;

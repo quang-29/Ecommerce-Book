@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/address")
+@RequestMapping("/api/v1/address")
 public class UserAddressController {
     private final UserAddressService userAddressService;
 

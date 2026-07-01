@@ -28,35 +28,28 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private static final String[] PERMISSION_LIST = {
-            "/v1/auth/login",
-            "/v1/auth/register",
-            "/v1/auth/refresh-user",
-            "/v1/auth/logout",
-            "/api/auth/**",
-            "/api/author/getAllAuthors",
-            "/api/author/getAuthorByName/{authorName}",
-            "/api/book/{id}",
-            "/api/book/getAllBooks",
-            "/api/book/getAllBookByAuthor/{authorName}",
-            "/api/book/getAllBooksByCategory/{category}",
-            "/api/category/getCategoryById/{id}",
-            "/api/category/getAllCategories",
-            "/api/cart/addBookToCart",
-            "/api/cart/deleteBookFromCar",
-            "/api/user/myInfo",
-            "/api/review/**",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/refresh-user",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/**",
+            "/api/v1/author/all",
+            "/api/v1/author/name/{authorName}",
+            "/api/v1/book/{id}",
+            "/api/v1/book/all",
+            "/api/v1/book/books/{authorName}",
+            "/api/v1/book/books/{category}",
+            "/api/v1/category/{id}",
+            "/api/v1/category/all",
             "/api/v1/cart/**",
-            "/api/payment/vn-pay/**",
-            "/api/payment/vn-pay-callback/**",
-            "/api/payment/**",
-            "/api/auth/**",
-            "/api/chat/**",
-            "/api/book/search/**",
+            "/api/v1/payment/**",
+            "/api/v1/chat/**",
+            "/api/v1/book/search/**",
             "/ws/***",
-            "/api/rooms/**",
-            "/api/messages/**",
-            "/api/book/searchByISBN/*",
-            "/api/order/getOrderByOrderId/*"
+            "/api/v1/rooms/**",
+            "/api/v1/messages/**",
+            "/api/v1/book/search-by-ISBN",
+            "/api/v1/order/{orderId}"
     };
 
     @Autowired
@@ -97,7 +90,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PERMISSION_LIST).permitAll()
-                        .requestMatchers("/api/payment/check**").permitAll()
+                        .requestMatchers("/api/v1/payment/check**").permitAll()
                         .requestMatchers("/", "/index.html", "/ws/**", "/chat.html", "/app.js/**", "/main.css/**", "/static/**").permitAll()
                         .anyRequest().authenticated()
                 )

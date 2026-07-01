@@ -45,7 +45,9 @@ public enum MessageException {
     ADDRESS_NOT_FOUND("Address not found"),
     INVALID_ADDRESS("Address ID cannot be null."),
     NOTIFICATION_NOT_FOUND("Notification not found"),
-    EMAIL_INVALID("Email address is invalid");
+    EMAIL_INVALID("Email address is invalid"),
+    VOUCHER_NOT_FOUND("Voucher not found"),
+    VOUCHER_INVALID("Voucher is invalid");
 
     private final String message;
 

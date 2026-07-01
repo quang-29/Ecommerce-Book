@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.example.bookstore.enums.PaymentType;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -26,5 +27,6 @@ public class PlaceOrderDTO {
 
     private int weight;
 
+    private Map<Long, String> voucherCodes;
 
 }

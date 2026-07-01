@@ -30,4 +30,8 @@ public class OrderItem extends BaseEntity {
 
     private long productPrice;
 
+    private Integer discountPercent = 0;
+
+    private long discountAmount = 0;
+
 }

@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:mysql://localhost:3308/bookstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-    username:
-    password:
+    username: bookstore_user
+    password: bookstore_pass
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -38,13 +38,13 @@ spring:
 # JWT
 jwt:
   signing:
-    key: ${JWT_SIGNING_KEY:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+    key: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
-    expiration-in-ms: ${APP_JWT_EXPIRATION_IN_MS:900000}
-    refresh-expiration-in-ms: ${APP_JWT_REFRESH_EXPIRATION_IN_MS:604800000}
+    secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    expiration-in-ms: 900000
+    refresh-expiration-in-ms: 604800000
 
   cors:
     allowedOrigins: http://localhost:3000
@@ -74,18 +74,28 @@ payment:
     version:
     command:
     orderType:
-    max_time:
+    max_time: 10
 
 # GHN
 GHN:
-  TOKEN:
-  SHOPID:
+  TOKEN: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  SHOPID: 12345
 
 # Base URL
-baseUrl: http://localhost:8080
+baseUrl: http://localhost:8081
 
 # Chat API
 chat:
   api:
     key:
     endpoint:
+
+# Web Push Protocol
+web-push:
+  vapid:
+    public-key: 1312312312312312
+    private-key: 12312312321312
+    subject: mailto:admin@example.com
+
+domain-staff-fe: http://localhost:8081/
+api-url: http://localhost:8081/
