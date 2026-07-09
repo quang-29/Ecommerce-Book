@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-review" author="quangnm">
+        <createTable tableName="review">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="VARCHAR(255)"/>
+            <column name="rate_point" type="INT"/>
+            <column name="created_at" type="DATE"/>
+            <column name="book_id" type="BIGINT">
+                <constraints foreignKeyName="fk_review_book" references="book(id)"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints foreignKeyName="fk_review_user" references="user(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

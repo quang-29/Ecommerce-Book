@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-book" author="quangnm">
+        <createTable tableName="book">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(255)"/>
+            <column name="category_id" type="BIGINT">
+                <constraints foreignKeyName="fk_book_category" references="category(id)"/>
+            </column>
+            <column name="author_id" type="BIGINT">
+                <constraints foreignKeyName="fk_book_author" references="author(id)"/>
+            </column>
+            <column name="price" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="average_rating" type="DOUBLE"/>
+            <column name="book_description" type="TEXT"/>
+            <column name="language" type="VARCHAR(255)"/>
+            <column name="image_path" type="VARCHAR(255)"/>
+            <column name="isbn" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="page" type="INT"/>
+            <column name="publisher" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reprint" type="INT"/>
+            <column name="stock" type="BIGINT"/>
+            <column name="sold" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="published_date" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-users-liked-books" author="quangnm">
+        <createTable tableName="users_liked_books">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_users_liked_books"
+                             foreignKeyName="fk_users_liked_books_user" references="user(id)"/>
+            </column>
+            <column name="book_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_users_liked_books"
+                             foreignKeyName="fk_users_liked_books_book" references="book(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

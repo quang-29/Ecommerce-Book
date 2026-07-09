@@ -1,6 +1,8 @@
 package org.example.bookstore.model.payment;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Table;
@@ -28,10 +30,13 @@ public class Payment {
 
     private long discountAmount;
 
+    @Enumerated(EnumType.STRING)
     private PaymentGateway gateway;
 
+    @Enumerated(EnumType.STRING)
     private PaymentType type;
 
+    @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
     private Date expireAt;

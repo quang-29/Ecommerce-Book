@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-seed-category" author="quangnm">
+        <insert tableName="category">
+            <column name="id" valueNumeric="1001"/>
+            <column name="category_name" value="Programming"/>
+            <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/programming.png"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="category">
+            <column name="id" valueNumeric="1002"/>
+            <column name="category_name" value="Business"/>
+            <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/business.png"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="category">
+            <column name="id" valueNumeric="1003"/>
+            <column name="category_name" value="Literature"/>
+            <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/literature.png"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="category">
+            <column name="id" valueNumeric="1004"/>
+            <column name="category_name" value="Science"/>
+            <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/science.png"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="category">
+            <column name="id" valueNumeric="1005"/>
+            <column name="category_name" value="Children"/>
+            <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/children.png"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="category">
+            <column name="id" valueNumeric="1006"/>
+            <column name="category_name" value="Self Improvement"/>
+            <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/self-improvement.png"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="category">
+                <where>id BETWEEN 1001 AND 1006</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="002-seed-book" author="quangnm">
+        <insert tableName="book">
+            <column name="id" valueNumeric="1001"/>
+            <column name="title" value="Clean Code"/>
+            <column name="category_id" valueNumeric="1001"/>
+            <column name="price" valueNumeric="320000"/>
+            <column name="average_rating" valueNumeric="4.8"/>
+            <column name="book_description" value="A practical guide to writing readable and maintainable code."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/clean-code.jpg"/>
+            <column name="isbn" value="9780132350884"/>
+            <column name="page" valueNumeric="464"/>
+            <column name="publisher" value="Prentice Hall"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2008-08-01"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1002"/>
+            <column name="title" value="Effective Java"/>
+            <column name="category_id" valueNumeric="1001"/>
+            <column name="price" valueNumeric="410000"/>
+            <column name="average_rating" valueNumeric="4.9"/>
+            <column name="book_description" value="Best practices for Java programming and API design."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/effective-java.jpg"/>
+            <column name="isbn" value="9780134685991"/>
+            <column name="page" valueNumeric="416"/>
+            <column name="publisher" value="Addison-Wesley"/>
+            <column name="reprint" valueNumeric="3"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2018-01-06"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1003"/>
+            <column name="title" value="Designing Data-Intensive Applications"/>
+            <column name="category_id" valueNumeric="1001"/>
+            <column name="price" valueNumeric="520000"/>
+            <column name="average_rating" valueNumeric="4.9"/>
+            <column name="book_description" value="Core ideas behind reliable, scalable, and maintainable systems."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/ddia.jpg"/>
+            <column name="isbn" value="9781449373320"/>
+            <column name="page" valueNumeric="616"/>
+            <column name="publisher" value="OReilly Media"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2017-03-16"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1004"/>
+            <column name="title" value="The Lean Startup"/>
+            <column name="category_id" valueNumeric="1002"/>
+            <column name="price" valueNumeric="260000"/>
+            <column name="average_rating" valueNumeric="4.5"/>
+            <column name="book_description" value="A method for building products and businesses through validated learning."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/lean-startup.jpg"/>
+            <column name="isbn" value="9780307887894"/>
+            <column name="page" valueNumeric="336"/>
+            <column name="publisher" value="Crown Business"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2011-09-13"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1005"/>
+            <column name="title" value="Good to Great"/>
+            <column name="category_id" valueNumeric="1002"/>
+            <column name="price" valueNumeric="280000"/>
+            <column name="average_rating" valueNumeric="4.6"/>
+            <column name="book_description" value="Research-based principles behind durable business performance."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/good-to-great.jpg"/>
+            <column name="isbn" value="9780066620992"/>
+            <column name="page" valueNumeric="320"/>
+            <column name="publisher" value="HarperBusiness"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2001-10-16"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1006"/>
+            <column name="title" value="To Kill a Mockingbird"/>
+            <column name="category_id" valueNumeric="1003"/>
+            <column name="price" valueNumeric="180000"/>
+            <column name="average_rating" valueNumeric="4.8"/>
+            <column name="book_description" value="A classic novel about justice, empathy, and moral courage."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/mockingbird.jpg"/>
+            <column name="isbn" value="9780061120084"/>
+            <column name="page" valueNumeric="336"/>
+            <column name="publisher" value="Harper Perennial"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="1960-07-11"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1007"/>
+            <column name="title" value="The Great Gatsby"/>
+            <column name="category_id" valueNumeric="1003"/>
+            <column name="price" valueNumeric="150000"/>
+            <column name="average_rating" valueNumeric="4.4"/>
+            <column name="book_description" value="A portrait of ambition and disillusionment in the Jazz Age."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/gatsby.jpg"/>
+            <column name="isbn" value="9780743273565"/>
+            <column name="page" valueNumeric="180"/>
+            <column name="publisher" value="Scribner"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="1925-04-10"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1008"/>
+            <column name="title" value="A Brief History of Time"/>
+            <column name="category_id" valueNumeric="1004"/>
+            <column name="price" valueNumeric="240000"/>
+            <column name="average_rating" valueNumeric="4.7"/>
+            <column name="book_description" value="An accessible introduction to cosmology and the nature of time."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/brief-history-time.jpg"/>
+            <column name="isbn" value="9780553380163"/>
+            <column name="page" valueNumeric="212"/>
+            <column name="publisher" value="Bantam"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="1988-04-01"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1009"/>
+            <column name="title" value="The Selfish Gene"/>
+            <column name="category_id" valueNumeric="1004"/>
+            <column name="price" valueNumeric="230000"/>
+            <column name="average_rating" valueNumeric="4.6"/>
+            <column name="book_description" value="A gene-centered view of evolution and natural selection."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/selfish-gene.jpg"/>
+            <column name="isbn" value="9780198788607"/>
+            <column name="page" valueNumeric="496"/>
+            <column name="publisher" value="Oxford University Press"/>
+            <column name="reprint" valueNumeric="4"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="1976-03-13"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1010"/>
+            <column name="title" value="Charlotte's Web"/>
+            <column name="category_id" valueNumeric="1005"/>
+            <column name="price" valueNumeric="120000"/>
+            <column name="average_rating" valueNumeric="4.8"/>
+            <column name="book_description" value="A beloved story about friendship, kindness, and growing up."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/charlottes-web.jpg"/>
+            <column name="isbn" value="9780064400558"/>
+            <column name="page" valueNumeric="192"/>
+            <column name="publisher" value="HarperCollins"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="1952-10-15"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1011"/>
+            <column name="title" value="Atomic Habits"/>
+            <column name="category_id" valueNumeric="1006"/>
+            <column name="price" valueNumeric="260000"/>
+            <column name="average_rating" valueNumeric="4.8"/>
+            <column name="book_description" value="Small behavior changes that compound into meaningful personal improvement."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/atomic-habits.jpg"/>
+            <column name="isbn" value="9780735211292"/>
+            <column name="page" valueNumeric="320"/>
+            <column name="publisher" value="Avery"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2018-10-16"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="book">
+            <column name="id" valueNumeric="1012"/>
+            <column name="title" value="Deep Work"/>
+            <column name="category_id" valueNumeric="1006"/>
+            <column name="price" valueNumeric="250000"/>
+            <column name="average_rating" valueNumeric="4.6"/>
+            <column name="book_description" value="Rules for focused success in a distracted world."/>
+            <column name="language" value="English"/>
+            <column name="image_path" value="https://res.cloudinary.com/demo/image/upload/deep-work.jpg"/>
+            <column name="isbn" value="9781455586691"/>
+            <column name="page" valueNumeric="304"/>
+            <column name="publisher" value="Grand Central Publishing"/>
+            <column name="reprint" valueNumeric="1"/>
+            <column name="stock" valueNumeric="0"/>
+            <column name="sold" valueNumeric="0"/>
+            <column name="published_date" valueDate="2016-01-05"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="book">
+                <where>id BETWEEN 1001 AND 1012</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="003-seed-store" author="quangnm">
+        <insert tableName="store">
+            <column name="id" valueNumeric="1001"/>
+            <column name="store_name" value="Downtown Book Hub"/>
+            <column name="phone_number" value="0901001001"/>
+            <column name="email" value="downtown@example.com"/>
+            <column name="address_detail" value="12 Nguyen Hue, District 1"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store">
+            <column name="id" valueNumeric="1002"/>
+            <column name="store_name" value="University Book Corner"/>
+            <column name="phone_number" value="0901001002"/>
+            <column name="email" value="university@example.com"/>
+            <column name="address_detail" value="45 Le Thanh Ton, District 1"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store">
+            <column name="id" valueNumeric="1003"/>
+            <column name="store_name" value="Family Reading Store"/>
+            <column name="phone_number" value="0901001003"/>
+            <column name="email" value="family@example.com"/>
+            <column name="address_detail" value="88 Nguyen Trai, District 5"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="store">
+                <where>id BETWEEN 1001 AND 1003</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="004-seed-store-book" author="codex">
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1001"/>
+            <column name="book_id" valueNumeric="1001"/>
+            <column name="stock" valueNumeric="25"/>
+            <column name="price" valueNumeric="315000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1001"/>
+            <column name="book_id" valueNumeric="1002"/>
+            <column name="stock" valueNumeric="18"/>
+            <column name="price" valueNumeric="405000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1001"/>
+            <column name="book_id" valueNumeric="1003"/>
+            <column name="stock" valueNumeric="12"/>
+            <column name="price" valueNumeric="520000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1001"/>
+            <column name="book_id" valueNumeric="1004"/>
+            <column name="stock" valueNumeric="20"/>
+            <column name="price" valueNumeric="260000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1001"/>
+            <column name="book_id" valueNumeric="1006"/>
+            <column name="stock" valueNumeric="15"/>
+            <column name="price" valueNumeric="180000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1001"/>
+            <column name="book_id" valueNumeric="1011"/>
+            <column name="stock" valueNumeric="30"/>
+            <column name="price" valueNumeric="255000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1002"/>
+            <column name="book_id" valueNumeric="1001"/>
+            <column name="stock" valueNumeric="10"/>
+            <column name="price" valueNumeric="320000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1002"/>
+            <column name="book_id" valueNumeric="1002"/>
+            <column name="stock" valueNumeric="16"/>
+            <column name="price" valueNumeric="410000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1002"/>
+            <column name="book_id" valueNumeric="1003"/>
+            <column name="stock" valueNumeric="20"/>
+            <column name="price" valueNumeric="510000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1002"/>
+            <column name="book_id" valueNumeric="1008"/>
+            <column name="stock" valueNumeric="22"/>
+            <column name="price" valueNumeric="240000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1002"/>
+            <column name="book_id" valueNumeric="1009"/>
+            <column name="stock" valueNumeric="14"/>
+            <column name="price" valueNumeric="230000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1002"/>
+            <column name="book_id" valueNumeric="1012"/>
+            <column name="stock" valueNumeric="24"/>
+            <column name="price" valueNumeric="245000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1003"/>
+            <column name="book_id" valueNumeric="1005"/>
+            <column name="stock" valueNumeric="18"/>
+            <column name="price" valueNumeric="275000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1003"/>
+            <column name="book_id" valueNumeric="1006"/>
+            <column name="stock" valueNumeric="28"/>
+            <column name="price" valueNumeric="175000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1003"/>
+            <column name="book_id" valueNumeric="1007"/>
+            <column name="stock" valueNumeric="20"/>
+            <column name="price" valueNumeric="150000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1003"/>
+            <column name="book_id" valueNumeric="1010"/>
+            <column name="stock" valueNumeric="40"/>
+            <column name="price" valueNumeric="115000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1003"/>
+            <column name="book_id" valueNumeric="1011"/>
+            <column name="stock" valueNumeric="16"/>
+            <column name="price" valueNumeric="260000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <insert tableName="store_book">
+            <column name="store_id" valueNumeric="1003"/>
+            <column name="book_id" valueNumeric="1012"/>
+            <column name="stock" valueNumeric="12"/>
+            <column name="price" valueNumeric="250000"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="store_book">
+                <where>store_id BETWEEN 1001 AND 1003 AND book_id BETWEEN 1001 AND 1012</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

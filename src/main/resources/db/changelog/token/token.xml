@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-refresh-token" author="quangnm">
+        <createTable tableName="refresh_token">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token" type="VARCHAR(255)"/>
+            <column name="user_id" type="BIGINT">
+                <constraints foreignKeyName="fk_refresh_token_user" references="user(id)"/>
+            </column>
+            <column name="expired_date" type="DATETIME"/>
+            <column name="revoked" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_agent" type="VARCHAR(255)"/>
+            <column name="ip_address" type="VARCHAR(255)"/>
+        </createTable>
+        <createIndex tableName="refresh_token" indexName="idx_refresh_token_token">
+            <column name="token"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -65,7 +65,7 @@ public class BookEntity extends BaseEntity {
     @Column(name = "sold", nullable = false)
     private Long sold;
 
-    @Column(name = "publishedDate", nullable = false)
+    @Column(name = "published_date", nullable = false)
     private LocalDate publishedDate;
 
     @OneToMany(mappedBy = "bookEntity")

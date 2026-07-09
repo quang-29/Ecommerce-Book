@@ -61,7 +61,7 @@ public class UserEntity extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews;
 
-    @Column(name = "deviceToken")
+    @Column(name = "device_token")
     private String deviceToken;
 
     @JsonIgnore

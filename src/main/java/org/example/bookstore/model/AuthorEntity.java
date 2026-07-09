@@ -24,23 +24,13 @@ public class AuthorEntity extends BaseEntity {
     @Column(name = "author_name")
     private String name;
 
-    @Column(name = "biography")
     private String biography;
 
     @Email
-    @Column(name = "email")
     private String email;
-
-    @Column(name = "website")
     private String website;
-
-    @Column(name = "dob")
     private Date dob;
-
-    @Column(name = "country")
     private String country;
-
-    @Column(name = "imageUrl")
     private String imageUrl;
 
     @OneToMany(mappedBy = "authorEntity")

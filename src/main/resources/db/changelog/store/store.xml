@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-store" author="quangnm">
+        <createTable tableName="store">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="store_name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="phone_number" type="VARCHAR(32)"/>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="province_id" type="INT">
+                <constraints foreignKeyName="fk_store_province" references="provinces(id)"/>
+            </column>
+            <column name="district_id" type="INT">
+                <constraints foreignKeyName="fk_store_district" references="districts(id)"/>
+            </column>
+            <column name="ward_id" type="VARCHAR(255)">
+                <constraints foreignKeyName="fk_store_ward" references="wards(id)"/>
+            </column>
+            <column name="address_detail" type="VARCHAR(500)"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-store-book" author="quangnm">
+        <createTable tableName="store_book">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="store_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_store_book_store" references="store(id)"/>
+            </column>
+            <column name="book_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stock" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="price" type="BIGINT"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="store_book" columnNames="store_id, book_id"
+                             constraintName="uk_store_book_store_book"/>
+    </changeSet>
+
+    <changeSet id="002-add-store-book-book-foreign-key" author="quangnm">
+        <addForeignKeyConstraint baseTableName="store_book"
+                                  baseColumnNames="book_id"
+                                  constraintName="fk_store_book_book"
+                                  referencedTableName="book"
+                                  referencedColumnNames="id"/>
+    </changeSet>
+
+    <changeSet id="003-add-store-book-to-cart-and-order-items" author="quangnm">
+        <addColumn tableName="cart_items">
+            <column name="store_book_id" type="BIGINT">
+                <constraints foreignKeyName="fk_cart_items_store_book" references="store_book(id)"/>
+            </column>
+        </addColumn>
+        <addColumn tableName="order_items">
+            <column name="store_book_id" type="BIGINT">
+                <constraints foreignKeyName="fk_order_items_store_book" references="store_book(id)"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="004-migrate-book-stock-to-default-store" author="quangnm">
+        <insert tableName="store">
+            <column name="id" valueNumeric="1"/>
+            <column name="store_name" value="Default Store"/>
+            <column name="address_detail" value="144 Chien Thang"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+        <!-- No native changeType covers INSERT ... SELECT with a correlated WHERE NOT EXISTS over existing book rows -->
+        <sql splitStatements="true" stripComments="true"><![CDATA[
+INSERT INTO store_book (store_id, book_id, stock, price, active, is_deleted)
+SELECT 1, b.id, COALESCE(b.stock, 0), b.price, true, false
+FROM book b
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM store_book sb
+    WHERE sb.store_id = 1 AND sb.book_id = b.id
+);
+        ]]></sql>
+        <rollback>
+            <delete tableName="store_book">
+                <where>store_id = 1</where>
+            </delete>
+            <delete tableName="store">
+                <where>id = 1</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
