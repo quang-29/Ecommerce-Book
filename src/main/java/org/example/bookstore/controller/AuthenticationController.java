@@ -39,6 +39,14 @@ public class AuthenticationController {
         String userAgent = request.getHeader("User-Agent");
         String ipAddress = getClientIpAddress(request);
         LoginResponse loginResponse = authenticationService.login(loginRequest, userAgent, ipAddress);
+        return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<LoginResponse> verifyOtp(@RequestBody VerifyOtpRequest verifyOtpRequest, HttpServletRequest request, HttpServletResponse response) {
+        String userAgent = request.getHeader("User-Agent");
+        String ipAddress = getClientIpAddress(request);
+        LoginResponse loginResponse = authenticationService.verifyOtp(verifyOtpRequest, userAgent, ipAddress);
         setRefreshTokenCookie(response, loginResponse.getRefreshToken(), USER_REFRESH_TOKEN_COOKIE);
         loginResponse.setRefreshToken(null);
         return ResponseEntity.ok(loginResponse);

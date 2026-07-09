@@ -20,7 +20,7 @@ public class PlaceOrderDTO {
     private Long cartId;
 
     @NotBlank
-    private Long addressId;
+    private String shippingAddress;
 
     @NotBlank
     private PaymentType paymentType;

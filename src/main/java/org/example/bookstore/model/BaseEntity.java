@@ -6,6 +6,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -30,6 +32,7 @@ public abstract class BaseEntity implements Serializable {
 
     protected Long updatedByUserId;
 
+    @JdbcTypeCode(SqlTypes.TINYINT)
     protected boolean isDeleted;
 
 }

@@ -47,7 +47,8 @@ public enum MessageException {
     NOTIFICATION_NOT_FOUND("Notification not found"),
     EMAIL_INVALID("Email address is invalid"),
     VOUCHER_NOT_FOUND("Voucher not found"),
-    VOUCHER_INVALID("Voucher is invalid");
+    VOUCHER_INVALID("Voucher is invalid"),
+    OTP_INVALID("OTP is invalid or expired");
 
     private final String message;
 

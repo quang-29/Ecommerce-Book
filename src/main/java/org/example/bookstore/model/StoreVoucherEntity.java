@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -41,6 +43,7 @@ public class StoreVoucherEntity extends BaseEntity {
     private Long minOrderAmount = 0L;
 
     @Column(name = "active", nullable = false)
+    @JdbcTypeCode(SqlTypes.TINYINT)
     private boolean active = true;
 
     @Column(name = "start_at")

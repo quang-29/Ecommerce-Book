@@ -7,11 +7,13 @@ import org.example.bookstore.model.*;
 import org.example.bookstore.payload.request.ChangePasswordRequest;
 import org.example.bookstore.payload.request.LoginRequest;
 import org.example.bookstore.payload.request.RegisterRequest;
+import org.example.bookstore.payload.request.VerifyOtpRequest;
 import org.example.bookstore.payload.response.*;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.security.CurrentUserDetails;
 import org.example.bookstore.security.CustomUserDetails;
 import org.example.bookstore.security.JwtTokenProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -31,13 +33,20 @@ public class AuthenticationService {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
+    private final OtpService otpService;
+    private final EmailService emailService;
 
-    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService) {
+    @Value("${app.otp.expiration-in-ms}")
+    private long otpExpirationInMs;
+
+    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
         this.refreshTokenService = refreshTokenService;
+        this.otpService = otpService;
+        this.emailService = emailService;
     }
 
     public LoginResponse login(LoginRequest loginRequest, String userAgent, String ipAddress) {
@@ -50,18 +59,43 @@ public class AuthenticationService {
             );
             var userDetail = (CustomUserDetails) authentication.getPrincipal();
 
-            String accessToken = jwtTokenProvider.generateToken(userDetail);
-            String refreshToken = refreshTokenService.createRefreshToken(userDetail, userAgent, ipAddress);
+            String otp = otpService.generateAndStoreOtp(userDetail.getUserId());
+            long otpExpirationInMinutes = otpExpirationInMs / 60000;
+            emailService.sendSimpleEmail(
+                    userDetail.getEmail(),
+                    "Mã xác thực đăng nhập",
+                    "Mã OTP đăng nhập của bạn là: " + otp + "\n\n" +
+                            "Mã có hiệu lực trong " + otpExpirationInMinutes + " phút. " +
+                            "Vui lòng không chia sẻ mã này cho bất kỳ ai."
+            );
 
             return LoginResponse.builder()
-                    .token(accessToken)
-                    .refreshToken(refreshToken)
-                    .userDetails(userDetail)
+                    .otpRequired(true)
+                    .userId(userDetail.getUserId())
                     .build();
 
         } catch (AuthenticationException ex) {
             throw new RuntimeException(MessageException.UNAUTHENTICATED.getMessage());
         }
+    }
+
+    public LoginResponse verifyOtp(VerifyOtpRequest request, String userAgent, String ipAddress) {
+        if (request.getUserId() == null || !otpService.verifyOtp(request.getUserId(), request.getOtp())) {
+            throw new RuntimeException(MessageException.OTP_INVALID.getMessage());
+        }
+
+        UserEntity user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException(MessageException.USER_NOT_FOUND.getMessage()));
+        CustomUserDetails userDetails = toUserDetails(user);
+
+        String accessToken = jwtTokenProvider.generateToken(userDetails);
+        String refreshToken = refreshTokenService.createRefreshToken(userDetails, userAgent, ipAddress);
+
+        return LoginResponse.builder()
+                .token(accessToken)
+                .refreshToken(refreshToken)
+                .userDetails(userDetails)
+                .build();
     }
 
     public void logout(String refreshToken){

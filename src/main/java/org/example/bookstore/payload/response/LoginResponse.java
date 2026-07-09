@@ -12,4 +12,6 @@ public class LoginResponse {
     private String token;
     private String refreshToken;
     private CustomUserDetails userDetails;
+    private boolean otpRequired;
+    private Long userId;
 }

@@ -16,7 +16,7 @@ public class PlaceSingleBookDTO {
     private Long bookId;
     private Long storeId;
     @NotBlank
-    private Long addressId;
+    private String shippingAddress;
     @NotBlank
     private PaymentType paymentType;
     private int weight;

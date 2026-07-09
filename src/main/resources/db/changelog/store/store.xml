@@ -21,15 +21,6 @@
             </column>
             <column name="phone_number" type="VARCHAR(32)"/>
             <column name="email" type="VARCHAR(255)"/>
-            <column name="province_id" type="INT">
-                <constraints foreignKeyName="fk_store_province" references="provinces(id)"/>
-            </column>
-            <column name="district_id" type="INT">
-                <constraints foreignKeyName="fk_store_district" references="districts(id)"/>
-            </column>
-            <column name="ward_id" type="VARCHAR(255)">
-                <constraints foreignKeyName="fk_store_ward" references="wards(id)"/>
-            </column>
             <column name="address_detail" type="VARCHAR(500)"/>
             <column name="active" type="BOOLEAN" defaultValueBoolean="true">
                 <constraints nullable="false"/>

@@ -3,10 +3,8 @@ package org.example.bookstore.payload;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
-import org.example.bookstore.model.UserAddress;
 import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.payload.payment.PaymentDTO;
-import org.example.bookstore.payload.userAddress.UserAddressDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -26,6 +24,6 @@ public class OrderDTO {
     private List<OrderItemDTO> orderItem = new ArrayList<>();
     private Date createAt;
     private Date estimatedDeliveryDate;
-    private UserAddressDTO userAddress;
+    private String shippingAddress;
     private PaymentDTO payment;
 }

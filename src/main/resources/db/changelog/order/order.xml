@@ -21,9 +21,7 @@
             </column>
             <column name="create_at" type="DATETIME"/>
             <column name="estimated_delivery_date" type="DATETIME"/>
-            <column name="address_id" type="BIGINT">
-                <constraints foreignKeyName="fk_orders_user_address" references="user_address(id)"/>
-            </column>
+            <column name="shipping_address" type="VARCHAR(500)"/>
             <column name="payment_id" type="BIGINT">
                 <constraints foreignKeyName="fk_orders_payment" references="payment(id)"/>
             </column>

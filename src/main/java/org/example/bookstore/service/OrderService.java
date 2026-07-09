@@ -7,15 +7,12 @@ import org.example.bookstore.enums.*;
 import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.*;
 import org.example.bookstore.model.payment.Payment;
-import org.example.bookstore.model.shipment.BasicShippingOrderInfo;
-import org.example.bookstore.model.shipment.ShipmentInfo;
 import org.example.bookstore.payload.OrderDTO;
 import org.example.bookstore.payload.OrderItemDTO;
 import org.example.bookstore.payload.order.PlaceOrderDTO;
 import org.example.bookstore.payload.order.PlaceSingleBookDTO;
 import org.example.bookstore.payload.response.PlaceOrderResponse;
 import org.example.bookstore.repository.*;
-import org.example.bookstore.service.shipment.GHNService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,14 +42,16 @@ public class OrderService {
     private final BookRepository bookRepository;
     private final StoreBookRepository storeBookRepository;
     private final StoreVoucherRepository storeVoucherRepository;
-    private final GHNService ghnService;
     private final VNPayService vnPayService;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
 
-    private final UserAddressService userAddressService;
+    private static final long FLAT_SHIPPING_FEE = 30_000L;
+    private static final int DEFAULT_DELIVERY_DAYS = 3;
 
-    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreVoucherRepository storeVoucherRepository, GHNService ghnService, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, UserAddressService userAddressService) {
+    private final EmailService emailService;
+
+    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreVoucherRepository storeVoucherRepository, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, EmailService emailService) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
@@ -64,9 +63,8 @@ public class OrderService {
         this.bookRepository = bookRepository;
         this.storeBookRepository = storeBookRepository;
         this.storeVoucherRepository = storeVoucherRepository;
-        this.ghnService = ghnService;
         this.vnPayService = vnPayService;
-        this.userAddressService = userAddressService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -89,23 +87,12 @@ public class OrderService {
                 .sum();
         long voucherDiscount = calculateVoucherDiscount(cartItemEntities, placeOrderDTO.getVoucherCodes());
 
-        List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
-        if (placeOrderDTO.getAddressId() == null) {
+        String shippingAddress = placeOrderDTO.getShippingAddress();
+        if (shippingAddress == null || shippingAddress.isBlank()) {
             throw new ResourceNotFoundException(MessageException.ADDRESS_NOT_FOUND);
         }
-        UserAddress addressTo = userAddressList.stream()
-                .filter(address -> address.getId().equals(placeOrderDTO.getAddressId()))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ADDRESS_NOT_FOUND));
 
-        ShipmentInfo shipmentInfo = ShipmentInfo.builder()
-                .from(new ShopAddress())
-                .to(addressTo)
-                .weight(placeOrderDTO.getWeight())
-                .build();
-
-        BasicShippingOrderInfo basicShippingOrderInfo = ghnService.calculateShipmentFee(shipmentInfo);
-        long shippingFee = basicShippingOrderInfo.getFee();
+        long shippingFee = FLAT_SHIPPING_FEE;
 
         long totalPay = Math.max(0, allBookPrice - voucherDiscount) + shippingFee;
 
@@ -139,9 +126,9 @@ public class OrderService {
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setCreateAt(new Date());
         orderEntity.setUser(user);
-        orderEntity.setUserAddress(addressTo);
+        orderEntity.setShippingAddress(shippingAddress);
         orderEntity.setPayment(payment);
-        orderEntity.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
+        orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
         orderRepository.save(orderEntity);
 
         List<OrderItem> orderItems = new ArrayList<>();
@@ -162,6 +149,12 @@ public class OrderService {
         orderItemRepository.saveAll(orderItems);
 
         cartService.clearCart(cartEntity.getId());
+
+        emailService.sendSimpleEmail(
+                user.getEmail(),
+                "Xác nhận đơn hàng #" + orderEntity.getId(),
+                buildOrderConfirmationEmail(user, orderEntity, orderItems, payment)
+        );
 
         PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
         placeOrderResponse.setOrderId(orderEntity.getId());
@@ -306,23 +299,12 @@ public class OrderService {
         UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
-        List<UserAddress> userAddressList = userAddressService.getAddressListByUser(username);
-        if (placeSingleBookDTO.getAddressId() == null) {
+        String shippingAddress = placeSingleBookDTO.getShippingAddress();
+        if (shippingAddress == null || shippingAddress.isBlank()) {
             throw new ResourceNotFoundException(MessageException.INVALID_ADDRESS);
         }
-        UserAddress addressTo = userAddressList.stream()
-                .filter(address -> address.getId().equals(placeSingleBookDTO.getAddressId()))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ADDRESS_NOT_FOUND));
 
-        ShipmentInfo shipmentInfo = ShipmentInfo.builder()
-                .from(new ShopAddress())
-                .to(addressTo)
-                .weight(placeSingleBookDTO.getWeight())
-                .build();
-
-        BasicShippingOrderInfo basicShippingOrderInfo = ghnService.calculateShipmentFee(shipmentInfo);
-        long shippingFee = basicShippingOrderInfo.getFee();
+        long shippingFee = FLAT_SHIPPING_FEE;
 
         long voucherDiscount = calculateVoucherDiscount(storeBookEntity, placeSingleBookDTO.getVoucherCode());
         long totalPay = Math.max(0, storeBookEntity.getEffectivePrice() - voucherDiscount) + shippingFee;
@@ -357,10 +339,10 @@ public class OrderService {
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setCreateAt(new Date());
         orderEntity.setUser(user);
-        orderEntity.setUserAddress(addressTo);
+        orderEntity.setShippingAddress(shippingAddress);
         orderEntity.setPayment(payment);
-        orderEntity.setEstimatedDeliveryDate(basicShippingOrderInfo.getExpectedDeliveryDate());
-        
+        orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
+
         orderRepository.save(orderEntity);
         
         OrderItem orderItem = new OrderItem();
@@ -382,6 +364,12 @@ public class OrderService {
         }
         return ServerResponseDto.success(placeOrderResponse);
 
+    }
+
+    private Date estimatedDeliveryDate() {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, DEFAULT_DELIVERY_DAYS);
+        return calendar.getTime();
     }
 
     private StoreBookEntity resolveStoreBook(Long storeBookId, Long bookId, Long storeId) {
@@ -491,6 +479,24 @@ public class OrderService {
         return orderItemDTO;
     }
 
-
+    private String buildOrderConfirmationEmail(UserEntity user, OrderEntity orderEntity, List<OrderItem> orderItems, Payment payment) {
+        StringBuilder body = new StringBuilder();
+        body.append("Xin chào ").append(user.getFirstName()).append(",\n\n");
+        body.append("Đơn hàng #").append(orderEntity.getId()).append(" của bạn đã được ghi nhận thành công.\n\n");
+        body.append("Chi tiết đơn hàng:\n");
+        for (OrderItem item : orderItems) {
+            body.append("- ").append(item.getBookEntity().getTitle())
+                    .append(" x").append(item.getQuantity())
+                    .append(": ").append(item.getProductPrice() * item.getQuantity()).append(" VND\n");
+        }
+        body.append("\nPhí vận chuyển: ").append(payment.getFeeShip()).append(" VND\n");
+        if (payment.getDiscountAmount() > 0) {
+            body.append("Giảm giá: ").append(payment.getDiscountAmount()).append(" VND\n");
+        }
+        body.append("Tổng thanh toán: ").append(payment.getAmount()).append(" VND\n");
+        body.append("Phương thức thanh toán: ").append(payment.getType()).append("\n\n");
+        body.append("Cảm ơn bạn đã mua hàng tại BookStore!");
+        return body.toString();
+    }
 
 }

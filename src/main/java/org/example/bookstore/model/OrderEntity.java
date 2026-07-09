@@ -29,9 +29,8 @@ public class OrderEntity extends BaseEntity {
 
     private Date estimatedDeliveryDate;
 
-    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    @JoinColumn(name = "address_id")
-    private UserAddress userAddress;
+    @Column(name = "shipping_address")
+    private String shippingAddress;
 
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "payment_id")

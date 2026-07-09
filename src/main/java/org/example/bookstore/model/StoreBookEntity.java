@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @Setter
@@ -37,6 +39,7 @@ public class StoreBookEntity extends BaseEntity {
     private Long price;
 
     @Column(name = "active", nullable = false)
+    @JdbcTypeCode(SqlTypes.TINYINT)
     private boolean active = true;
 
     public long getBasePrice() {

@@ -35,6 +35,18 @@ spring:
       repositories:
         enabled: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: quangnm@rabiloo.com
+    password: clcjwqyozzrpamim
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 # JWT
 jwt:
   signing:
@@ -48,6 +60,12 @@ app:
 
   cors:
     allowedOrigins: http://localhost:3000
+
+  mail:
+    from: no-reply@bookstore.example.com
+
+  otp:
+    expiration-in-ms: 300000
 
 # Cloudinary
 cloudinary:
@@ -93,9 +111,9 @@ chat:
 # Web Push Protocol
 web-push:
   vapid:
-    public-key: 1312312312312312
-    private-key: 12312312321312
-    subject: mailto:admin@example.com
+    public-key: BA8CfVBkj17hVYPWHBFV71K7FkaZ7YMxW_t5E85n0tVuUSqAyvtP295c9PDDF7eiSRI4Dd7wOckew5f6Bf2zs_8
+    private-key: 8IPMNuLN1-RRshnz2bzSlJE_KSvT6XKd5rj_j8mpCqo
+    subject: "mailto:admin@example.com"
 
 domain-staff-fe: http://localhost:8081/
 api-url: http://localhost:8081/
