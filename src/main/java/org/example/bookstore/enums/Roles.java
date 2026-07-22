@@ -2,7 +2,8 @@ package org.example.bookstore.enums;
 
 public enum Roles {
     ADMIN("ADMIN"),
-    USER("USER");
+    USER("USER"),
+    SHOP_OWNER("SHOP_OWNER");
 
     private final String name;
 

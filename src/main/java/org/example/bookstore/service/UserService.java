@@ -15,6 +15,8 @@ import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.CloudinaryResponse;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.UserRepository;
+import org.example.bookstore.service.cache.UserCacheDTO;
+import org.example.bookstore.service.cache.UserCacheService;
 import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -36,13 +38,15 @@ public class UserService {
     private final CartService cartService;
     private final BookRepository bookRepository;
     private final CloudinaryServiceImpl cloudinaryServiceImpl;
+    private final UserCacheService userCacheService;
 
-    public UserService(UserRepository userRepository, ModelMapper modelMapper, CartService cartService, BookRepository bookRepository, CloudinaryServiceImpl cloudinaryServiceImpl) {
+    public UserService(UserRepository userRepository, ModelMapper modelMapper, CartService cartService, BookRepository bookRepository, CloudinaryServiceImpl cloudinaryServiceImpl, UserCacheService userCacheService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.cartService = cartService;
         this.bookRepository = bookRepository;
         this.cloudinaryServiceImpl = cloudinaryServiceImpl;
+        this.userCacheService = userCacheService;
     }
 
     public ServerResponseDto getAllUsers(int pageNumber, int pageSize, String sortBy, String sortDirection) {
@@ -55,18 +59,29 @@ public class UserService {
     }
 
     public ServerResponseDto getUserById(Long userId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
+        UserDTO userDTO = userCacheService.getUser(userId)
+                .map(this::toUserDTO)
+                .orElseGet(() -> {
+                    UserEntity user = userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
+                    userCacheService.cache(user);
+                    return modelMapper.map(user, UserDTO.class);
+                });
 
-        UserDTO userDTO = modelMapper.map(user, UserDTO.class);
-        CartDTO cart = modelMapper.map(user.getCartEntity(), CartDTO.class);
-
-        List<CartItemDTO> cartItemDTOS = user.getCartEntity().getCartItemEntities().stream()
-                .map(item -> modelMapper.map(item.getBookEntity(), CartItemDTO.class)).collect(Collectors.toList());
-        userDTO.setCart(cart);
-
-        userDTO.getCart().setCartItem(cartItemDTOS);
+        userDTO.setCart(cartService.getCartByUserId(userId.toString()));
         return ServerResponseDto.success(userDTO);
+    }
+
+    private UserDTO toUserDTO(UserCacheDTO cached) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setUserId(cached.getUserId());
+        userDTO.setUsername(cached.getUsername());
+        userDTO.setFirstName(cached.getFirstName());
+        userDTO.setLastName(cached.getLastName());
+        userDTO.setPhoneNumber(cached.getPhoneNumber());
+        userDTO.setEmail(cached.getEmail());
+        userDTO.setAvatarUrl(cached.getAvatarUrl());
+        return userDTO;
     }
     
     public ServerResponseDto updateUser(UserUpdate userUpdate) {
@@ -77,6 +92,7 @@ public class UserService {
         user.setLastName(userUpdate.getLastName());
         user.setPhoneNumber(userUpdate.getPhoneNumber());
         userRepository.save(user);
+        userCacheService.cache(user);
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         CartDTO cart = modelMapper.map(user.getCartEntity(), CartDTO.class);
         List<CartItemDTO> cartItemDTOS = user.getCartEntity().getCartItemEntities().stream()
@@ -101,12 +117,14 @@ public class UserService {
         });
 
         userRepository.delete(user);
+        userCacheService.evict(user);
         return ServerResponseDto.success("Delete user successfully");
     }
 
     public ServerResponseDto getMyProfile(String username) {
         UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
+        userCacheService.cache(user);
         return ServerResponseDto.success(modelMapper.map(user, UserDTO.class));
     }
     
@@ -154,6 +172,7 @@ public class UserService {
         String username = authentication.getName();
         UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
+        userCacheService.cache(user);
         return user.getId();
     }
 
@@ -165,6 +184,7 @@ public class UserService {
         user.setPhoneNumber(editUser.getPhoneNumber());
         user.setEmail(editUser.getEmail());
         userRepository.save(user);
+        userCacheService.cache(user);
         return ServerResponseDto.success("Edit user successfully");
     }
 
@@ -181,6 +201,7 @@ public class UserService {
             final CloudinaryResponse response = cloudinaryServiceImpl.uploadFile(file, fileName);
             user.setAvatarUrl(response.getUrl());
             userRepository.save(user);
+            userCacheService.cache(user);
             changeAvatar.setSuccess(true);
             changeAvatar.setUrl(user.getAvatarUrl());
         } catch (FileUploadException ex) {

@@ -13,6 +13,8 @@ import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.security.CurrentUserDetails;
 import org.example.bookstore.security.CustomUserDetails;
 import org.example.bookstore.security.JwtTokenProvider;
+import org.example.bookstore.service.cache.UserCacheService;
+import org.example.bookstore.service.dto.UserSaveDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,11 +37,12 @@ public class AuthenticationService {
     private final RefreshTokenService refreshTokenService;
     private final OtpService otpService;
     private final EmailService emailService;
+    private final UserCacheService userCacheService;
 
     @Value("${app.otp.expiration-in-ms}")
     private long otpExpirationInMs;
 
-    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService) {
+    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService, UserCacheService userCacheService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -47,6 +50,7 @@ public class AuthenticationService {
         this.refreshTokenService = refreshTokenService;
         this.otpService = otpService;
         this.emailService = emailService;
+        this.userCacheService = userCacheService;
     }
 
     public LoginResponse login(LoginRequest loginRequest, String userAgent, String ipAddress) {
@@ -98,9 +102,9 @@ public class AuthenticationService {
                 .build();
     }
 
-    public void logout(String refreshToken){
+    public void logout(String refreshToken) {
         var currentUser = CurrentUserDetails.getCurrentUser();
-        if (currentUser != null && refreshToken != null && !refreshToken.isEmpty()){
+        if (currentUser != null && refreshToken != null && !refreshToken.isEmpty()) {
             refreshTokenService.revokeRefreshToken(refreshToken);
         }
     }
@@ -122,8 +126,15 @@ public class AuthenticationService {
                 .roles(Roles.USER)
                 .cartEntity(cartEntity)
                 .build();
-
         UserEntity userSaved = userRepository.save(user);
+        UserSaveDto userSaveDto =
+                UserSaveDto.builder()
+                        .id(userSaved.getId().toString())
+                        .email(userSaved.getEmail())
+                        .userName(userSaved.getUsername())
+                        .roles(userSaved.getRoles())
+                        .build();
+        userCacheService.createUserCatche(userSaveDto);
         cartEntity.setUser(userSaved);
         return true;
     }
@@ -147,21 +158,21 @@ public class AuthenticationService {
 
     public void changePassword(ChangePasswordRequest request) throws BadRequestException {
         var user = getCurrentUserEntity();
-        if(passwordEncoder.matches(request.getOldPassword(), user.getPassword())){
+        if (passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             updateUserPasswordAndSaveUser(user, request.getNewPassword());
         } else {
             throw new BadRequestException("Old password is incorrect");
         }
     }
 
-    private UserEntity getCurrentUserEntity(){
+    private UserEntity getCurrentUserEntity() {
         var userDetails = CurrentUserDetails.getCurrentUser();
         return userRepository.findById(Objects.requireNonNull(userDetails)
                 .getUserId()).get();
     }
 
     private void updateUserPasswordAndSaveUser(UserEntity user, String newPassword) throws BadRequestException {
-        if(passwordEncoder.matches(newPassword, user.getPassword())){
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new BadRequestException("New password cannot be the same as the old password");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
