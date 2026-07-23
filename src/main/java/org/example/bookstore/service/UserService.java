@@ -14,6 +14,13 @@ import org.example.bookstore.payload.request.EditUser;
 import org.example.bookstore.payload.request.UserUpdate;
 import org.example.bookstore.payload.response.CloudinaryResponse;
 import org.example.bookstore.repository.BookRepository;
+import org.example.bookstore.repository.CartItemRepository;
+import org.example.bookstore.repository.CartRepository;
+import org.example.bookstore.repository.NotificationRepository;
+import org.example.bookstore.repository.OrderItemRepository;
+import org.example.bookstore.repository.OrderRepository;
+import org.example.bookstore.repository.ReviewRepository;
+import org.example.bookstore.repository.UserLikedBookRepository;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.service.cache.UserCacheDTO;
 import org.example.bookstore.service.cache.UserCacheService;
@@ -36,14 +43,28 @@ public class UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final CartService cartService;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ReviewRepository reviewRepository;
+    private final NotificationRepository notificationRepository;
+    private final UserLikedBookRepository userLikedBookRepository;
     private final BookRepository bookRepository;
     private final CloudinaryServiceImpl cloudinaryServiceImpl;
     private final UserCacheService userCacheService;
 
-    public UserService(UserRepository userRepository, ModelMapper modelMapper, CartService cartService, BookRepository bookRepository, CloudinaryServiceImpl cloudinaryServiceImpl, UserCacheService userCacheService) {
+    public UserService(UserRepository userRepository, ModelMapper modelMapper, CartService cartService, CartRepository cartRepository, CartItemRepository cartItemRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, ReviewRepository reviewRepository, NotificationRepository notificationRepository, UserLikedBookRepository userLikedBookRepository, BookRepository bookRepository, CloudinaryServiceImpl cloudinaryServiceImpl, UserCacheService userCacheService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.cartService = cartService;
+        this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.reviewRepository = reviewRepository;
+        this.notificationRepository = notificationRepository;
+        this.userLikedBookRepository = userLikedBookRepository;
         this.bookRepository = bookRepository;
         this.cloudinaryServiceImpl = cloudinaryServiceImpl;
         this.userCacheService = userCacheService;
@@ -94,27 +115,40 @@ public class UserService {
         userRepository.save(user);
         userCacheService.cache(user);
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
-        CartDTO cart = modelMapper.map(user.getCartEntity(), CartDTO.class);
-        List<CartItemDTO> cartItemDTOS = user.getCartEntity().getCartItemEntities().stream()
-                .map(item -> modelMapper.map(item.getBookEntity(), CartItemDTO.class)).collect(Collectors.toList());
+        CartEntity cartEntity = cartRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
+        CartDTO cart = modelMapper.map(cartEntity, CartDTO.class);
+        List<CartItemDTO> cartItemDTOS = cartItemRepository.findByCartId(cartEntity.getId()).stream()
+                .map(item -> modelMapper.map(bookRepository.findById(item.getBookId()).orElse(null), CartItemDTO.class))
+                .collect(Collectors.toList());
         userDTO.setCart(cart);
         userDTO.getCart().setCartItem(cartItemDTOS);
         return ServerResponseDto.success(userDTO);
     }
 
+    // Deleting a user used to cascade (via JPA cascade=ALL/orphanRemoval on UserEntity's
+    // relation fields) to the cart, orders, reviews and notifications owned by that user —
+    // all of those tables have a real FK constraint back to `user` with no ON DELETE CASCADE,
+    // so this cleanup has to happen explicitly now, in FK-safe order, before userRepository.delete.
     public ServerResponseDto deleteUser(Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
-        List<CartItemEntity> cartItemEntities = user.getCartEntity().getCartItemEntities();
-        CartEntity cartEntity = user.getCartEntity();
-
-        cartItemEntities.forEach(item -> {
-
-            Long bookId = item.getBookEntity().getId();
-
-            cartService.deleteProductFromCart(cartEntity.getId(), bookId);
+        cartRepository.findByUserId(user.getId()).ifPresent(cartEntity -> {
+            List<CartItemEntity> cartItemEntities = cartItemRepository.findByCartId(cartEntity.getId());
+            cartItemEntities.forEach(item -> cartService.deleteProductFromCart(cartEntity.getId(), item.getBookId()));
+            cartRepository.delete(cartEntity);
         });
+
+        List<OrderEntity> orders = orderRepository.findAllByUserId(user.getId());
+        for (OrderEntity order : orders) {
+            orderItemRepository.deleteAll(orderItemRepository.findByOrderId(order.getId()));
+        }
+        orderRepository.deleteAll(orders);
+
+        reviewRepository.deleteAll(reviewRepository.findAllReviewsByUserId(user.getId()));
+
+        notificationRepository.deleteAll(notificationRepository.findAllByReceiverId(user.getId()));
 
         userRepository.delete(user);
         userCacheService.evict(user);
@@ -133,14 +167,13 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         BookEntity bookEntity = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
-        Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
         if(isLike) {
-            likedBookEntities.add(bookEntity);
-            userRepository.save(user);
+            if (!userLikedBookRepository.existsByUserIdAndBookId(user.getId(), bookEntity.getId())) {
+                userLikedBookRepository.save(new UserLikedBookEntity(user.getId(), bookEntity.getId()));
+            }
             return ServerResponseDto.success("Like book successfully!!!");
         } else {
-            likedBookEntities.remove(bookEntity);
-            userRepository.save(user);
+            userLikedBookRepository.deleteByUserIdAndBookId(user.getId(), bookEntity.getId());
             return ServerResponseDto.success("Dislike book successfully!!!");
         }
     }
@@ -149,7 +182,10 @@ public class UserService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
-        return ServerResponseDto.success(user.getLikedBookEntities().stream()
+        List<Long> likedBookIds = userLikedBookRepository.findByUserId(user.getId()).stream()
+                .map(UserLikedBookEntity::getBookId)
+                .toList();
+        return ServerResponseDto.success(bookRepository.findAllById(likedBookIds).stream()
                 .map(book -> modelMapper.map(book, BookDTO.class))
                 .collect(Collectors.toSet()));
     }

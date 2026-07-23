@@ -1,6 +1,8 @@
 package org.example.bookstore.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,11 +27,9 @@ public class Review extends BaseEntity {
     @Column(name = "created_at")
     private LocalDate createdAt;
 
-    @ManyToOne
-    @JoinColumn(name = "book_id")
-    private BookEntity bookEntity;
+    @Column(name = "book_id")
+    private Long bookId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    @Column(name = "user_id")
+    private Long userId;
 }

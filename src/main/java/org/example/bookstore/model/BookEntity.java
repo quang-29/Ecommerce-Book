@@ -1,14 +1,14 @@
 package org.example.bookstore.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.bookstore.payload.BookDTO;
 
 import java.time.LocalDate;
-import java.util.*;
 
 @Getter
 @Setter
@@ -21,13 +21,17 @@ public class BookEntity extends BaseEntity {
     @Column(name = "title")
     private String title;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private CategoryEntity categoryEntity;
+    @Column(name = "category_id")
+    private Long categoryId;
 
-    @ManyToOne
-    @JoinColumn(name = "author_id")
-    private AuthorEntity authorEntity;
+    @Column(name = "author_id")
+    private Long authorId;
+
+    @Column(name = "series_id")
+    private Long seriesId;
+
+    @Column(name = "volume_number")
+    private Integer volumeNumber;
 
     @Column(name = "price", nullable = false)
     private long price;
@@ -67,18 +71,5 @@ public class BookEntity extends BaseEntity {
 
     @Column(name = "published_date", nullable = false)
     private LocalDate publishedDate;
-
-    @OneToMany(mappedBy = "bookEntity")
-    private List<Review> reviews;
-
-    @OneToMany(mappedBy = "bookEntity")
-    private List<OrderItem> orderDetails;
-
-    @OneToMany(mappedBy = "bookEntity")
-    private List<StoreBookEntity> storeBooks;
-
-    @ManyToMany(mappedBy = "likedBookEntities")
-    private Set<UserEntity> likedByUsers = new HashSet<>();
-
 
 }

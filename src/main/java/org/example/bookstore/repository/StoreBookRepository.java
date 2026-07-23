@@ -11,13 +11,16 @@ import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface StoreBookRepository extends JpaRepository<StoreBookEntity, Long> {
-    Optional<StoreBookEntity> findByStoreEntityIdAndBookEntityId(Long storeId, Long bookId);
+    List<StoreBookEntity> findByBookId(Long bookId);
 
-    Optional<StoreBookEntity> findFirstByBookEntityIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(Long bookId, Long stock);
+    Optional<StoreBookEntity> findByStoreIdAndBookId(Long storeId, Long bookId);
+
+    Optional<StoreBookEntity> findFirstByBookIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(Long bookId, Long stock);
 
     @Modifying
     @Query("UPDATE StoreBookEntity sb SET sb.stock = sb.stock - :quantity WHERE sb.id = :storeBookId AND sb.stock >= :quantity AND sb.active = true")

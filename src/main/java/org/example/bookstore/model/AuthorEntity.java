@@ -10,7 +10,6 @@ import lombok.Setter;
 import org.example.bookstore.payload.AuthorDTO;
 
 import java.util.Date;
-import java.util.Set;
 
 @Getter
 @Setter
@@ -33,9 +32,6 @@ public class AuthorEntity extends BaseEntity {
     private String country;
     private String imageUrl;
 
-    @OneToMany(mappedBy = "authorEntity")
-    private Set<BookEntity> bookEntities;
-    
     public void mapToAuthorEntity(AuthorDTO authorDTO){
         this.name = authorDTO.getName();
         this.biography = authorDTO.getBiography();

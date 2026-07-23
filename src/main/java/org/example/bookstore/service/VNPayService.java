@@ -5,8 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.example.bookstore.config.VNPAYConfig;
 import org.example.bookstore.enums.PaymentStatus;
 import org.example.bookstore.enums.PaymentType;
+import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.OrderEntity;
 import org.example.bookstore.model.payment.Payment;
+import org.example.bookstore.repository.PaymentRepository;
 import org.example.bookstore.utils.VNPayUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class VNPayService {
 
     private final VNPAYConfig vnPayConfig;
+    private final PaymentRepository paymentRepository;
 
     @Value("${payment.vnPay.max_time}")
     private int maxPaymentTime;
@@ -31,7 +35,7 @@ public class VNPayService {
 
     public String createPaymentUrl(OrderEntity orderEntity,
                                    HttpServletRequest request){
-        Payment payment = orderEntity.getPayment();
+        Payment payment = getPaymentOf(orderEntity);
         if(payment.getType() != PaymentType.BANK_TRANSFER)
             throw new RuntimeException("Payment type is not BANK_TRANSFER");
         if(payment.getStatus() == PaymentStatus.EXPIRED)
@@ -43,7 +47,7 @@ public class VNPayService {
         Date currentTime = new Date();
         if(currentTime.after(expiredDate)){
             payment.setStatus(PaymentStatus.EXPIRED);
-            orderEntity.setPayment(payment);
+            paymentRepository.save(payment);
             throw new RuntimeException("Payment expired");
         }
         Map<String, String> params = vnPayConfig.getConfig();
@@ -73,9 +77,14 @@ public class VNPayService {
         String code = params.get("vnp_ResponseCode");
         if(code.equals(SUCCESS_CODE)){
             long amount = Long.parseLong(params.get("vnp_Amount")) / 100L;
-            Payment payment = orderEntity.getPayment();
+            Payment payment = getPaymentOf(orderEntity);
             return amount == payment.getAmount();
         }
         else return false;
+    }
+
+    private Payment getPaymentOf(OrderEntity orderEntity) {
+        return paymentRepository.findById(orderEntity.getPaymentId().intValue())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.PAYMENT_NOT_FOUND));
     }
 }

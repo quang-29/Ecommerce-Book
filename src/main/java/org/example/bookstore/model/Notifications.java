@@ -28,9 +28,8 @@ public class Notifications extends BaseEntity {
 
     private String thumbnailUrl = "https://res.cloudinary.com/daxt0vwoc/image/upload/v1742230894/png-transparent-red-bell-notification-thumbnail_mvxxqa.png";
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receiver_id")
-    private UserEntity receiver;
+    @Column(name = "receiver_id")
+    private Long receiverId;
 
     private String redirectUrl;
 

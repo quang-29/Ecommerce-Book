@@ -1,8 +1,6 @@
 package org.example.bookstore.repository;
 
-import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.Review;
-import org.example.bookstore.model.UserEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,10 +13,11 @@ import java.util.List;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
-    boolean existsByBookEntityAndUser(BookEntity bookEntity, UserEntity user);
+    boolean existsByBookIdAndUserId(Long bookId, Long userId);
 
+    List<Review> findByBookId(Long bookId);
 
-    @Query("select r from Review r where r.user.id = ?1")
+    @Query("select r from Review r where r.userId = ?1")
     List<Review> findAllReviewsByUserId(Long userId);
 
     @Query(value = "" +

@@ -14,17 +14,14 @@ import java.util.UUID;
 @NoArgsConstructor
 public class OrderItem extends BaseEntity {
 
-    @ManyToOne
-    @JoinColumn(name = "book_id")
-    private BookEntity bookEntity;
+    @Column(name = "book_id")
+    private Long bookId;
 
-    @ManyToOne
-    @JoinColumn(name = "store_book_id")
-    private StoreBookEntity storeBookEntity;
+    @Column(name = "store_book_id")
+    private Long storeBookId;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id")
-    private OrderEntity orderEntity;
+    @Column(name = "order_id")
+    private Long orderId;
 
     private Integer quantity;
 

@@ -1,13 +1,12 @@
 package org.example.bookstore.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-
-import java.util.List;
 
 @Entity
 @Setter
@@ -17,14 +16,9 @@ import java.util.List;
 @Table(name = "carts")
 public class CartEntity extends BaseEntity {
 
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
-
-    @OneToMany(mappedBy = "cartEntity")
-    private List<CartItemEntity> cartItemEntities;
+    @Column(name = "user_id")
+    private Long userId;
 
     private long totalPrice = 0;
-
 
 }

@@ -2,8 +2,6 @@ package org.example.bookstore.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -26,9 +24,8 @@ import java.time.LocalDateTime;
 )
 public class StoreVoucherEntity extends BaseEntity {
 
-    @ManyToOne
-    @JoinColumn(name = "store_id", nullable = false)
-    private StoreEntity storeEntity;
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
 
     @Column(name = "voucher_code", nullable = false)
     private String voucherCode;

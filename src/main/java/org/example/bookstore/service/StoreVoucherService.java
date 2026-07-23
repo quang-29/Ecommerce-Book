@@ -30,7 +30,7 @@ public class StoreVoucherService {
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.STORE_NOT_FOUND));
 
         StoreVoucherEntity voucher = new StoreVoucherEntity();
-        voucher.setStoreEntity(storeEntity);
+        voucher.setStoreId(storeEntity.getId());
         voucher.setVoucherCode(request.getCode());
         voucher.setDiscountPercent(clampPercent(request.getDiscountPercent()));
         voucher.setDiscountAmount(nonNegative(request.getDiscountAmount()));
@@ -42,7 +42,7 @@ public class StoreVoucherService {
     }
 
     public ServerResponseDto getVouchersByStore(Long storeId) {
-        List<StoreVoucherDTO> vouchers = storeVoucherRepository.findByStoreEntityId(storeId).stream()
+        List<StoreVoucherDTO> vouchers = storeVoucherRepository.findByStoreId(storeId).stream()
                 .map(this::toDto)
                 .toList();
         return ServerResponseDto.success(vouchers);
@@ -51,8 +51,8 @@ public class StoreVoucherService {
     private StoreVoucherDTO toDto(StoreVoucherEntity voucher) {
         StoreVoucherDTO dto = new StoreVoucherDTO();
         dto.setId(voucher.getId());
-        dto.setStoreId(voucher.getStoreEntity().getId());
-        dto.setStoreName(voucher.getStoreEntity().getName());
+        dto.setStoreId(voucher.getStoreId());
+        storeRepository.findById(voucher.getStoreId()).ifPresent(store -> dto.setStoreName(store.getName()));
         dto.setCode(voucher.getVoucherCode());
         dto.setDiscountPercent(voucher.getDiscountPercent());
         dto.setDiscountAmount(voucher.getDiscountAmount());

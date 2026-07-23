@@ -65,8 +65,9 @@ public class AuthorService {
     public ServerResponseDto getAllAuthors(int page, int size, String sortBy, String sortDirection) {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<AuthorEntity> authorPage = authorRepository.findAll(pageable);
-        return ServerResponseDto.success(authorPage);
+        Page<AuthorDTO> authorDTOPage = authorRepository.findAll(pageable)
+                .map(authorEntity -> modelMapper.map(authorEntity, AuthorDTO.class));
+        return ServerResponseDto.success(authorDTOPage);
     }
 
     public ServerResponseDto getAuthorByName(String authorName) {
@@ -80,7 +81,8 @@ public class AuthorService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
         log.info("Fetching list author - keyword: '{}', page: {}, size: {}, sort: {}", keywordSearch, page, size, sortField);
 
-        Page<AuthorEntity> authorPage = authorRepository.getPageAuthor(keywordSearch, pageable);
-        return ServerResponseDto.success(authorPage);
+        Page<AuthorDTO> authorDTOPage = authorRepository.getPageAuthor(keywordSearch, pageable)
+                .map(authorEntity -> modelMapper.map(authorEntity, AuthorDTO.class));
+        return ServerResponseDto.success(authorDTOPage);
     }
 }

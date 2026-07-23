@@ -17,17 +17,14 @@ import java.util.UUID;
 @Table(name = "cart_items")
 public class CartItemEntity extends BaseEntity {
 
-    @ManyToOne
-    @JoinColumn(name = "cart_id")
-    private CartEntity cartEntity;
+    @Column(name = "cart_id")
+    private Long cartId;
 
-    @ManyToOne
-    @JoinColumn(name = "book_id")
-    private BookEntity bookEntity;
+    @Column(name = "book_id")
+    private Long bookId;
 
-    @ManyToOne
-    @JoinColumn(name = "store_book_id")
-    private StoreBookEntity storeBookEntity;
+    @Column(name = "store_book_id")
+    private Long storeBookId;
 
     private Integer quantity;
 

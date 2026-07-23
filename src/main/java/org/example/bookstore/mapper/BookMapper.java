@@ -1,13 +1,25 @@
 package org.example.bookstore.mapper;
 
-import lombok.AllArgsConstructor;
 import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.payload.BookDTO;
+import org.example.bookstore.repository.AuthorRepository;
+import org.example.bookstore.repository.CategoryRepository;
+import org.example.bookstore.repository.StoreBookRepository;
 import org.springframework.stereotype.Component;
 
-@AllArgsConstructor
 @Component
 public class BookMapper {
+
+    private final AuthorRepository authorRepository;
+    private final CategoryRepository categoryRepository;
+    private final StoreBookRepository storeBookRepository;
+
+    public BookMapper(AuthorRepository authorRepository, CategoryRepository categoryRepository, StoreBookRepository storeBookRepository) {
+        this.authorRepository = authorRepository;
+        this.categoryRepository = categoryRepository;
+        this.storeBookRepository = storeBookRepository;
+    }
+
     public BookDTO mapBookEntityToDto(BookEntity bookEntity){
         BookDTO bookDTO = new BookDTO();
         bookDTO.setId(bookEntity.getId());
@@ -18,9 +30,10 @@ public class BookMapper {
         bookDTO.setIsbn(bookEntity.getIsbn());
         bookDTO.setLanguage(bookEntity.getLanguage());
         bookDTO.setImagePath(bookEntity.getImagePath());
-        bookDTO.setStock(bookEntity.getStoreBooks() == null || bookEntity.getStoreBooks().isEmpty()
+        var storeBooks = storeBookRepository.findByBookId(bookEntity.getId());
+        bookDTO.setStock(storeBooks.isEmpty()
                 ? bookEntity.getStock()
-                : bookEntity.getStoreBooks().stream()
+                : storeBooks.stream()
                 .mapToLong(storeBook -> storeBook.getStock() == null ? 0L : storeBook.getStock())
                 .sum());
         bookDTO.setSold(bookEntity.getSold());
@@ -28,11 +41,11 @@ public class BookMapper {
         bookDTO.setReprint(bookEntity.getReprint());
         bookDTO.setPublishedDate(String.valueOf(bookEntity.getPublishedDate()));
         bookDTO.setAverageRating(bookEntity.getAverageRating());
-        if (bookEntity.getCategoryEntity() != null) {
-            bookDTO.setCategoryName(bookEntity.getCategoryEntity().getName());
+        if (bookEntity.getCategoryId() != null) {
+            categoryRepository.findById(bookEntity.getCategoryId()).ifPresent(category -> bookDTO.setCategoryName(category.getName()));
         }
-        if (bookEntity.getAuthorEntity() != null) {
-            bookDTO.setAuthorName(bookEntity.getAuthorEntity().getName());
+        if (bookEntity.getAuthorId() != null) {
+            authorRepository.findById(bookEntity.getAuthorId()).ifPresent(author -> bookDTO.setAuthorName(author.getName()));
         }
         return bookDTO;
 

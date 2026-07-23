@@ -1,16 +1,20 @@
 package org.example.bookstore.model;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.example.bookstore.enums.Roles;
-
-
-import java.util.*;
 
 @Getter
 @Setter
@@ -49,31 +53,10 @@ public class UserEntity extends BaseEntity {
     @Column(name = "phone_number")
     private String phoneNumber;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private CartEntity cartEntity;
-
     @Enumerated(EnumType.STRING)
     private Roles roles;
 
-    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL,orphanRemoval = true)
-    private Set<OrderEntity> orderEntities;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> reviews;
-
     @Column(name = "device_token")
     private String deviceToken;
-
-    @JsonIgnore
-    @ManyToMany
-    @JoinTable(
-            name = "users_liked_books",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "book_id")
-    )
-    private Set<BookEntity> likedBookEntities = new HashSet<>();
-
-    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Notifications> notifications = new ArrayList<>();
 
 }

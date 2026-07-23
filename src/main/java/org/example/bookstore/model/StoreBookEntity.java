@@ -2,8 +2,6 @@ package org.example.bookstore.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -24,13 +22,11 @@ import org.hibernate.type.SqlTypes;
 )
 public class StoreBookEntity extends BaseEntity {
 
-    @ManyToOne
-    @JoinColumn(name = "store_id", nullable = false)
-    private StoreEntity storeEntity;
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
 
-    @ManyToOne
-    @JoinColumn(name = "book_id", nullable = false)
-    private BookEntity bookEntity;
+    @Column(name = "book_id", nullable = false)
+    private Long bookId;
 
     @Column(name = "stock", nullable = false)
     private Long stock = 0L;
@@ -42,20 +38,20 @@ public class StoreBookEntity extends BaseEntity {
     @JdbcTypeCode(SqlTypes.TINYINT)
     private boolean active = true;
 
-    public long getBasePrice() {
+    public long getBasePrice(BookEntity bookEntity) {
         return price == null ? bookEntity.getPrice() : price;
     }
 
-    public int getDiscountPercent() {
+    public int getDiscountPercent(BookEntity bookEntity) {
         Integer discountPercent = bookEntity.getDiscountPercent();
         return discountPercent == null ? 0 : Math.max(0, Math.min(100, discountPercent));
     }
 
-    public long getEffectivePrice() {
-        return getBasePrice() * (100 - getDiscountPercent()) / 100;
+    public long getEffectivePrice(BookEntity bookEntity) {
+        return getBasePrice(bookEntity) * (100 - getDiscountPercent(bookEntity)) / 100;
     }
 
-    public long getDiscountAmount() {
-        return getBasePrice() - getEffectivePrice();
+    public long getDiscountAmount(BookEntity bookEntity) {
+        return getBasePrice(bookEntity) - getEffectivePrice(bookEntity);
     }
 }

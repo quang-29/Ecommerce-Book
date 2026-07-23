@@ -13,6 +13,7 @@ import org.example.bookstore.payload.response.CloudinaryResponse;
 import org.example.bookstore.repository.AuthorRepository;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.CategoryRepository;
+import org.example.bookstore.repository.StoreBookRepository;
 import org.example.bookstore.utils.FileUploadUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -39,17 +40,19 @@ public class BookService {
     private final ModelMapper modelMapper;
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
+    private final StoreBookRepository storeBookRepository;
 
     private static final String DEFAULT_SORT_BY = "id";
     private static final String DEFAULT_SORT_DIRECTION = "ASC";
     private static final double SEARCH_MATCH_THRESHOLD = 0.5;
 
-    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository) {
+    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository, StoreBookRepository storeBookRepository) {
         this.categoryRepository = categoryRepository;
         this.cloudinaryServiceImpl = cloudinaryServiceImpl;
         this.modelMapper = modelMapper;
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
+        this.storeBookRepository = storeBookRepository;
     }
 
     public ServerResponseDto getBookById(Long id) {
@@ -69,7 +72,7 @@ public class BookService {
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
-        Page<BookEntity> pageBooks = bookRepository.getPageBook(keywordSearch, pageable);
+        Page<BookDTO> pageBooks = bookRepository.getPageBook(keywordSearch, pageable).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
@@ -90,15 +93,15 @@ public class BookService {
                     newCategoryEntity.setName(request.getCategory());
                     return categoryRepository.save(newCategoryEntity);
                 });
-        bookEntity.setCategoryEntity(categoryEntity);
+        bookEntity.setCategoryId(categoryEntity.getId());
         Optional<AuthorEntity> optionalAuthor = authorRepository.findByName(request.getAuthor());
         if(optionalAuthor.isPresent()){
-            bookEntity.setAuthorEntity(optionalAuthor.get());
+            bookEntity.setAuthorId(optionalAuthor.get().getId());
         } else {
             AuthorEntity authorEntity = new AuthorEntity();
             authorEntity.setName(request.getAuthor());
             authorRepository.save(authorEntity);
-            bookEntity.setAuthorEntity(authorEntity);
+            bookEntity.setAuthorId(authorEntity.getId());
         }
         BookEntity bookEntitySaved = bookRepository.save(bookEntity);
         return ServerResponseDto.success(mapToBookDto(bookEntitySaved));
@@ -131,14 +134,14 @@ public class BookService {
         bookEntityFound.setDiscountPercent(clampDiscountPercent(bookDTO.getDiscountPercent()));
         AuthorEntity authorEntity = authorRepository.findByName(bookDTO.getAuthorName())
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
-        bookEntityFound.setAuthorEntity(authorEntity);
+        bookEntityFound.setAuthorId(authorEntity.getId());
         CategoryEntity categoryEntity = categoryRepository.findByName(bookDTO.getCategoryName())
                 .orElseGet(() -> {
                     CategoryEntity newCategoryEntity = new CategoryEntity();
                     newCategoryEntity.setName(bookDTO.getCategoryName());
                     return categoryRepository.save(newCategoryEntity);
                 });
-        bookEntityFound.setCategoryEntity(categoryEntity);
+        bookEntityFound.setCategoryId(categoryEntity.getId());
         BookEntity savedBookEntity = bookRepository.save(bookEntityFound);
         return ServerResponseDto.success(mapToBookDto(savedBookEntity));
     }
@@ -174,11 +177,11 @@ public class BookService {
         int discountPercent = bookEntity.getDiscountPercent() == null ? 0 : Math.max(0, Math.min(100, bookEntity.getDiscountPercent()));
         bookDTO.setDiscountPercent(discountPercent);
         bookDTO.setDiscountPrice(bookEntity.getPrice() * (100 - discountPercent) / 100);
-        if (bookEntity.getAuthorEntity() != null) {
-            bookDTO.setAuthorName(bookEntity.getAuthorEntity().getName());
+        if (bookEntity.getAuthorId() != null) {
+            authorRepository.findById(bookEntity.getAuthorId()).ifPresent(author -> bookDTO.setAuthorName(author.getName()));
         }
-        if (bookEntity.getCategoryEntity() != null) {
-            bookDTO.setCategoryName(bookEntity.getCategoryEntity().getName());
+        if (bookEntity.getCategoryId() != null) {
+            categoryRepository.findById(bookEntity.getCategoryId()).ifPresent(category -> bookDTO.setCategoryName(category.getName()));
         }
         return bookDTO;
     }
@@ -210,9 +213,11 @@ public class BookService {
         double highestScore = 0.0;
 
         for (BookEntity bookEntity : allBookEntities) {
+            String authorName = bookEntity.getAuthorId() == null ? ""
+                    : authorRepository.findById(bookEntity.getAuthorId()).map(AuthorEntity::getName).orElse("");
             String combined = normalizeText(String.join(" ",
                     nullToEmpty(bookEntity.getTitle()),
-                    bookEntity.getAuthorEntity() == null ? "" : nullToEmpty(bookEntity.getAuthorEntity().getName()),
+                    nullToEmpty(authorName),
                     nullToEmpty(bookEntity.getDescription())
             ));
             double score = similarity(cleanText, combined);
@@ -266,10 +271,11 @@ public class BookService {
     }
 
     private Long getTotalStock(BookEntity bookEntity) {
-        if (bookEntity.getStoreBooks() == null || bookEntity.getStoreBooks().isEmpty()) {
+        List<org.example.bookstore.model.StoreBookEntity> storeBooks = storeBookRepository.findByBookId(bookEntity.getId());
+        if (storeBooks.isEmpty()) {
             return bookEntity.getStock();
         }
-        return bookEntity.getStoreBooks().stream()
+        return storeBooks.stream()
                 .mapToLong(storeBook -> storeBook.getStock() == null ? 0L : storeBook.getStock())
                 .sum();
     }

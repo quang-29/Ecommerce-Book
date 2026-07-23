@@ -76,7 +76,7 @@ public class WebPushNotificationService {
         UserEntity user = getCurrentUser();
         WebPushSubscription subscription = subscriptionRepository.findByEndpoint(request.getEndpoint())
                 .orElseGet(WebPushSubscription::new);
-        subscription.setUser(user);
+        subscription.setUserId(user.getId());
         subscription.setEndpoint(request.getEndpoint());
         subscription.setP256dh(request.getKeys().getP256dh());
         subscription.setAuth(request.getKeys().getAuth());
@@ -90,11 +90,11 @@ public class WebPushNotificationService {
         }
     }
 
-    public void send(UserEntity user, NotificationsDTO notification) {
-        if (pushService == null || user == null) {
+    public void send(Long userId, NotificationsDTO notification) {
+        if (pushService == null || userId == null) {
             return;
         }
-        List<WebPushSubscription> subscriptions = subscriptionRepository.findAllByUser(user);
+        List<WebPushSubscription> subscriptions = subscriptionRepository.findAllByUserId(userId);
         if (subscriptions.isEmpty()) {
             return;
         }

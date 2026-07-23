@@ -41,6 +41,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final BookRepository bookRepository;
     private final StoreBookRepository storeBookRepository;
+    private final StoreRepository storeRepository;
     private final StoreVoucherRepository storeVoucherRepository;
     private final VNPayService vnPayService;
 
@@ -51,7 +52,7 @@ public class OrderService {
 
     private final EmailService emailService;
 
-    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreVoucherRepository storeVoucherRepository, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, EmailService emailService) {
+    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreRepository storeRepository, StoreVoucherRepository storeVoucherRepository, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, EmailService emailService) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
@@ -62,6 +63,7 @@ public class OrderService {
         this.orderItemRepository = orderItemRepository;
         this.bookRepository = bookRepository;
         this.storeBookRepository = storeBookRepository;
+        this.storeRepository = storeRepository;
         this.storeVoucherRepository = storeVoucherRepository;
         this.vnPayService = vnPayService;
         this.emailService = emailService;
@@ -77,7 +79,7 @@ public class OrderService {
         UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
 
-        List<CartItemEntity> cartItemEntities = cartItemRepository.findByCartEntityId(cartEntity.getId());
+        List<CartItemEntity> cartItemEntities = cartItemRepository.findByCartId(cartEntity.getId());
         if (cartItemEntities.isEmpty()) {
             throw new ResourceNotFoundException(MessageException.ORDER_ERROR);
         }
@@ -123,11 +125,13 @@ public class OrderService {
 
         reserveStock(cartItemEntities);
 
+        paymentRepository.save(payment);
+
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setCreateAt(new Date());
-        orderEntity.setUser(user);
+        orderEntity.setUserId(user.getId());
         orderEntity.setShippingAddress(shippingAddress);
-        orderEntity.setPayment(payment);
+        orderEntity.setPaymentId(payment.getId());
         orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
         orderRepository.save(orderEntity);
 
@@ -135,15 +139,19 @@ public class OrderService {
 
         for (CartItemEntity cartItemEntity : cartItemEntities) {
             OrderItem orderItem = new OrderItem();
-            orderItem.setBookEntity(cartItemEntity.getBookEntity());
-            orderItem.setStoreBookEntity(cartItemEntity.getStoreBookEntity());
+            orderItem.setBookId(cartItemEntity.getBookId());
+            orderItem.setStoreBookId(cartItemEntity.getStoreBookId());
             orderItem.setQuantity(cartItemEntity.getQuantity());
             orderItem.setProductPrice(cartItemEntity.getBookPrice());
-            if (cartItemEntity.getStoreBookEntity() != null) {
-                orderItem.setDiscountPercent(cartItemEntity.getStoreBookEntity().getDiscountPercent());
-                orderItem.setDiscountAmount(cartItemEntity.getStoreBookEntity().getDiscountAmount());
+            if (cartItemEntity.getStoreBookId() != null) {
+                BookEntity itemBook = bookRepository.findById(cartItemEntity.getBookId()).orElse(null);
+                StoreBookEntity itemStoreBook = storeBookRepository.findById(cartItemEntity.getStoreBookId()).orElse(null);
+                if (itemBook != null && itemStoreBook != null) {
+                    orderItem.setDiscountPercent(itemStoreBook.getDiscountPercent(itemBook));
+                    orderItem.setDiscountAmount(itemStoreBook.getDiscountAmount(itemBook));
+                }
             }
-            orderItem.setOrderEntity(orderEntity);
+            orderItem.setOrderId(orderEntity.getId());
             orderItems.add(orderItem);
         }
         orderItemRepository.saveAll(orderItems);
@@ -168,9 +176,7 @@ public class OrderService {
     public ServerResponseDto getOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-        OrderDTO orderDTO = modelMapper.map(orderEntity, OrderDTO.class);
-        orderDTO.setOrderItem(orderEntity.getOrderItems().stream()
-                .map(this::mapToOrderItemDto).collect(Collectors.toList()));
+        OrderDTO orderDTO = mapToOrderDto(orderEntity);
         return ServerResponseDto.success(orderDTO);
     }
 
@@ -179,7 +185,7 @@ public class OrderService {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<OrderDTO> orderDTOPage = orderRepository.findAllOrderByUserId(userId, pageable).map(order -> modelMapper.map(order, OrderDTO.class));
+        Page<OrderDTO> orderDTOPage = orderRepository.findAllOrderByUserId(userId, pageable).map(this::mapToOrderDto);
         return ServerResponseDto.success(orderDTOPage);
     }
 
@@ -192,14 +198,19 @@ public class OrderService {
             throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
         }
         return orderPage.getContent().stream()
-                .map(order -> {
-                    OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
-                    orderDTO.setOrderItem(order.getOrderItems().stream()
-                            .map(this::mapToOrderItemDto)
-                            .collect(Collectors.toList()));
-                    return orderDTO;
-                })
+                .map(this::mapToOrderDto)
                 .collect(Collectors.toList());
+    }
+
+    private OrderDTO mapToOrderDto(OrderEntity order) {
+        OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
+        orderDTO.setOrderItem(orderItemRepository.findByOrderId(order.getId()).stream()
+                .map(this::mapToOrderItemDto).collect(Collectors.toList()));
+        if (order.getPaymentId() != null) {
+            paymentRepository.findById(order.getPaymentId().intValue())
+                    .ifPresent(payment -> orderDTO.setPayment(modelMapper.map(payment, org.example.bookstore.payload.payment.PaymentDTO.class)));
+        }
+        return orderDTO;
     }
 
     @Transactional
@@ -214,7 +225,7 @@ public class OrderService {
     public ServerResponseDto cancelOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-        Payment payment = orderEntity.getPayment();
+        Payment payment = getPaymentOf(orderEntity);
         PaymentStatus currentStatus = payment.getStatus();
         if (currentStatus == PaymentStatus.CANCELLED) {
             return ServerResponseDto.success("Order has already been canceled");
@@ -223,14 +234,13 @@ public class OrderService {
             throw new ResourceNotFoundException(MessageException.ORDER_CANCELED_ERROR);
         }
         payment.setStatus(PaymentStatus.CANCELLED);
-        orderEntity.setPayment(payment);
-        orderRepository.save(orderEntity);
+        paymentRepository.save(payment);
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrderEntity_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
 
         Map<Long, Integer> quantityByStoreBookId = orderItems.stream()
-                .filter(orderItem -> orderItem.getStoreBookEntity() != null)
-                .collect(Collectors.groupingBy(oi -> oi.getStoreBookEntity().getId(),
+                .filter(orderItem -> orderItem.getStoreBookId() != null)
+                .collect(Collectors.groupingBy(OrderItem::getStoreBookId,
                         Collectors.summingInt(OrderItem::getQuantity)));
 
         for (Map.Entry<Long, Integer> entry : quantityByStoreBookId.entrySet()) {
@@ -246,7 +256,7 @@ public class OrderService {
     public ServerResponseDto confirmOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-        Payment payment = orderEntity.getPayment();
+        Payment payment = getPaymentOf(orderEntity);
         if (payment.getStatus() == PaymentStatus.CANCELLED) {
             throw new ResourceNotFoundException(MessageException.ORDER_CANCELED);
         }
@@ -257,29 +267,31 @@ public class OrderService {
             increaseSoldCount(orderId);
         }
         payment.setStatus(PaymentStatus.CONFIRMED);
-        orderEntity.setPayment(payment);
-        orderRepository.save(orderEntity);
+        paymentRepository.save(payment);
         return ServerResponseDto.success("Confirm order successfully");
     }
 
     public ServerResponseDto transitOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-        Payment payment = orderEntity.getPayment();
+        Payment payment = getPaymentOf(orderEntity);
         payment.setStatus(PaymentStatus.IN_TRANSIT);
-        orderEntity.setPayment(payment);
-        orderRepository.save(orderEntity);
+        paymentRepository.save(payment);
         return ServerResponseDto.success("Start delivery order");
     }
 
     public ServerResponseDto deliveryOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-        Payment payment = orderEntity.getPayment();
+        Payment payment = getPaymentOf(orderEntity);
         payment.setStatus(PaymentStatus.DELIVERED);
-        orderEntity.setPayment(payment);
-        orderRepository.save(orderEntity);
+        paymentRepository.save(payment);
         return ServerResponseDto.success("Delivery order successfully");
+    }
+
+    private Payment getPaymentOf(OrderEntity orderEntity) {
+        return paymentRepository.findById(orderEntity.getPaymentId().intValue())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.PAYMENT_NOT_FOUND));
     }
 
     public OrderEntity getOrderById(Long orderId) {
@@ -293,7 +305,8 @@ public class OrderService {
     @Transactional
     public ServerResponseDto buyNow(PlaceSingleBookDTO placeSingleBookDTO, HttpServletRequest request) throws Exception {
         StoreBookEntity storeBookEntity = resolveStoreBook(placeSingleBookDTO.getStoreBookId(), placeSingleBookDTO.getBookId(), placeSingleBookDTO.getStoreId());
-        BookEntity bookEntity = storeBookEntity.getBookEntity();
+        BookEntity bookEntity = bookRepository.findById(storeBookEntity.getBookId())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         UserEntity user = userRepository.findUserByUsername(username)
@@ -307,7 +320,7 @@ public class OrderService {
         long shippingFee = FLAT_SHIPPING_FEE;
 
         long voucherDiscount = calculateVoucherDiscount(storeBookEntity, placeSingleBookDTO.getVoucherCode());
-        long totalPay = Math.max(0, storeBookEntity.getEffectivePrice() - voucherDiscount) + shippingFee;
+        long totalPay = Math.max(0, storeBookEntity.getEffectivePrice(bookEntity) - voucherDiscount) + shippingFee;
 
         PaymentType paymentType = placeSingleBookDTO.getPaymentType();
 
@@ -336,25 +349,26 @@ public class OrderService {
 
         reserveStock(storeBookEntity.getId(), 1);
 
+        paymentRepository.save(payment);
+
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setCreateAt(new Date());
-        orderEntity.setUser(user);
+        orderEntity.setUserId(user.getId());
         orderEntity.setShippingAddress(shippingAddress);
-        orderEntity.setPayment(payment);
+        orderEntity.setPaymentId(payment.getId());
         orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
 
         orderRepository.save(orderEntity);
-        
+
         OrderItem orderItem = new OrderItem();
-        orderItem.setBookEntity(bookEntity);
-        orderItem.setStoreBookEntity(storeBookEntity);
+        orderItem.setBookId(bookEntity.getId());
+        orderItem.setStoreBookId(storeBookEntity.getId());
         orderItem.setQuantity(1);
-        orderItem.setProductPrice(storeBookEntity.getEffectivePrice());
-        orderItem.setDiscountPercent(storeBookEntity.getDiscountPercent());
-        orderItem.setDiscountAmount(storeBookEntity.getDiscountAmount());
-        orderItem.setOrderEntity(orderEntity);
+        orderItem.setProductPrice(storeBookEntity.getEffectivePrice(bookEntity));
+        orderItem.setDiscountPercent(storeBookEntity.getDiscountPercent(bookEntity));
+        orderItem.setDiscountAmount(storeBookEntity.getDiscountAmount(bookEntity));
+        orderItem.setOrderId(orderEntity.getId());
         orderItemRepository.save(orderItem);
-        orderEntity.setOrderItems(Arrays.asList(orderItem));
 
         PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
         placeOrderResponse.setOrderId(orderEntity.getId());
@@ -378,19 +392,19 @@ public class OrderService {
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         }
         if (storeId != null) {
-            return storeBookRepository.findByStoreEntityIdAndBookEntityId(storeId, bookId)
+            return storeBookRepository.findByStoreIdAndBookId(storeId, bookId)
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         }
-        return storeBookRepository.findFirstByBookEntityIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(bookId, 0L)
+        return storeBookRepository.findFirstByBookIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(bookId, 0L)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_STOCK_PROBLEM));
     }
 
     private void reserveStock(List<CartItemEntity> cartItemEntities) {
         for (CartItemEntity cartItemEntity : cartItemEntities) {
-            if (cartItemEntity.getStoreBookEntity() == null) {
+            if (cartItemEntity.getStoreBookId() == null) {
                 throw new ResourceNotFoundException(MessageException.BOOK_STOCK_PROBLEM);
             }
-            reserveStock(cartItemEntity.getStoreBookEntity().getId(), cartItemEntity.getQuantity());
+            reserveStock(cartItemEntity.getStoreBookId(), cartItemEntity.getQuantity());
         }
     }
 
@@ -402,9 +416,9 @@ public class OrderService {
     }
 
     private void increaseSoldCount(Long orderId) {
-        List<OrderItem> orderItems = orderItemRepository.findByOrderEntity_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
         Map<Long, Integer> quantityByBookId = orderItems.stream()
-                .collect(Collectors.groupingBy(orderItem -> orderItem.getBookEntity().getId(),
+                .collect(Collectors.groupingBy(OrderItem::getBookId,
                         Collectors.summingInt(OrderItem::getQuantity)));
         List<BookEntity> bookEntities = bookRepository.findAllById(quantityByBookId.keySet());
         for (BookEntity bookEntity : bookEntities) {
@@ -414,9 +428,9 @@ public class OrderService {
     }
 
     private void decreaseSoldCount(Long orderId) {
-        List<OrderItem> orderItems = orderItemRepository.findByOrderEntity_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
         Map<Long, Integer> quantityByBookId = orderItems.stream()
-                .collect(Collectors.groupingBy(orderItem -> orderItem.getBookEntity().getId(),
+                .collect(Collectors.groupingBy(OrderItem::getBookId,
                         Collectors.summingInt(OrderItem::getQuantity)));
         List<BookEntity> bookEntities = bookRepository.findAllById(quantityByBookId.keySet());
         for (BookEntity bookEntity : bookEntities) {
@@ -432,8 +446,9 @@ public class OrderService {
         }
 
         Map<Long, Long> subtotalByStoreId = cartItemEntities.stream()
-                .filter(item -> item.getStoreBookEntity() != null)
-                .collect(Collectors.groupingBy(item -> item.getStoreBookEntity().getStoreEntity().getId(),
+                .filter(item -> item.getStoreBookId() != null)
+                .collect(Collectors.groupingBy(item -> storeBookRepository.findById(item.getStoreBookId())
+                                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND)).getStoreId(),
                         Collectors.summingLong(item -> item.getBookPrice() * item.getQuantity())));
 
         long voucherDiscount = 0L;
@@ -447,7 +462,7 @@ public class OrderService {
             if (storeSubtotal <= 0) {
                 throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
             }
-            StoreVoucherEntity voucher = storeVoucherRepository.findByStoreEntityIdAndVoucherCodeIgnoreCase(storeId, voucherCode.trim())
+            StoreVoucherEntity voucher = storeVoucherRepository.findByStoreIdAndVoucherCodeIgnoreCase(storeId, voucherCode.trim())
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.VOUCHER_NOT_FOUND));
             if (!voucher.isUsableNow()) {
                 throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
@@ -461,20 +476,27 @@ public class OrderService {
         if (voucherCode == null || voucherCode.trim().isEmpty()) {
             return 0L;
         }
-        StoreVoucherEntity voucher = storeVoucherRepository.findByStoreEntityIdAndVoucherCodeIgnoreCase(
-                        storeBookEntity.getStoreEntity().getId(), voucherCode.trim())
+        StoreVoucherEntity voucher = storeVoucherRepository.findByStoreIdAndVoucherCodeIgnoreCase(
+                        storeBookEntity.getStoreId(), voucherCode.trim())
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.VOUCHER_NOT_FOUND));
         if (!voucher.isUsableNow()) {
             throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
         }
-        return voucher.calculateDiscount(storeBookEntity.getEffectivePrice());
+        BookEntity bookEntity = bookRepository.findById(storeBookEntity.getBookId())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
+        return voucher.calculateDiscount(storeBookEntity.getEffectivePrice(bookEntity));
     }
 
     private OrderItemDTO mapToOrderItemDto(OrderItem orderItem) {
         OrderItemDTO orderItemDTO = modelMapper.map(orderItem, OrderItemDTO.class);
-        if (orderItem.getStoreBookEntity() != null) {
-            orderItemDTO.setStoreId(orderItem.getStoreBookEntity().getStoreEntity().getId());
-            orderItemDTO.setStoreName(orderItem.getStoreBookEntity().getStoreEntity().getName());
+        bookRepository.findById(orderItem.getBookId())
+                .ifPresent(book -> orderItemDTO.setBook(modelMapper.map(book, org.example.bookstore.payload.BookDTO.class)));
+        if (orderItem.getStoreBookId() != null) {
+            storeBookRepository.findById(orderItem.getStoreBookId()).ifPresent(storeBookEntity ->
+                    storeRepository.findById(storeBookEntity.getStoreId()).ifPresent(store -> {
+                        orderItemDTO.setStoreId(store.getId());
+                        orderItemDTO.setStoreName(store.getName());
+                    }));
         }
         return orderItemDTO;
     }
@@ -485,7 +507,8 @@ public class OrderService {
         body.append("Đơn hàng #").append(orderEntity.getId()).append(" của bạn đã được ghi nhận thành công.\n\n");
         body.append("Chi tiết đơn hàng:\n");
         for (OrderItem item : orderItems) {
-            body.append("- ").append(item.getBookEntity().getTitle())
+            String title = bookRepository.findById(item.getBookId()).map(BookEntity::getTitle).orElse("");
+            body.append("- ").append(title)
                     .append(" x").append(item.getQuantity())
                     .append(": ").append(item.getProductPrice() * item.getQuantity()).append(" VND\n");
         }

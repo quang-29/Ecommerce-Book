@@ -13,13 +13,13 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "category")
-public class CategoryEntity extends BaseEntity {
+@Table(name = "book_series")
+public class BookSeriesEntity extends BaseEntity {
 
-    @Column(name = "category_name")
+    @Column(name = "series_name")
     private String name;
 
-    @Column(name = "category_img")
-    private String category_img;
+    @Column(name = "description")
+    private String description;
 
 }

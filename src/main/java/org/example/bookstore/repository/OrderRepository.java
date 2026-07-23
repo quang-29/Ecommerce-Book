@@ -15,6 +15,8 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
     Page<OrderEntity> findAllOrderByUserId(Long userId, Pageable pageable);
 
+    java.util.List<OrderEntity> findAllByUserId(Long userId);
+
     @Query(value = "select count(id) as totalOrder from orders;",nativeQuery = true)
     int countOrder();
 

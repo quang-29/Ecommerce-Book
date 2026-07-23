@@ -2,6 +2,8 @@ package org.example.bookstore.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,13 +15,16 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "category")
-public class CategoryEntity extends BaseEntity {
+@Table(name = "users_liked_books")
+@IdClass(UserLikedBookId.class)
+public class UserLikedBookEntity {
 
-    @Column(name = "category_name")
-    private String name;
+    @Id
+    @Column(name = "user_id")
+    private Long userId;
 
-    @Column(name = "category_img")
-    private String category_img;
+    @Id
+    @Column(name = "book_id")
+    private Long bookId;
 
 }

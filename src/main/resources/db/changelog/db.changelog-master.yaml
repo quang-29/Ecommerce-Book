@@ -8,6 +8,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/catalog/book.xml
   - include:
+      file: db/changelog/catalog/book-series.xml
+  - include:
       file: db/changelog/cart/cart.xml
   - include:
       file: db/changelog/payment/payment.xml

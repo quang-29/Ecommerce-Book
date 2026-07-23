@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface StoreVoucherRepository extends JpaRepository<StoreVoucherEntity, Long> {
-    Optional<StoreVoucherEntity> findByStoreEntityIdAndVoucherCodeIgnoreCase(Long storeId, String voucherCode);
+    Optional<StoreVoucherEntity> findByStoreIdAndVoucherCodeIgnoreCase(Long storeId, String voucherCode);
 
-    List<StoreVoucherEntity> findByStoreEntityId(Long storeId);
+    List<StoreVoucherEntity> findByStoreId(Long storeId);
 }

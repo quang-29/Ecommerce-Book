@@ -31,6 +31,7 @@ import java.util.Objects;
 public class AuthenticationService {
 
     private final UserRepository userRepository;
+    private final org.example.bookstore.repository.CartRepository cartRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -42,8 +43,9 @@ public class AuthenticationService {
     @Value("${app.otp.expiration-in-ms}")
     private long otpExpirationInMs;
 
-    public AuthenticationService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService, UserCacheService userCacheService) {
+    public AuthenticationService(UserRepository userRepository, org.example.bookstore.repository.CartRepository cartRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService, UserCacheService userCacheService) {
         this.userRepository = userRepository;
+        this.cartRepository = cartRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authenticationManager = authenticationManager;
@@ -118,13 +120,11 @@ public class AuthenticationService {
             throw new RuntimeException(MessageException.USER_WITH_EMAIL_EXISTED.getMessage());
         }
         String hashPassword = passwordEncoder.encode(registerRequest.getPassword());
-        CartEntity cartEntity = new CartEntity();
         UserEntity user = UserEntity.builder()
                 .email(registerRequest.getEmail())
                 .username(registerRequest.getUsername())
                 .password(hashPassword)
                 .roles(Roles.USER)
-                .cartEntity(cartEntity)
                 .build();
         UserEntity userSaved = userRepository.save(user);
         UserSaveDto userSaveDto =
@@ -135,7 +135,9 @@ public class AuthenticationService {
                         .roles(userSaved.getRoles())
                         .build();
         userCacheService.createUserCatche(userSaveDto);
-        cartEntity.setUser(userSaved);
+        CartEntity cartEntity = new CartEntity();
+        cartEntity.setUserId(userSaved.getId());
+        cartRepository.save(cartEntity);
         return true;
     }
 

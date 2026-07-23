@@ -1,14 +1,14 @@
 package org.example.bookstore.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.bookstore.model.payment.Payment;
 
 import java.util.Date;
-import java.util.List;
 
 @Getter
 @Setter
@@ -18,12 +18,8 @@ import java.util.List;
 @Table(name = "orders")
 public class OrderEntity extends BaseEntity {
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
-
-    @OneToMany(mappedBy = "orderEntity", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    private List<OrderItem> orderItems;
+    @Column(name = "user_id")
+    private Long userId;
 
     private Date createAt;
 
@@ -32,12 +28,7 @@ public class OrderEntity extends BaseEntity {
     @Column(name = "shipping_address")
     private String shippingAddress;
 
-    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    @JoinColumn(name = "payment_id")
-    private Payment payment;
-
-
-
-
+    @Column(name = "payment_id")
+    private Long paymentId;
 
 }

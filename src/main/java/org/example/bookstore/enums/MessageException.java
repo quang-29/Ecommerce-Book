@@ -32,6 +32,7 @@ public enum MessageException {
     CART_NO_FOUND_BOOK("Book is not added to cart"),
     ORDER_ERROR("Cart is empty, add book to the cart to order"),
     PAYMENT_METHOD_NOT_FOUND("Payment method is not existed. Please enter proper payment method!"),
+    PAYMENT_NOT_FOUND("Payment not found"),
     ROLE_NOT_FOUND("Role not found"),
     FILE_UPLOAD_ERROR("Unable to upload image to s3 bucket"),
     ORDER_CANCELED("Order canceled"),

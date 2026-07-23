@@ -9,6 +9,7 @@ import org.example.bookstore.model.BookEntity;
 import org.example.bookstore.model.CartEntity;
 import org.example.bookstore.model.CartItemEntity;
 import org.example.bookstore.model.StoreBookEntity;
+import org.example.bookstore.model.StoreEntity;
 import org.example.bookstore.payload.BookDTO;
 import org.example.bookstore.payload.CartDTO;
 import org.example.bookstore.payload.CartItemDTO;
@@ -16,6 +17,7 @@ import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.CartItemRepository;
 import org.example.bookstore.repository.CartRepository;
 import org.example.bookstore.repository.StoreBookRepository;
+import org.example.bookstore.repository.StoreRepository;
 import org.example.bookstore.service.Interface.BaseRedisService;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -42,6 +44,7 @@ public class CartService {
     private final BookRepository bookRepository;
     private final CartItemRepository cartItemRepository;
     private final StoreBookRepository storeBookRepository;
+    private final StoreRepository storeRepository;
     private final BaseRedisService<String, String, Object> redisService;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -52,11 +55,12 @@ public class CartService {
     private static final String CART_CACHE_KEY_PREFIX = "cart:";
     private static final long CART_CACHE_TTL_DAYS = 30;
 
-    public CartService(CartRepository cartRepository, BookRepository bookRepository, CartItemRepository cartItemRepository, StoreBookRepository storeBookRepository, BaseRedisService<String, String, Object> redisService, ApplicationEventPublisher eventPublisher) {
+    public CartService(CartRepository cartRepository, BookRepository bookRepository, CartItemRepository cartItemRepository, StoreBookRepository storeBookRepository, StoreRepository storeRepository, BaseRedisService<String, String, Object> redisService, ApplicationEventPublisher eventPublisher) {
         this.cartRepository = cartRepository;
         this.bookRepository = bookRepository;
         this.cartItemRepository = cartItemRepository;
         this.storeBookRepository = storeBookRepository;
+        this.storeRepository = storeRepository;
         this.redisService = redisService;
         this.eventPublisher = eventPublisher;
     }
@@ -84,25 +88,26 @@ public class CartService {
             CartEntity cartEntity = cartRepository.findByIdForUpdate(cartId)
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
             StoreBookEntity storeBookEntity = resolveStoreBookForUpdate(storeBookId, bookId, storeId);
-            BookEntity bookEntity = storeBookEntity.getBookEntity();
+            BookEntity bookEntity = bookRepository.findById(storeBookEntity.getBookId())
+                    .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
 
             if (storeBookEntity.getStock() < quantity) {
                 throw new ResourceNotFoundException(MessageException.BOOK_STOCK_PROBLEM);
             }
 
-            CartItemEntity cartItemEntity = cartItemRepository.findByCartEntityIdAndStoreBookEntityId(cartId, storeBookEntity.getId());
+            CartItemEntity cartItemEntity = cartItemRepository.findByCartIdAndStoreBookId(cartId, storeBookEntity.getId());
 
             if (cartItemEntity != null) {
                 cartItemEntity.setQuantity(cartItemEntity.getQuantity() + quantity);
-                cartItemEntity.setBookPrice(storeBookEntity.getEffectivePrice());
+                cartItemEntity.setBookPrice(storeBookEntity.getEffectivePrice(bookEntity));
                 cartItemRepository.save(cartItemEntity);
             } else {
                 CartItemEntity newCartItemEntity = new CartItemEntity();
-                newCartItemEntity.setCartEntity(cartEntity);
-                newCartItemEntity.setBookEntity(bookEntity);
-                newCartItemEntity.setStoreBookEntity(storeBookEntity);
+                newCartItemEntity.setCartId(cartEntity.getId());
+                newCartItemEntity.setBookId(bookEntity.getId());
+                newCartItemEntity.setStoreBookId(storeBookEntity.getId());
                 newCartItemEntity.setQuantity(quantity);
-                newCartItemEntity.setBookPrice(storeBookEntity.getEffectivePrice());
+                newCartItemEntity.setBookPrice(storeBookEntity.getEffectivePrice(bookEntity));
                 cartItemRepository.save(newCartItemEntity);
             }
 
@@ -118,7 +123,7 @@ public class CartService {
     }
 
     private void updateCartTotalPrice(CartEntity cartEntity) {
-        long totalPrice = cartItemRepository.findByCartEntityId(cartEntity.getId()).stream()
+        long totalPrice = cartItemRepository.findByCartId(cartEntity.getId()).stream()
                 .mapToLong(cartItem -> cartItem.getBookPrice() * cartItem.getQuantity())
                 .sum();
         cartEntity.setTotalPrice(totalPrice);
@@ -131,8 +136,9 @@ public class CartService {
         }
         List<CartDTO> cartDTOs = cartEntities.stream().map(cart -> {
             CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
-            List<CartItemDTO> cartItemDTOS = cart.getCartItemEntities().stream()
-                    .map(p -> modelMapper.map(p.getBookEntity(), CartItemDTO.class)).collect(Collectors.toList());
+            List<CartItemDTO> cartItemDTOS = cartItemRepository.findByCartId(cart.getId()).stream()
+                    .map(p -> modelMapper.map(bookRepository.findById(p.getBookId()).orElse(null), CartItemDTO.class))
+                    .collect(Collectors.toList());
             cartDTO.setCartItem(cartItemDTOS);
             return cartDTO;
         }).collect(Collectors.toList());
@@ -242,7 +248,7 @@ public class CartService {
         withLockErrorHandling(() -> {
             CartEntity cartEntity = cartRepository.findByIdForUpdate(cartId)
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.CART_NOT_FOUND));
-            cartItemRepository.deleteByCartEntityId(cartId);
+            cartItemRepository.deleteByCartId(cartId);
             cartEntity.setTotalPrice(0);
             cartRepository.save(cartEntity);
             // Same AFTER_COMMIT reasoning as the other mutating methods — deleting the
@@ -256,15 +262,15 @@ public class CartService {
     // does NOT touch CartEntity/totalPrice/Redis — callers (deleteProductFromCart and
     // decreaseProductFromCart) own those steps so each logical operation performs them once.
     private void deleteCartItemRow(Long cartId, CartItemEntity cartItemEntity, Long bookId) {
-        StoreBookEntity storeBookEntity = cartItemEntity.getStoreBookEntity();
-        if (storeBookEntity != null) {
-            cartItemRepository.deleteByCartEntityIdAndStoreBookEntityId(cartId, storeBookEntity.getId());
+        Long storeBookId = cartItemEntity.getStoreBookId();
+        if (storeBookId != null) {
+            cartItemRepository.deleteByCartIdAndStoreBookId(cartId, storeBookId);
         } else {
             // bookId (the method parameter) can be null when the caller only supplied
             // storeBookId — fall back to the resolved cart item's own book id instead of
             // passing null into the delete query (which would either NPE on unboxing in
             // JPQL parameter binding or silently match nothing).
-            Long resolvedBookId = bookId != null ? bookId : cartItemEntity.getBookEntity().getId();
+            Long resolvedBookId = bookId != null ? bookId : cartItemEntity.getBookId();
             cartItemRepository.deleteCartItemByCartIdAndBookId(cartId, resolvedBookId);
         }
     }
@@ -287,7 +293,7 @@ public class CartService {
         CartDTO cartDTO = new CartDTO();
         cartDTO.setCartId(cartId);
 
-        List<CartItemEntity> cartItems = cartItemRepository.findByCartEntityId(cartId);
+        List<CartItemEntity> cartItems = cartItemRepository.findByCartId(cartId);
         if(cartItems.isEmpty()){
             logger.info("Empty cart!");
             cartDTO.setTotalPrice(0);
@@ -323,19 +329,21 @@ public class CartService {
                 Integer quantity = toInteger(entry.getValue());
                 StoreBookEntity storeBookEntity = storeBookRepository.findById(storeBookId)
                         .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
-                BookEntity bookEntity = bookRepository.findById(storeBookEntity.getBookEntity().getId())
+                BookEntity bookEntity = bookRepository.findById(storeBookEntity.getBookId())
                         .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
+                StoreEntity storeEntity = storeRepository.findById(storeBookEntity.getStoreId())
+                        .orElseThrow(() -> new ResourceNotFoundException(MessageException.STORE_NOT_FOUND));
 
                 CartItemDTO cartItemDTO = new CartItemDTO();
-                CartItemEntity cartItemEntity = cartItemRepository.findByCartEntityIdAndStoreBookEntityId(cartId, storeBookId);
+                CartItemEntity cartItemEntity = cartItemRepository.findByCartIdAndStoreBookId(cartId, storeBookId);
                 cartItemDTO.setCartItemId(cartItemEntity == null ? null : cartItemEntity.getId());
-                cartItemDTO.setStoreId(storeBookEntity.getStoreEntity().getId());
-                cartItemDTO.setStoreName(storeBookEntity.getStoreEntity().getName());
+                cartItemDTO.setStoreId(storeEntity.getId());
+                cartItemDTO.setStoreName(storeEntity.getName());
                 cartItemDTO.setQuantity(quantity);
                 cartItemDTO.setBook(modelMapper.map(bookEntity, BookDTO.class));
-                cartItemDTO.setBookPrice(storeBookEntity.getEffectivePrice());
-                cartItemDTO.setDiscountPercent(storeBookEntity.getDiscountPercent());
-                cartItemDTO.setDiscountAmount(storeBookEntity.getDiscountAmount());
+                cartItemDTO.setBookPrice(storeBookEntity.getEffectivePrice(bookEntity));
+                cartItemDTO.setDiscountPercent(storeBookEntity.getDiscountPercent(bookEntity));
+                cartItemDTO.setDiscountAmount(storeBookEntity.getDiscountAmount(bookEntity));
                 totalPrice += cartItemDTO.getBookPrice() * quantity;
                 cartItemDTOS.add(cartItemDTO);
             }
@@ -357,10 +365,10 @@ public class CartService {
             String cacheKey = cartCacheKey(cartId);
             redisService.delete(cacheKey);
 
-            List<CartItemEntity> cartItems = cartItemRepository.findByCartEntityId(cartId);
+            List<CartItemEntity> cartItems = cartItemRepository.findByCartId(cartId);
             for (CartItemEntity cartItem : cartItems) {
-                if (cartItem.getStoreBookEntity() != null) {
-                    redisService.hashSet(cacheKey, String.valueOf(cartItem.getStoreBookEntity().getId()), cartItem.getQuantity());
+                if (cartItem.getStoreBookId() != null) {
+                    redisService.hashSet(cacheKey, String.valueOf(cartItem.getStoreBookId()), cartItem.getQuantity());
                 }
             }
             redisService.setTimeToLive(cacheKey, CART_CACHE_TTL_DAYS);
@@ -372,16 +380,21 @@ public class CartService {
     private CartItemDTO mapToCartItemDto(CartItemEntity cartItem) {
         CartItemDTO cartItemDTO = new CartItemDTO();
         cartItemDTO.setCartItemId(cartItem.getId());
-        if (cartItem.getStoreBookEntity() != null) {
-            cartItemDTO.setStoreId(cartItem.getStoreBookEntity().getStoreEntity().getId());
-            cartItemDTO.setStoreName(cartItem.getStoreBookEntity().getStoreEntity().getName());
+        BookEntity bookEntity = bookRepository.findById(cartItem.getBookId()).orElse(null);
+        StoreBookEntity storeBookEntity = cartItem.getStoreBookId() == null ? null
+                : storeBookRepository.findById(cartItem.getStoreBookId()).orElse(null);
+        if (storeBookEntity != null) {
+            storeRepository.findById(storeBookEntity.getStoreId()).ifPresent(store -> {
+                cartItemDTO.setStoreId(store.getId());
+                cartItemDTO.setStoreName(store.getName());
+            });
         }
         cartItemDTO.setQuantity(cartItem.getQuantity());
-        cartItemDTO.setBook(modelMapper.map(cartItem.getBookEntity(), BookDTO.class));
+        cartItemDTO.setBook(modelMapper.map(bookEntity, BookDTO.class));
         cartItemDTO.setBookPrice(cartItem.getBookPrice());
-        if (cartItem.getStoreBookEntity() != null) {
-            cartItemDTO.setDiscountPercent(cartItem.getStoreBookEntity().getDiscountPercent());
-            cartItemDTO.setDiscountAmount(cartItem.getStoreBookEntity().getDiscountAmount());
+        if (storeBookEntity != null && bookEntity != null) {
+            cartItemDTO.setDiscountPercent(storeBookEntity.getDiscountPercent(bookEntity));
+            cartItemDTO.setDiscountAmount(storeBookEntity.getDiscountAmount(bookEntity));
         }
         return cartItemDTO;
     }
@@ -392,10 +405,10 @@ public class CartService {
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         }
         if (storeId != null) {
-            return storeBookRepository.findByStoreEntityIdAndBookEntityId(storeId, bookId)
+            return storeBookRepository.findByStoreIdAndBookId(storeId, bookId)
                     .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
         }
-        return storeBookRepository.findFirstByBookEntityIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(bookId, 0L)
+        return storeBookRepository.findFirstByBookIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(bookId, 0L)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_STOCK_PROBLEM));
     }
 
@@ -413,7 +426,7 @@ public class CartService {
     private CartItemEntity findCartItem(Long cartId, Long storeBookId, Long bookId, Long storeId) {
         if (storeBookId != null || storeId != null) {
             StoreBookEntity storeBookEntity = resolveStoreBook(storeBookId, bookId, storeId);
-            return cartItemRepository.findByCartEntityIdAndStoreBookEntityId(cartId, storeBookEntity.getId());
+            return cartItemRepository.findByCartIdAndStoreBookId(cartId, storeBookEntity.getId());
         }
         return cartItemRepository.findCartItemByCartIdAndBookId(cartId, bookId);
     }

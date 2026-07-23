@@ -14,8 +14,10 @@ import java.util.Optional;
 @Repository
 public interface CartRepository extends JpaRepository<CartEntity, Long> {
 
-    @Query("select c from CartEntity c where c.user.id = ?1")
+    @Query("select c from CartEntity c where c.userId = ?1")
     CartEntity getCartByUserId(String userId);
+
+    Optional<CartEntity> findByUserId(Long userId);
 
     // Lock-ordering convention (see CartService): this Cart lock is always acquired
     // BEFORE any StoreBookEntity lock, never after, to avoid a deadlock where two
