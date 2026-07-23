@@ -18,18 +18,18 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    @GetMapping("/userid/{userId}")
+    @GetMapping("/{userId}")
     @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isMySelf(#userId)")
     public ResponseEntity<ServerResponseDto> getCartByUserId(@PathVariable String userId) {
         return ResponseEntity.ok(ServerResponseDto.success(cartService.getCartByUserId(userId)));
     }
 
-    @PostMapping("/addBookToCart")
+    @PostMapping("/add-book")
     public ResponseEntity<ServerResponseDto> addBookToCart(@RequestBody AddToCartRequest request) {
         return ResponseEntity.ok(ServerResponseDto.success(cartService.addProductToCart(request.getCartId(), request.getStoreBookId(), request.getBookId(), request.getStoreId(), request.getQuantity())));
     }
 
-    @DeleteMapping("/deleteBookFromCart")
+    @DeleteMapping("/remove-book")
     public ResponseEntity<ServerResponseDto> deleteBookFromCart(@RequestParam Long cartId,
                                                             @RequestParam(required = false) Long storeBookId,
                                                             @RequestParam(required = false) Long bookId,
@@ -37,7 +37,7 @@ public class CartController {
         return ResponseEntity.ok(ServerResponseDto.success(cartService.deleteProductFromCart(cartId, storeBookId, bookId, storeId)));
     }
 
-    @PostMapping("/decreaseBookFromCart")
+    @PostMapping("/decrease-book")
     public ResponseEntity<ServerResponseDto> decreaseBookFromCart(@RequestParam Long cartId,
                                                               @RequestParam(required = false) Long storeBookId,
                                                               @RequestParam(required = false) Long bookId,

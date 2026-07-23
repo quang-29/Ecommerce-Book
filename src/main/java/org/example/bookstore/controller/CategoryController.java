@@ -31,12 +31,13 @@ public class CategoryController {
         return ResponseEntity.ok(ServerResponseDto.success(categoryService.getCategoryById(id)));
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<ServerResponseDto> getAllCategories(@RequestParam(defaultValue = "0") int page,
-                                                          @RequestParam(defaultValue = "10") int size,
-                                                          @RequestParam(required = false) String sortBy,
-                                                          @RequestParam(required = false) String sortDirection) {
-        return ResponseEntity.ok(categoryService.getAllCategories(page, size, sortBy, sortDirection));
+    @GetMapping("/get-page")
+    public ResponseEntity<ServerResponseDto> getPageCategory(@RequestParam(defaultValue = "1") int page,
+                                                             @RequestParam(defaultValue = "10") int size,
+                                                             @RequestParam(required = false) String sortField,
+                                                             @RequestParam(defaultValue = "desc") String sortDirection,
+                                                             @RequestParam String keywordSearch) {
+        return ResponseEntity.ok(categoryService.getPageCategory(keywordSearch, page, size, sortField, sortDirection));
     }
 
     @PutMapping("/update/{id}")

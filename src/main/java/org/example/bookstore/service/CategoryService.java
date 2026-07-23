@@ -44,10 +44,11 @@ public class CategoryService {
     }
 
 
-    public ServerResponseDto getAllCategories(int page, int size, String sortBy, String sortDirection) {
-        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<CategoryDTO> categoryDTOPage = categoryRepository.findAll(pageable).map(categoryEntity -> modelMapper.map(categoryEntity, CategoryDTO.class));
+    public ServerResponseDto getPageCategory(String keywordSearch, int page, int size, String sortField, String sortDirection) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC: Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortField));
+        Page<CategoryEntity> categoryDTOPage = categoryRepository.getPageCategory(keywordSearch, pageable);
         return ServerResponseDto.success(categoryDTOPage);
     }
 

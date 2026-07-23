@@ -1,7 +1,9 @@
 package org.example.bookstore.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.enums.SortDir;
 import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.payload.AuthorDTO;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import java.lang.Long;
 
 @Service
+@Slf4j
 public class AuthorService {
 
     private final AuthorRepository authorRepository;
@@ -70,5 +73,14 @@ public class AuthorService {
         AuthorEntity authorEntity = authorRepository.findByName(authorName)
                 .orElseThrow(()-> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         return ServerResponseDto.success(modelMapper.map(authorEntity, AuthorDTO.class));
+    }
+    public ServerResponseDto getPageAuthor(int page, int size, String sortField, String sortDir, String keywordSearch){
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        log.info("Fetching list author - keyword: '{}', page: {}, size: {}, sort: {}", keywordSearch, page, size, sortField);
+
+        Page<AuthorEntity> authorPage = authorRepository.getPageAuthor(keywordSearch, pageable);
+        return ServerResponseDto.success(authorPage);
     }
 }

@@ -13,13 +13,26 @@ import java.util.List;
 
 @Repository
 public interface BookRepository extends JpaRepository<BookEntity, Long> {
-
-    @Query(value = "SELECT * FROM book WHERE title COLLATE utf8mb4_bin LIKE CONCAT('%', :title, '%')", nativeQuery = true)
-    BookEntity findByName(@Param("title") String title);
-
-    Page<BookEntity> findByCategoryEntity_Name(String category, Pageable pageable);
-
-    Page<BookEntity> findByAuthorEntity_Name(String authorName, Pageable pageable);
+    
+    @Query(value = "" +
+            "SELECT b.* " +
+            "FROM book b " +
+            "JOIN author a ON a.id = b.author_id " +
+            "JOIN category c ON c.id = b.category_id " +
+            "WHERE b.title LIKE CONCAT('%', :keywordSearch, '%') " +
+            "OR a.author_name LIKE CONCAT('%', :keywordSearch, '%')" +
+            "OR c.category_name LIKE CONCAT('%', :keywordSearch, '%')"
+            ,
+            countQuery = "" +
+                    "SELECT COUNT(*) " +
+                    "FROM book b " +
+                    "JOIN author a ON a.id = b.author_id " +
+                    "JOIN category c ON c.id = b.category_id " +
+                    "WHERE b.title LIKE CONCAT('%', :keywordSearch, '%') " +
+                    "OR a.author_name LIKE CONCAT('%', :keywordSearch, '%')" +
+                    "OR c.category_name LIKE CONCAT('%', :keywordSearch, '%')",
+            nativeQuery = true)
+    Page<BookEntity> getPageBook(@Param("keywordSearch") String keywordSearch, Pageable pageable);
 
     @Query(value = "SELECT * FROM book WHERE sold > 10", nativeQuery = true)
     Page<BookEntity> getBookUpSale(Pageable pageable);
@@ -48,4 +61,5 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     @Query(value = "SELECT * FROM book WHERE isbn = :isbn", nativeQuery = true)
     BookEntity findBookByIsbn(@Param("isbn") String isbn);
 
+    BookEntity findAllByTitle(String title);
 }

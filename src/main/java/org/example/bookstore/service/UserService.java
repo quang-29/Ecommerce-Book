@@ -127,36 +127,22 @@ public class UserService {
         userCacheService.cache(user);
         return ServerResponseDto.success(modelMapper.map(user, UserDTO.class));
     }
-    
-    public ServerResponseDto likedBooks(Long userId, Long bookId) {
+
+    public ServerResponseDto actionBooks(Long userId, Long bookId, boolean isLike){
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
         BookEntity bookEntity = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
-
         Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
-
-        if (!likedBookEntities.contains(bookEntity)) {
+        if(isLike) {
             likedBookEntities.add(bookEntity);
             userRepository.save(user);
-            return ServerResponseDto.success("Like book successfully");
-        }
-        return ServerResponseDto.success("Book already liked!");
-    }
-
-    public ServerResponseDto removeLikedBooks(Long userId, Long bookId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
-        BookEntity bookEntity = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
-
-        Set<BookEntity> likedBookEntities = user.getLikedBookEntities();
-        if (likedBookEntities.contains(bookEntity)) {
+            return ServerResponseDto.success("Like book successfully!!!");
+        } else {
             likedBookEntities.remove(bookEntity);
             userRepository.save(user);
             return ServerResponseDto.success("Dislike book successfully!!!");
         }
-        return ServerResponseDto.success("Book was not liked before!");
     }
 
     public ServerResponseDto listBooksLikedByUser(Long userId) {

@@ -74,16 +74,11 @@ public class UserController {
         return ResponseEntity.ok(userService.deleteUser(userId));
     }
 
-    @PutMapping("/likeBook")
-    public ResponseEntity<ServerResponseDto> likedBook(@RequestParam Long userId,
-                                                   @RequestParam Long bookId) {
-        return ResponseEntity.ok(userService.likedBooks(userId, bookId));
-    }
-
-    @PutMapping("/unlikeBook")
-    public ResponseEntity<ServerResponseDto> removeLikedBooks(@RequestParam Long userId,
-                                                          @RequestParam Long bookId) {
-        return ResponseEntity.ok(userService.removeLikedBooks(userId, bookId));
+    @PostMapping("/action-book")
+    public ResponseEntity<ServerResponseDto> actionBook(@RequestParam Long userId,
+                                                        @RequestParam Long bookId,
+                                                        @RequestParam boolean isLike) {
+        return ResponseEntity.ok(userService.actionBooks(userId, bookId, isLike));
     }
 
     @GetMapping("/listBooksLikedByUser")

@@ -26,7 +26,7 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    @PostMapping("/create")
+    @PostMapping("/save")
     public ResponseEntity<ServerResponseDto> addReview(@RequestBody ReviewCreate reviewCreate) {
         return ResponseEntity.ok(reviewService.addReview(reviewCreate));
     }
@@ -55,6 +55,15 @@ public class ReviewController {
     @GetMapping("/userId/{userId}")
     public ResponseEntity<ServerResponseDto> getReviewsByUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(reviewService.getReviewsByUserId(userId));
+    }
+
+    @GetMapping("/get-page")
+    public ResponseEntity<ServerResponseDto> getPageReview(@RequestParam String keywordSearch,
+                                                           @RequestParam(defaultValue = "1") int page,
+                                                           @RequestParam(defaultValue = "10") int size,
+                                                           @RequestParam(required = false) String sortField,
+                                                           @RequestParam(defaultValue = "desc") String sortDirection){
+        return ResponseEntity.ok(reviewService.getPageReview(keywordSearch, page, size, sortField, sortDirection));
     }
 
 }

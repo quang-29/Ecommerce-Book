@@ -4,7 +4,6 @@ package org.example.bookstore.controller;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.AuthorDTO;
 import org.example.bookstore.service.AuthorService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -57,5 +56,15 @@ public class AuthorController {
     @GetMapping("/name/{authorName}")
     public ResponseEntity<ServerResponseDto> getAuthorByName(@RequestParam String authorName) {
         return ResponseEntity.ok(authorService.getAuthorByName(authorName));
+    }
+
+    @GetMapping("/get-page")
+    public ResponseEntity<ServerResponseDto> getPage(@RequestParam(defaultValue = "1") int page,
+                                                     @RequestParam(defaultValue = "10") int size,
+                                                     @RequestParam(required = false) String sortField,
+                                                     @RequestParam(defaultValue = "desc") String sortDir,
+                                                     @RequestParam String keywordSearch){
+        return ResponseEntity.ok(authorService.getPageAuthor(page, size, sortField, sortDir, keywordSearch));
+
     }
 }

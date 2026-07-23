@@ -65,22 +65,18 @@ public class BookService {
         return ServerResponseDto.success(pageBooks);
     }
 
-    public ServerResponseDto getAllBooksByAuthor(String authorName, int page, int size, String sortBy, String sortDirection) {
+    public ServerResponseDto getPageBook(String keywordSearch, int page, int size, String sortField, String sortDirection) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-        Pageable pageDetails = createPageable(page, size, sortBy, sortDirection);
-        Page<BookDTO> pageBooks = bookRepository.findByAuthorEntity_Name(authorName, pageDetails).map(this::mapToBookDto);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        Page<BookEntity> pageBooks = bookRepository.getPageBook(keywordSearch, pageable);
         return ServerResponseDto.success(pageBooks);
     }
 
-    public ServerResponseDto getAllBooksByCategory(String category, int page, int size, String sortBy, String sortDirection) {
-        Pageable pageDetails = createPageable(page, size, sortBy, sortDirection);
-        Page<BookDTO> pageBooks = bookRepository.findByCategoryEntity_Name(category, pageDetails).map(this::mapToBookDto);
-        return ServerResponseDto.success(pageBooks);
-    }
 
     @Transactional
     public ServerResponseDto addBook(CreateBookRequest request) {
-        BookEntity foundBookEntity = bookRepository.findByName(request.getTitle());
+        BookEntity foundBookEntity = bookRepository.findAllByTitle(request.getTitle());
         if(foundBookEntity != null) {
             throw new ResourceNotFoundException(MessageException.BOOK_EXIST);
         }

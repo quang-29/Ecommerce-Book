@@ -56,26 +56,16 @@ public class BookController {
     }
 
 
-    @GetMapping("/books/{authorName}")
-    public ResponseEntity<ServerResponseDto> getBooksByAuthor(@PathVariable String authorName,
-                                                          @RequestParam(defaultValue = "0") Integer page,
-                                                          @RequestParam(defaultValue = "10") Integer size,
-                                                          @RequestParam(required = false) String sortBy,
-                                                          @RequestParam(required = false) String sortDirection) {
-        return ResponseEntity.ok(bookService.getAllBooksByAuthor(authorName, page, size, sortBy, sortDirection));
+    @GetMapping("/get-page")
+    public ResponseEntity<ServerResponseDto> getBooksByAuthor(@RequestParam String keywordSearch,
+                                                              @RequestParam(defaultValue = "0") int page,
+                                                              @RequestParam(defaultValue = "10") int size,
+                                                              @RequestParam(required = false) String sortField,
+                                                              @RequestParam(required = false) String sortDirection) {
+        return ResponseEntity.ok(bookService.getPageBook(keywordSearch, page, size, sortField, sortDirection));
     }
 
-
-    @GetMapping("/books/{category}")
-    public ResponseEntity<ServerResponseDto> getBooksByCategory(@PathVariable String category,
-                                                            @RequestParam(defaultValue = "0") Integer page,
-                                                            @RequestParam(defaultValue = "10") Integer size,
-                                                            @RequestParam(required = false) String sortBy,
-                                                            @RequestParam(required = false) String sortDirection) {
-        return ResponseEntity.ok(bookService.getAllBooksByCategory(category, page, size, sortBy, sortDirection));
-    }
-
-    @PutMapping("/book/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> updateBook(@PathVariable Long id, @RequestBody BookDTO bookDTO) {
         return ResponseEntity.ok( bookService.updateBook(id, bookDTO));
@@ -88,7 +78,7 @@ public class BookController {
         return ResponseEntity.ok(bookService.deleteBook(id));
     }
 
-    @GetMapping("/get-upsale-books")
+    @GetMapping("/get-upsale-book")
     public ResponseEntity<ServerResponseDto> upSaleBook(@RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size,
                                                     @RequestParam(required = false) String sortBy,
@@ -97,7 +87,7 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBookUpSale(page, size, sortBy, sortDirection));
     }
 
-    @GetMapping("/get-new-release-books")
+    @GetMapping("/get-new-release-book")
     public ResponseEntity<ServerResponseDto> getNewReleaseBook(@RequestParam(defaultValue = "0") Integer page,
                                                                @RequestParam(defaultValue = "10") Integer size,
                                                                @RequestParam(required = false) String sortBy,
@@ -117,15 +107,9 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBookByISBN(isbn));
     }
 
-    @GetMapping("/get-number-of-books")
+    @GetMapping("/get-number-of-book")
     public ResponseEntity<?> getNumberOfBooks(){
         int number = bookRepository.countBook();
         return ResponseEntity.ok(number);
     }
-
-    @GetMapping("/search-by-content")
-    public ResponseEntity<ServerResponseDto> searchBookByContent(@RequestParam String text) {
-        return ResponseEntity.ok(bookService.searchBookByContent(text));
-    }
-
 }

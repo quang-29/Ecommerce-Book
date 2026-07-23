@@ -14,6 +14,9 @@ import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.ReviewRepository;
 import org.example.bookstore.repository.UserRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -160,6 +163,18 @@ public class ReviewService {
             return reviewDTO;
         }).toList();
         return ServerResponseDto.success(reviewDTOS);
+
+    }
+
+    public ServerResponseDto getPageReview(String keywordSearch, int page, int size, String sortField, String sortDirection){
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        if (sortField == null || sortField.isBlank()) {
+            sortField = "createdTime";
+        }
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortField));
+        return ServerResponseDto.success(reviewRepository.getPageReview(keywordSearch, pageable));
 
     }
 }
