@@ -75,10 +75,17 @@ public class AuthorService {
                 .orElseThrow(()-> new ResourceNotFoundException(MessageException.AUTHOR_NOT_FOUND));
         return ServerResponseDto.success(modelMapper.map(authorEntity, AuthorDTO.class));
     }
+    private String mapSortColumn(String sortField) {
+        if ("imageUrl".equalsIgnoreCase(sortField)) {
+            return "image_url";
+        }
+        return sortField;
+    }
+
     public ServerResponseDto getPageAuthor(int page, int size, String sortField, String sortDir, String keywordSearch){
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, mapSortColumn(sortField)));
         log.info("Fetching list author - keyword: '{}', page: {}, size: {}, sort: {}", keywordSearch, page, size, sortField);
 
         Page<AuthorDTO> authorDTOPage = authorRepository.getPageAuthor(keywordSearch, pageable)

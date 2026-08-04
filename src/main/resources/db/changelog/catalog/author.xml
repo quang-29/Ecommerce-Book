@@ -26,4 +26,8 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="002-rename-author-name-column" author="quangnm">
+        <renameColumn tableName="author" oldColumnName="author_name" newColumnName="name" columnDataType="VARCHAR(255)"/>
+    </changeSet>
+
 </databaseChangeLog>

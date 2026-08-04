@@ -20,7 +20,6 @@ import java.util.Date;
 public class AuthorEntity extends BaseEntity {
 
     @Size(min = 3, max = 20, message = "Author Name must be between 5 and 20 characters long")
-    @Column(name = "author_name")
     private String name;
 
     private String biography;

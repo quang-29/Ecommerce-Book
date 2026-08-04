@@ -16,7 +16,6 @@ import lombok.Setter;
 @Table(name = "category")
 public class CategoryEntity extends BaseEntity {
 
-    @Column(name = "category_name")
     private String name;
 
     @Column(name = "category_img")

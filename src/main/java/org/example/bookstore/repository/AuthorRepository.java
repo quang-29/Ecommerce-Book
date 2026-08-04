@@ -19,8 +19,8 @@ public interface AuthorRepository extends JpaRepository<AuthorEntity, Long> {
 
     Optional<AuthorEntity> findByName(@Size(min = 3, max = 20, message = "Author Name must be between 5 and 20 characters long") @Pattern(regexp = "^[a-zA-Z]*$", message = "Author Name must not contain numbers or special characters") String name);
 
-    @Query(value = "SELECT * FROM author WHERE author_name LIKE CONCAT('%', :keyword, '%')",
-            countQuery = "SELECT COUNT(*) FROM author WHERE author_name LIKE CONCAT('%', :keyword, '%')",
+    @Query(value = "SELECT * FROM author WHERE name LIKE CONCAT('%', :keyword, '%')",
+            countQuery = "SELECT COUNT(*) FROM author WHERE name LIKE CONCAT('%', :keyword, '%')",
             nativeQuery = true)
     Page<AuthorEntity> getPageAuthor(@Param("keyword") String keyword, Pageable pageable);
 }

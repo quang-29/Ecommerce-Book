@@ -1,20 +1,24 @@
 package org.example.bookstore.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.MessageException;
 import org.example.bookstore.exception.ResourceNotFoundException;
 import org.example.bookstore.model.AuthorEntity;
 import org.example.bookstore.model.BookEntity;
+import org.example.bookstore.model.BookImageEntity;
 import org.example.bookstore.model.CategoryEntity;
 import org.example.bookstore.payload.BookDTO;
-import org.example.bookstore.payload.request.CreateBookRequest;
-import org.example.bookstore.payload.response.CloudinaryResponse;
+import org.example.bookstore.payload.BookImageDTO;
+import org.example.bookstore.payload.request.BookSavedRequest;
 import org.example.bookstore.repository.AuthorRepository;
+import org.example.bookstore.repository.BookImageRepository;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.CategoryRepository;
 import org.example.bookstore.repository.StoreBookRepository;
 import org.example.bookstore.utils.FileUploadUtil;
+import org.example.bookstore.utils.StringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,33 +30,37 @@ import org.springframework.web.multipart.MultipartFile;
 
 
 import java.lang.Long;
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
 
+@Slf4j
 @Service
 public class BookService {
 
     private final CategoryRepository categoryRepository;
-    private final CloudinaryServiceImpl cloudinaryServiceImpl;
+    private final FileService fileService;
     private final ModelMapper modelMapper;
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
     private final StoreBookRepository storeBookRepository;
+    private final BookImageRepository bookImageRepository;
 
     private static final String DEFAULT_SORT_BY = "id";
     private static final String DEFAULT_SORT_DIRECTION = "ASC";
     private static final double SEARCH_MATCH_THRESHOLD = 0.5;
+    private static final String BOOK_IMAGE_SUB_BUCKET = "book";
 
-    public BookService(CategoryRepository categoryRepository, CloudinaryServiceImpl cloudinaryServiceImpl, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository, StoreBookRepository storeBookRepository) {
+    public BookService(CategoryRepository categoryRepository, FileService fileService, ModelMapper modelMapper, BookRepository bookRepository, AuthorRepository authorRepository, StoreBookRepository storeBookRepository, BookImageRepository bookImageRepository) {
         this.categoryRepository = categoryRepository;
-        this.cloudinaryServiceImpl = cloudinaryServiceImpl;
+        this.fileService = fileService;
         this.modelMapper = modelMapper;
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.storeBookRepository = storeBookRepository;
+        this.bookImageRepository = bookImageRepository;
     }
 
     public ServerResponseDto getBookById(Long id) {
@@ -76,24 +84,43 @@ public class BookService {
         return ServerResponseDto.success(pageBooks);
     }
 
+    @Transactional
+    public ServerResponseDto saveBook(BookSavedRequest request) throws FileUploadException {
+        String bookId = request.getId();
+        if (StringUtils.isNullOrEmpty(bookId)) {
+            return createBook(request);
+        } else {
+            return updateBook(request);
+        }
+    }
 
     @Transactional
-    public ServerResponseDto addBook(CreateBookRequest request) {
-        BookEntity foundBookEntity = bookRepository.findAllByTitle(request.getTitle());
-        if(foundBookEntity != null) {
-            throw new ResourceNotFoundException(MessageException.BOOK_EXIST);
-        }
-        BookEntity bookEntity = modelMapper.map(request, BookEntity.class);
-        bookEntity.setSold(0L);
-        bookEntity.setDiscountPercent(clampDiscountPercent(request.getDiscountPercent()));
-        bookEntity.setPublishedDate(LocalDate.parse(request.getPublishedDate()));
+    public ServerResponseDto createBook(BookSavedRequest request) throws FileUploadException {
+
         CategoryEntity categoryEntity = categoryRepository.findByName(request.getCategory())
                 .orElseGet(() -> {
                     CategoryEntity newCategoryEntity = new CategoryEntity();
                     newCategoryEntity.setName(request.getCategory());
                     return categoryRepository.save(newCategoryEntity);
                 });
+
+        BookEntity bookEntity = BookEntity.builder()
+                .title(request.getTitle())
+                .volumeNumber(request.getVolumeNumber())
+                .price(request.getPrice())
+                .discountPercent(clampDiscountPercent(request.getDiscountPercent()))
+                .description(request.getDescription())
+                .language(request.getLanguage())
+                .isbn(request.getIsbn())
+                .page(request.getPage())
+                .publisher(request.getPublisher())
+                .reprint(request.getReprint())
+                .stock(request.getStock())
+                .publishedDate(request.getPublishedDate())
+                .sold(0L)
+                .build();
         bookEntity.setCategoryId(categoryEntity.getId());
+
         Optional<AuthorEntity> optionalAuthor = authorRepository.findByName(request.getAuthor());
         if(optionalAuthor.isPresent()){
             bookEntity.setAuthorId(optionalAuthor.get().getId());
@@ -103,29 +130,87 @@ public class BookService {
             authorRepository.save(authorEntity);
             bookEntity.setAuthorId(authorEntity.getId());
         }
-        BookEntity bookEntitySaved = bookRepository.save(bookEntity);
-        return ServerResponseDto.success(mapToBookDto(bookEntitySaved));
+        bookRepository.save(bookEntity);
 
+        List<MultipartFile> images = request.getImages();
+        if (images != null && !images.isEmpty()) {
+            for (int sortOrder = 0; sortOrder < images.size(); sortOrder++) {
+                BookImageDTO bookImageDTO = uploadAndSaveBookImage(bookEntity.getId(), images.get(sortOrder), sortOrder);
+                if (sortOrder == 0) {
+                    bookEntity.setImagePath(bookImageDTO.getUrl());
+                }
+            }
+            bookRepository.save(bookEntity);
+        }
+        return ServerResponseDto.success(mapToBookDto(bookEntity));
+    }
+
+    @Transactional
+    public ServerResponseDto updateBook(BookSavedRequest request) {
+        Optional<BookEntity> foundBookEntity = bookRepository.findById(Long.valueOf(request.getId()));
+        if(foundBookEntity.isEmpty()) {
+            log.info("Book with id: {} is already existed in data", request.getId());
+            throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
+        }
+        BookEntity book = foundBookEntity.get();
+        book.setDiscountPercent(clampDiscountPercent(request.getDiscountPercent()));
+        book.setPublishedDate(request.getPublishedDate());
+        BookEntity bookEntitySaved = bookRepository.save(book);
+        return ServerResponseDto.success(mapToBookDto(bookEntitySaved));
     }
 
     @Transactional
     public ServerResponseDto uploadImageBook(Long id, MultipartFile file) throws FileUploadException {
-            try {
-                Optional<BookEntity> optionalBook = bookRepository.findById(id);
-                if(optionalBook.isEmpty()){
-                    throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
-                }
-                BookEntity bookEntity = optionalBook.get();
-                FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
-                final String fileName = FileUploadUtil.getFileName(file.getOriginalFilename());
-                final CloudinaryResponse response = cloudinaryServiceImpl.uploadFile(file, fileName);
-                bookEntity.setImagePath(response.getUrl());
-                bookRepository.save(bookEntity);
-                return ServerResponseDto.success(response);
-            } catch (FileUploadException ex){
-                throw new FileUploadException(ex.getMessage());
-            }
+        BookEntity bookEntity = bookRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
+        BookImageDTO bookImageDTO = uploadAndSaveBookImage(id, file, nextSortOrderFor(id));
+        bookEntity.setImagePath(bookImageDTO.getUrl());
+        bookRepository.save(bookEntity);
+        return ServerResponseDto.success(bookImageDTO);
+    }
+
+    @Transactional
+    public ServerResponseDto uploadImagesBook(Long bookId, List<MultipartFile> files) throws FileUploadException {
+        bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
+
+        int nextSortOrder = nextSortOrderFor(bookId);
+        List<BookImageDTO> uploaded = new ArrayList<>();
+        for (MultipartFile file : files) {
+            uploaded.add(uploadAndSaveBookImage(bookId, file, nextSortOrder++));
         }
+        return ServerResponseDto.success(uploaded);
+    }
+
+    private int nextSortOrderFor(Long bookId) {
+        return bookImageRepository.findByBookIdOrderBySortOrderAsc(bookId).stream()
+                .mapToInt(BookImageEntity::getSortOrder)
+                .max()
+                .orElse(-1) + 1;
+    }
+
+    private BookImageDTO uploadAndSaveBookImage(Long bookId, MultipartFile file, int sortOrder) throws FileUploadException {
+        FileUploadUtil.assertAllowed(file, FileUploadUtil.IMAGE_PATTERN);
+        String url = fileService.uploadFile(BOOK_IMAGE_SUB_BUCKET, file)
+                .orElseThrow(() -> new FileUploadException(MessageException.FILE_UPLOAD_ERROR.getMessage()));
+
+        BookImageEntity bookImageEntity = BookImageEntity.builder()
+                .bookId(bookId)
+                .imageUrl(url)
+                .sortOrder(sortOrder)
+                .build();
+        bookImageRepository.save(bookImageEntity);
+        return new BookImageDTO(bookImageEntity.getId(), bookImageEntity.getImageUrl(), bookImageEntity.getSortOrder());
+    }
+
+    @Transactional
+    public ServerResponseDto deleteBookImage(Long bookId, Long imageId) {
+        BookImageEntity bookImageEntity = bookImageRepository.findById(imageId)
+                .filter(image -> image.getBookId().equals(bookId))
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_IMAGE_NOT_FOUND));
+        bookImageRepository.delete(bookImageEntity);
+        return ServerResponseDto.success("Delete book image successfully");
+    }
 
     public ServerResponseDto updateBook(Long id, BookDTO bookDTO) {
         BookEntity bookEntityFound = bookRepository.findById(id)
@@ -153,9 +238,9 @@ public class BookService {
         return ServerResponseDto.success("Delete book Successfully");
     }
 
-    public ServerResponseDto getBookUpSale(int pageNumber, int pageSize, String sortBy, String sortDirection) {
+    public ServerResponseDto getBookUpSale(int pageNumber, int pageSize, String sortBy, String sortDirection, String keywordSearch) {
         Pageable pageable = createPageable(pageNumber, pageSize, sortBy, sortDirection);
-        Page<BookDTO> pageBooks = bookRepository.getBookUpSale(pageable).map(this::mapToBookDto);
+        Page<BookDTO> pageBooks = bookRepository.getBookUpSale(keywordSearch, pageable).map(this::mapToBookDto);
         return ServerResponseDto.success(pageBooks);
     }
 
@@ -183,15 +268,13 @@ public class BookService {
         if (bookEntity.getCategoryId() != null) {
             categoryRepository.findById(bookEntity.getCategoryId()).ifPresent(category -> bookDTO.setCategoryName(category.getName()));
         }
+        List<BookImageDTO> images = bookImageRepository.findByBookIdOrderBySortOrderAsc(bookEntity.getId()).stream()
+                .map(image -> new BookImageDTO(image.getId(), image.getImageUrl(), image.getSortOrder()))
+                .toList();
+        bookDTO.setImages(images);
         return bookDTO;
     }
 
-    public ServerResponseDto getBookByTitle(String title) {
-        List<BookEntity> bookEntityList = bookRepository.getBookByTitle(title);
-
-        List<BookDTO> bookDTOList = bookEntityList.stream().map(this::mapToBookDto).toList();
-        return ServerResponseDto.success(bookDTOList) ;
-    }
 
     public ServerResponseDto getBookByISBN(String isbn) {
         BookEntity bookEntity = bookRepository.findBookByIsbn(isbn);
