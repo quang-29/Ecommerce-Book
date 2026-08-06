@@ -6,37 +6,37 @@
     <changeSet id="001-seed-category" author="quangnm">
         <insert tableName="category">
             <column name="id" valueNumeric="1001"/>
-            <column name="category_name" value="Programming"/>
+            <column name="name" value="Programming"/>
             <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/programming.png"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>
         <insert tableName="category">
             <column name="id" valueNumeric="1002"/>
-            <column name="category_name" value="Business"/>
+            <column name="name" value="Business"/>
             <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/business.png"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>
         <insert tableName="category">
             <column name="id" valueNumeric="1003"/>
-            <column name="category_name" value="Literature"/>
+            <column name="name" value="Literature"/>
             <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/literature.png"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>
         <insert tableName="category">
             <column name="id" valueNumeric="1004"/>
-            <column name="category_name" value="Science"/>
+            <column name="name" value="Science"/>
             <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/science.png"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>
         <insert tableName="category">
             <column name="id" valueNumeric="1005"/>
-            <column name="category_name" value="Children"/>
+            <column name="name" value="Children"/>
             <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/children.png"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>
         <insert tableName="category">
             <column name="id" valueNumeric="1006"/>
-            <column name="category_name" value="Self Improvement"/>
+            <column name="name" value="Self Improvement"/>
             <column name="category_img" value="https://res.cloudinary.com/demo/image/upload/self-improvement.png"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>

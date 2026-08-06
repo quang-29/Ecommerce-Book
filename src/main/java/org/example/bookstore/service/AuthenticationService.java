@@ -113,10 +113,10 @@ public class AuthenticationService {
 
     public boolean register(RegisterRequest registerRequest) {
 
-        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+        if (userRepository.existsByUsernameAndIsDeletedFalse(registerRequest.getUsername())) {
             throw new RuntimeException(MessageException.USER_WITH_USERNAME_EXISTED.getMessage());
         }
-        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+        if (userRepository.existsByEmailAndIsDeletedFalse(registerRequest.getEmail())) {
             throw new RuntimeException(MessageException.USER_WITH_EMAIL_EXISTED.getMessage());
         }
         String hashPassword = passwordEncoder.encode(registerRequest.getPassword());
@@ -135,9 +135,9 @@ public class AuthenticationService {
                         .roles(userSaved.getRoles())
                         .build();
         userCacheService.createUserCatche(userSaveDto);
-        CartEntity cartEntity = new CartEntity();
-        cartEntity.setUserId(userSaved.getId());
-        cartRepository.save(cartEntity);
+//        CartEntity cartEntity = new CartEntity();
+//        cartEntity.setUserId(userSaved.getId());
+//        cartRepository.save(cartEntity);
         return true;
     }
 

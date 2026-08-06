@@ -50,7 +50,8 @@ public enum MessageException {
     VOUCHER_NOT_FOUND("Voucher not found"),
     VOUCHER_INVALID("Voucher is invalid"),
     OTP_INVALID("OTP is invalid or expired"),
-    CART_PROCESSING_CONFLICT("Giỏ hàng hoặc sản phẩm đang được xử lý, vui lòng thử lại");
+    CART_PROCESSING_CONFLICT("Giỏ hàng hoặc sản phẩm đang được xử lý, vui lòng thử lại"),
+    BOOK_IMAGE_NOT_FOUND("Book image not found");
 
     private final String message;
 

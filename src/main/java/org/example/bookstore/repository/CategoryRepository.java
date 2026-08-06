@@ -21,11 +21,11 @@ public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> 
     @Query(value = "" +
             "SELECT *" +
             "FROM category " +
-            "WHERE category_name LIKE CONCAT('%', :keywordSearch, '%')",
+            "WHERE name LIKE CONCAT('%', :keywordSearch, '%')",
             countQuery = "" +
                     "SELECT COUNT(*)" +
                     "FROM category " +
-                    "WHERE category_name LIKE CONCAT('%', :keywordSearch, '%')",
+                    "WHERE name LIKE CONCAT('%', :keywordSearch, '%')",
             nativeQuery = true)
     Page<CategoryEntity> getPageCategory(@Param("keywordSearch") String keywordSearch, Pageable pageable);
 }

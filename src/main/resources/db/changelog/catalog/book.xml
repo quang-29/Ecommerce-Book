@@ -61,4 +61,29 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="003-create-book-image" author="quangnm">
+        <createTable tableName="book_image">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="book_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_book_image_book" references="book(id)"/>
+            </column>
+            <column name="image_url" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sort_order" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
 </databaseChangeLog>

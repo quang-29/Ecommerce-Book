@@ -3,7 +3,7 @@ package org.example.bookstore.controller;
 import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.BookDTO;
-import org.example.bookstore.payload.request.CreateBookRequest;
+import org.example.bookstore.payload.request.BookSavedRequest;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.service.BookService;
 import org.springframework.data.domain.Page;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.lang.Long;
+import java.util.List;
 
 
 @RestController
@@ -34,9 +35,8 @@ public class BookController {
     }
 
     @PostMapping("/add")
-    @PreAuthorize("@authorizationService.isAdmin()")
-    public ResponseEntity<ServerResponseDto> addBook(@RequestBody CreateBookRequest request) {
-        return ResponseEntity.ok(bookService.addBook(request));
+    public ResponseEntity<ServerResponseDto> saveBook(@ModelAttribute BookSavedRequest request) throws FileUploadException {
+        return ResponseEntity.ok(bookService.saveBook(request));
     }
 
     @PostMapping("/uploadImage/{bookId}")
@@ -45,6 +45,22 @@ public class BookController {
             @PathVariable Long bookId,
             @RequestParam("file") MultipartFile file) throws FileUploadException {
         return ResponseEntity.ok(bookService.uploadImageBook(bookId,file));
+    }
+
+    @PostMapping("/uploadImages/{bookId}")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> uploadImagesBook(
+            @PathVariable Long bookId,
+            @RequestParam("files") List<MultipartFile> files) throws FileUploadException {
+        return ResponseEntity.ok(bookService.uploadImagesBook(bookId, files));
+    }
+
+    @DeleteMapping("/{bookId}/image/{imageId}")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> deleteBookImage(
+            @PathVariable Long bookId,
+            @PathVariable Long imageId) {
+        return ResponseEntity.ok(bookService.deleteBookImage(bookId, imageId));
     }
 
     @GetMapping("/all")
@@ -82,9 +98,10 @@ public class BookController {
     public ResponseEntity<ServerResponseDto> upSaleBook(@RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size,
                                                     @RequestParam(required = false) String sortBy,
-                                                    @RequestParam(required = false) String sortDirection
+                                                    @RequestParam(required = false) String sortDirection,
+                                                        @RequestParam(required = false) String keywordSearch
     ){
-        return ResponseEntity.ok(bookService.getBookUpSale(page, size, sortBy, sortDirection));
+        return ResponseEntity.ok(bookService.getBookUpSale(page, size, sortBy, sortDirection, keywordSearch));
     }
 
     @GetMapping("/get-new-release-book")
@@ -95,11 +112,6 @@ public class BookController {
                                                                @RequestParam(required = false) String keyword, Sort sort) {
         Page<BookDTO> bookDTOPage = bookService.getNewReleaseBook(page, size, sortBy, sortDirection, keyword);
         return ResponseEntity.ok(ServerResponseDto.success(bookDTOPage));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<ServerResponseDto> getBookByName(@RequestParam String name) {
-        return ResponseEntity.ok(bookService.getBookByTitle(name));
     }
 
     @GetMapping("/search-by-ISBN")
