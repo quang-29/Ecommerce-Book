@@ -75,12 +75,12 @@ cloudinary:
 
 #
 r2:
-  account-id: 2f4c75ecb593c2c3e06a1e1bad59cc5f
-  access-key: 9589dcf926c31bd84a68bafae91d53d6
-  secret-key: fb5c92c103f9184689af3f475447f9ba06cd7a546c0a27eece5f139fb9e6006a
+  account-id:
+  access-key:
+  secret-key:
   bucket: book-store
-  endpoint: https://${r2.account-id}.r2.cloudflarestorage.com
-  public-url: https://pub-8cd15cecede9479aa9a0f29042abbfae.r2.dev/
+  endpoint:
+  public-url:
 
 # AWS S3
 aws:
