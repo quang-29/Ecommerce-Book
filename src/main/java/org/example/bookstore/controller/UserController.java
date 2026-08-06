@@ -1,22 +1,15 @@
 package org.example.bookstore.controller;
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
-import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.enums.MessageException;
-import org.example.bookstore.exception.AppException;
-import org.example.bookstore.model.User;
-import org.example.bookstore.payload.BookDTO;
-import org.example.bookstore.payload.UserDTO;
-import org.example.bookstore.payload.request.ChangeAvatar;
+import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.payload.request.EditUser;
 import org.example.bookstore.payload.request.UserUpdate;
-import org.example.bookstore.payload.response.DataResponse;
-import org.example.bookstore.payload.response.UserResponse;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -24,14 +17,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.lang.Long;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/v1/user")
 public class UserController {
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
@@ -45,7 +36,7 @@ public class UserController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> getAllUsers(@RequestParam(defaultValue = "0") Integer page,
                                                          @RequestParam(defaultValue = "10") Integer size,
                                                          @RequestParam(defaultValue = "username") String sortBy,
@@ -61,16 +52,16 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> getUserById(@PathVariable UUID id) {
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PutMapping("/update")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@authorizationService.isAdmin()")
     public ResponseEntity<ServerResponseDto> updateUser(@RequestBody UserUpdate userUpdate) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UUID currentUserId = userService.getCurrentUserId(authentication);
+        Long currentUserId = userService.getCurrentUserId(authentication);
         if(!currentUserId.equals(userUpdate.getId())) {
             throw new RuntimeException(MessageException.UNAUTHORIZED_ACTION.getMessage());
         }
@@ -78,31 +69,21 @@ public class UserController {
     }
 
     @DeleteMapping("/delete")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> deleteUser(@RequestParam UUID userId) {
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> deleteUser(@RequestParam Long userId) {
         return ResponseEntity.ok(userService.deleteUser(userId));
     }
 
-    @PutMapping("/likeBook")
-    public ResponseEntity<ServerResponseDto> likedBook(@RequestParam UUID userId,
-                                                  @RequestParam UUID bookId) {
-        return ResponseEntity.ok(userService.likedBooks(userId, bookId));
-    }
-
-    @PutMapping("/unlikeBook")
-    public ResponseEntity<ServerResponseDto> removeLikedBooks(@RequestParam UUID userId,
-                                                              @RequestParam UUID bookId) {
-        return ResponseEntity.ok(userService.removeLikedBooks(userId, bookId));
+    @PostMapping("/action-book")
+    public ResponseEntity<ServerResponseDto> actionBook(@RequestParam Long userId,
+                                                        @RequestParam Long bookId,
+                                                        @RequestParam boolean isLike) {
+        return ResponseEntity.ok(userService.actionBooks(userId, bookId, isLike));
     }
 
     @GetMapping("/listBooksLikedByUser")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> listBooksLikedByUser(@RequestParam UUID userId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UUID currentUserId = userService.getCurrentUserId(authentication);
-        if(!currentUserId.equals(userId)) {
-            throw new RuntimeException(MessageException.UNAUTHORIZED_ACTION.getMessage());
-        }
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isMySelf(#userId)")
+    public ResponseEntity<ServerResponseDto> listBooksLikedByUser(@RequestParam Long userId) {
         return ResponseEntity.ok(userService.listBooksLikedByUser(userId));
     }
 
@@ -117,23 +98,18 @@ public class UserController {
     }
 
     @PutMapping("/changeAvatar/{userId}")
-    public ResponseEntity<ServerResponseDto> changeAvatar(@PathVariable UUID userId,
-                                                          @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ServerResponseDto> changeAvatar(@PathVariable Long userId,
+                                                      @RequestParam("file") MultipartFile file) throws FileUploadException {
         return ResponseEntity.ok(userService.changeAvatar(userId,file));
     }
 
     @GetMapping("/admin/avatar")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<ServerResponseDto> getAvatarAdmin() {
-        Optional<User> user = userRepository.findByUsername("admin");
+        Optional<UserEntity> user = userRepository.findByUsername("admin");
         if (user.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(ServerResponseDto.success(Map.of("avatarUrl", user.get().getAvatarUrl())));
     }
-
-
-
-
-
 }

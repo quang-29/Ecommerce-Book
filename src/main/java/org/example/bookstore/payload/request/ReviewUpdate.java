@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ReviewUpdate {
-    private UUID id;
+    private Long id;
     private String content;
     private int ratePoint;
 }

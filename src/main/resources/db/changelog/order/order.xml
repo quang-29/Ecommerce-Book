@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-orders" author="quangnm">
+        <createTable tableName="orders">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints foreignKeyName="fk_orders_user" references="user(id)"/>
+            </column>
+            <column name="create_at" type="DATETIME"/>
+            <column name="estimated_delivery_date" type="DATETIME"/>
+            <column name="shipping_address" type="VARCHAR(500)"/>
+            <column name="payment_id" type="BIGINT">
+                <constraints foreignKeyName="fk_orders_payment" references="payment(id)"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-create-order-items" author="quangnm">
+        <createTable tableName="order_items">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="code" type="BINARY(16)"/>
+            <column name="created_time" type="DATETIME"/>
+            <column name="updated_time" type="DATETIME"/>
+            <column name="created_by_user_id" type="BIGINT"/>
+            <column name="updated_by_user_id" type="BIGINT"/>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="book_id" type="BIGINT">
+                <constraints foreignKeyName="fk_order_items_book" references="book(id)"/>
+            </column>
+            <column name="order_id" type="BIGINT">
+                <constraints foreignKeyName="fk_order_items_order" references="orders(id)"/>
+            </column>
+            <column name="quantity" type="INT"/>
+            <column name="product_price" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>

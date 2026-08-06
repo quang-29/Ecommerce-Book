@@ -3,10 +3,6 @@ package org.example.bookstore.enums;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
-import org.example.bookstore.exception.AppException;
-
 public enum OauthProvider {
     GOOGLE("google");
 

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/messages")
+@RequestMapping("/api/v1/messages")
 public class MessageController {
 
     private final MessageRepository messageRepository;
@@ -19,7 +19,6 @@ public class MessageController {
         this.messageRepository = messageRepository;
     }
 
-    // get All Messages by roomId
     @GetMapping("/{roomId}")
     public ResponseEntity<?> getAllMessages(@PathVariable("roomId") String roomId) {
         List<Message> messages = messageRepository.findAllByRoomId(roomId);
@@ -27,14 +26,14 @@ public class MessageController {
 
     }
 
-    @GetMapping("/getRecentMessage/{roomId}")
+    @GetMapping("/recent-message/{roomId}")
     public ResponseEntity<?> getRecentMessages(@PathVariable("roomId") String roomId) {
         Message message = messageRepository.findRecentMessageByRoomId(roomId);
         return new ResponseEntity<>(message, HttpStatus.OK);
     }
 
 
-    @PutMapping("/updateAvatarUrl")
+    @PutMapping("/update-avatarUrl")
     public ResponseEntity<?> updateAvatarUrl(@RequestBody Map<String, String> request) {
         String username = request.get("username");
         String newAvatarUrl = request.get("newAvatarUrl");

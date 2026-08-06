@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -12,10 +13,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 public class BookDTO {
-    private UUID id;
+    private Long id;
     private String title;
     private String description;
-    private BigDecimal price;
+    private Long price;
+    private Integer discountPercent;
+    private Long discountPrice;
     private String publisher;
     private String isbn;
     private String language;
@@ -30,5 +33,6 @@ public class BookDTO {
     private String categoryName;
     @JsonProperty("author")
     private String authorName;
+    private List<BookImageDTO> images;
 
 }

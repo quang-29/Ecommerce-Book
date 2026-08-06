@@ -5,23 +5,19 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.AppException;
-import org.example.bookstore.model.TokenPair;
-import org.example.bookstore.model.User;
+import org.example.bookstore.enums.Roles;
 import org.example.bookstore.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.StringJoiner;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,13 +34,13 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration-in-ms}")
     private int refreshExpirationInMs;
 
+    public static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS512;
+
     private final CustomUserDetailsService userDetailsService;
-    private final UserRepository userRepository;
     private Key key;
 
-    public JwtTokenProvider(CustomUserDetailsService userDetailsService, UserRepository userRepository) {
+    public JwtTokenProvider(CustomUserDetailsService userDetailsService) {
         this.userDetailsService = userDetailsService;
-        this.userRepository = userRepository;
     }
 
     @PostConstruct
@@ -60,13 +56,45 @@ public class JwtTokenProvider {
                 .getBody();
     }
 
-    public String createToken(Authentication authentication) {
-        return buildToken(authentication, jwtExpirationInMs, false);
+    public String generateToken(CustomUserDetails userDetail) {
+        Date now = new Date();
+        Date expiredDate = new Date(now.getTime() + jwtExpirationInMs);
+        Map<String, Object> claims = getCustomClaims(userDetail);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(userDetail.getUsername())
+                .setId(UUID.randomUUID().toString())
+                .setIssuedAt(now)
+                .setExpiration(expiredDate)
+                .signWith(key, SIGNATURE_ALGORITHM)
+                .compact();
     }
 
-    public String createRefreshToken(Authentication authentication) {
-        return buildToken(authentication, refreshExpirationInMs, true);
+    private Map<String, Object> getCustomClaims(CustomUserDetails userDetail) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userDetail.getUserId());
+        claims.put("name", userDetail.getName());
+        claims.put("role", userDetail.getRoles().name());
+        claims.put("phone", userDetail.getPhone());
+        claims.put("avatarUrl", userDetail.getAvatarUrl());
+        return claims;
     }
+
+    private CustomUserDetails parseToken(String token) {
+        Claims claims = parseClaims(token);
+        return CustomUserDetails.builder()
+                .userId(claims.get("userId", Long.class))
+                .name(claims.get("name", String.class))
+                .roles(Roles.valueOf(claims.get("role", String.class)))
+                .phone(claims.get("phone", String.class))
+                .avatarUrl(claims.get("avatarUrl", String.class))
+                .build();
+    }
+
+    private String parseUserNameFromToken(String token){
+        return parseClaims(token).getSubject();
+    }
+
 
     private String buildToken(Authentication authentication, int expirationTime, boolean isRefresh) {
         String username = authentication.getName();
@@ -95,12 +123,6 @@ public class JwtTokenProvider {
         return builder.compact();
     }
 
-    public UsernamePasswordAuthenticationToken getAuthentication(String token) {
-        String username = getUsername(token);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
-    }
-
     public String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         return (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer "))
@@ -109,83 +131,39 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Claims claims = parseClaims(token);
-            String type = claims.get("type", String.class);
-            if ("refresh".equals(type)) {
-                throw new AppException(ErrorCode.TOKEN_INVALID);
-            }
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
-        } catch (MalformedJwtException e) {
-            log.error("Invalid JWT token: {}", e.getMessage());
-        } catch (ExpiredJwtException e) {
-            log.error("Expired JWT token: {}", e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            log.error("Unsupported JWT token: {}", e.getMessage());
-        } catch (IllegalArgumentException | SecurityException e) {
-            log.error("JWT error: {}", e.getMessage());
+        } catch (MalformedJwtException |  ExpiredJwtException | UnsupportedJwtException | IllegalArgumentException ex) {
+            log.error("Invalid JWT token: {}", ex.getMessage());
         }
         return false;
     }
 
-    public String getUsername(String token) {
-        return parseClaims(token).getSubject();
+    public Roles getRolesFromToken(String token){
+        try {
+            Claims claims = parseClaims(token);
+            return Roles.valueOf(claims.get("role", String.class));
+        } catch (ExpiredJwtException ex){
+            log.error("Expired JWT token", ex.getMessage());
+        }
+        return null;
     }
 
-    public User getUser(String token) {
-        String username = getUsername(token);
-        return userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-    }
-
-    public UUID getTokenId(String token) {
-        String tokenIdStr = parseClaims(token).get("id", String.class);
+    public String getTokenId(String token) {
+        String tokenIdStr = parseClaims(token).getId();
         if (tokenIdStr == null) {
             throw new RuntimeException("Token ID is missing from JWT");
         }
-        return UUID.fromString(tokenIdStr);
+        return tokenIdStr;
+    }
+
+    public String getUsername(String token) {
+        Claims claims = parseClaims(token);
+        return claims.getSubject();
     }
 
     public Date getExpirationDate(String token) {
         return parseClaims(token).getExpiration();
     }
 
-    public TokenPair refreshToken(String oldRefreshToken) {
-        try {
-            Claims claims = parseClaims(oldRefreshToken);
-            String username = claims.getSubject();
-            String tokenType = claims.get("type", String.class);
-
-            if (!"refresh".equals(tokenType)) {
-                throw new AppException(ErrorCode.TOKEN_INVALID);
-            }
-
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities()
-            );
-
-            String newAccessToken = createToken(authentication);
-            String newRefreshToken = createRefreshToken(authentication);
-
-            return new TokenPair(newAccessToken, newRefreshToken);
-
-        } catch (ExpiredJwtException e) {
-            log.error("Refresh token expired: {}", e.getMessage());
-            throw new AppException(ErrorCode.TOKEN_EXPIRED);
-        } catch (JwtException e) {
-            log.error("Invalid token: {}", e.getMessage());
-            throw new AppException(ErrorCode.TOKEN_INVALID);
-        } catch (Exception e) {
-            log.error("Token refresh error: {}", e.getMessage());
-            throw new RuntimeException("Cannot refresh token.");
-        }
-    }
-
-
-    private String buildScope(User user) {
-        if (CollectionUtils.isEmpty(user.getRoles())) return "";
-        return user.getRoles().stream()
-                .map(role -> role.getRoleName())
-                .collect(Collectors.joining(" "));
-    }
 }

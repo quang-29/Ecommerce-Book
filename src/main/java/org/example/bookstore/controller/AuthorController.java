@@ -1,58 +1,65 @@
 package org.example.bookstore.controller;
 
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.AuthorDTO;
 import org.example.bookstore.service.AuthorService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
+import java.lang.Long;
 
 @RestController
-@RequestMapping("/api/author")
+@RequestMapping("/api/v1/author")
 public class AuthorController {
 
-    @Autowired
-    private AuthorService authorService;
 
-    @PostMapping("/addAuthor")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> addAuthor(@RequestBody AuthorDTO authorDTO) {
-        return ResponseEntity.ok(authorService.createAuthor(authorDTO));
+    private final AuthorService authorService;
+
+    public AuthorController(AuthorService authorService) {
+        this.authorService = authorService;
     }
 
-    @PutMapping("/updateAuthor/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> editAuthor(@PathVariable UUID id, @RequestBody AuthorDTO newAuthorDTO) {
-        return ResponseEntity.ok(authorService.updateAuthor(id, newAuthorDTO));
+    @PostMapping("/add")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> saveAuthor(@ModelAttribute AuthorDTO authorDTO) throws FileUploadException {
+        return ResponseEntity.ok(authorService.saveAuthor(authorDTO));
     }
 
-    @DeleteMapping("/deleteAuthor/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> deleteAuthor(@PathVariable UUID id) {
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> deleteAuthor(@PathVariable Long id) {
         return ResponseEntity.ok(authorService.deleteAuthor(id));
     }
 
-    @GetMapping("/getAuthorById/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ServerResponseDto> getAuthorById(@PathVariable UUID id) {
+    @GetMapping("/{id}")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> getAuthorById(@PathVariable Long id) {
         return ResponseEntity.ok(authorService.getAuthorById(id));
 
     }
 
-    @GetMapping("/getAllAuthors")
+    @GetMapping("/all")
     public ResponseEntity<ServerResponseDto> getAllAuthors(@RequestParam(defaultValue = "0") int size,
-                                                      @RequestParam(defaultValue = "10") int page,
-                                                      @RequestParam(required = false) String sortBy,
-                                                      @RequestParam(required = false) String sortDirection) {
+                                                       @RequestParam(defaultValue = "10") int page,
+                                                       @RequestParam(required = false) String sortBy,
+                                                       @RequestParam(required = false) String sortDirection) {
         return ResponseEntity.ok(authorService.getAllAuthors(page, size, sortBy, sortDirection));
     }
 
-    @GetMapping("/getAuthorByName/{authorName}")
+    @GetMapping("/name/{authorName}")
     public ResponseEntity<ServerResponseDto> getAuthorByName(@RequestParam String authorName) {
         return ResponseEntity.ok(authorService.getAuthorByName(authorName));
+    }
+
+    @GetMapping("/get-page")
+    public ResponseEntity<ServerResponseDto> getPage(@RequestParam(defaultValue = "1") int page,
+                                                     @RequestParam(defaultValue = "10") int size,
+                                                     @RequestParam(required = false) String sortField,
+                                                     @RequestParam(defaultValue = "desc") String sortDir,
+                                                     @RequestParam String keywordSearch){
+        return ResponseEntity.ok(authorService.getPageAuthor(page, size, sortField, sortDir, keywordSearch));
+
     }
 }
