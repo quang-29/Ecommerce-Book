@@ -20,7 +20,6 @@ import java.util.Date;
 public class AuthorEntity extends BaseEntity {
 
     @Size(min = 3, max = 20, message = "Author Name must be between 5 and 20 characters long")
-    @Column(name = "author_name")
     private String name;
 
     private String biography;
@@ -32,13 +31,12 @@ public class AuthorEntity extends BaseEntity {
     private String country;
     private String imageUrl;
 
-    public void mapToAuthorEntity(AuthorDTO authorDTO){
+    public void mapToAuthorEntity(AuthorDTO authorDTO) {
         this.name = authorDTO.getName();
         this.biography = authorDTO.getBiography();
         this.email = authorDTO.getEmail();
         this.country = authorDTO.getCountry();
         this.website = authorDTO.getWebsite();
-        this.imageUrl = authorDTO.getImageUrl();
         this.dob = authorDTO.getDob();
     }
 

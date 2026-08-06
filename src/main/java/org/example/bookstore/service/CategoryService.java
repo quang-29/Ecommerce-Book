@@ -48,7 +48,8 @@ public class CategoryService {
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC: Sort.Direction.DESC;
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortField));
-        Page<CategoryEntity> categoryDTOPage = categoryRepository.getPageCategory(keywordSearch, pageable);
+        Page<CategoryEntity> categoryEntityPage = categoryRepository.getPageCategory(keywordSearch, pageable);
+        Page<CategoryDTO> categoryDTOPage = categoryEntityPage.map(entity -> modelMapper.map(entity, CategoryDTO.class));
         return ServerResponseDto.success(categoryDTOPage);
     }
 

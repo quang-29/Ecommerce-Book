@@ -82,13 +82,8 @@ public class UserController {
     }
 
     @GetMapping("/listBooksLikedByUser")
-    @PreAuthorize("@authorizationService.isAdmin()")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isMySelf(#userId)")
     public ResponseEntity<ServerResponseDto> listBooksLikedByUser(@RequestParam Long userId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = userService.getCurrentUserId(authentication);
-        if(!currentUserId.equals(userId)) {
-            throw new RuntimeException(MessageException.UNAUTHORIZED_ACTION.getMessage());
-        }
         return ResponseEntity.ok(userService.listBooksLikedByUser(userId));
     }
 

@@ -1,6 +1,7 @@
 package org.example.bookstore.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -35,12 +36,18 @@ public class SecurityConfig {
             "/api/v1/auth/**",
             "/api/v1/author/all",
             "/api/v1/author/name/{authorName}",
+            "/api/v1/author/get-page",
             "/api/v1/book/{id}",
             "/api/v1/book/all",
             "/api/v1/book/books/{authorName}",
             "/api/v1/book/books/{category}",
+            "/api/v1/book/get-page",
+            "/api/v1/book/get-upsale-book",
+            "/api/v1/book/get-new-release-book",
+            "/api/v1/book/get-number-of-book",
             "/api/v1/category/{id}",
             "/api/v1/category/all",
+            "/api/v1/category/get-page",
             "/api/v1/cart/**",
             "/api/v1/payment/**",
             "/api/v1/chat/**",
@@ -59,6 +66,9 @@ public class SecurityConfig {
     private final JwtTokenFilter jwtAuthenticationFilter;
     @Autowired
     private final UserDetailsService userDetailsService;
+
+    @Value("${app.cors.allowedOrigins}")
+    private String[] allowedOrigins;
 
     public SecurityConfig(JwtTokenFilter jwtAuthenticationFilter, UserDetailsService userDetailsService) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -101,23 +111,10 @@ public class SecurityConfig {
         return http.build();
     }
 
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration configuration = new CorsConfiguration();
-//        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080"));
-//        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//        configuration.setAllowedHeaders(Arrays.asList("*"));
-//        configuration.setAllowCredentials(true);
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", configuration);
-//        return source;
-//    }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));

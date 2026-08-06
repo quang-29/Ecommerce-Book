@@ -1,6 +1,8 @@
 package org.example.bookstore.payload;
 
 import lombok.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
 
@@ -10,12 +12,13 @@ import java.util.Date;
 @NoArgsConstructor
 @Data
 public class AuthorDTO {
-    private Long id;
+    private String id;
     private String name;
     private String biography;
     private String email;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date dob;
     private String country;
     private String website;
-    private String imageUrl;
+    private MultipartFile avatarUrl;
 }

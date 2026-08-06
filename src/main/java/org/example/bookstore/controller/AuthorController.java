@@ -1,6 +1,7 @@
 package org.example.bookstore.controller;
 
 
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.AuthorDTO;
 import org.example.bookstore.service.AuthorService;
@@ -22,14 +23,8 @@ public class AuthorController {
 
     @PostMapping("/add")
     @PreAuthorize("@authorizationService.isAdmin()")
-    public ResponseEntity<ServerResponseDto> addAuthor(@RequestBody AuthorDTO authorDTO) {
-        return ResponseEntity.ok(authorService.createAuthor(authorDTO));
-    }
-
-    @PutMapping("/update/{id}")
-    @PreAuthorize("@authorizationService.isAdmin()")
-    public ResponseEntity<ServerResponseDto> editAuthor(@PathVariable Long id, @RequestBody AuthorDTO newAuthorDTO) {
-        return ResponseEntity.ok(authorService.updateAuthor(id, newAuthorDTO));
+    public ResponseEntity<ServerResponseDto> saveAuthor(@ModelAttribute AuthorDTO authorDTO) throws FileUploadException {
+        return ResponseEntity.ok(authorService.saveAuthor(authorDTO));
     }
 
     @DeleteMapping("/delete/{id}")
