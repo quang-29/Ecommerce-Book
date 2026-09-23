@@ -12,7 +12,6 @@ import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Map;
 
 @Slf4j
@@ -42,10 +41,9 @@ public class PaymentService {
         PaymentGateway paymentGateway = PaymentGateway.fromString(gateway);
         if (paymentGateway == PaymentGateway.VNPAY) {
             String txnRef = params.get("vnp_TxnRef");
-            String[] p = txnRef.split("-");
-            String LongStr = String.join("-", Arrays.copyOfRange(p, 0, 5));
-            log.info("Check id order txn ref: {}", LongStr);
-            OrderEntity orderEntity = orderService.getOrderById(Long.valueOf(LongStr));
+            String orderIdStr = txnRef.split("-", 2)[0];
+            log.info("Check id order txn ref: {}", orderIdStr);
+            OrderEntity orderEntity = orderService.getOrderById(Long.valueOf(orderIdStr));
             if (orderEntity == null)
                 throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
             boolean ok = vnPayService.checkPayment(orderEntity, params);

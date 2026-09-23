@@ -35,6 +35,7 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isMySelf(#userId)")
     public ResponseEntity<ServerResponseDto> getOrderByUserId(@PathVariable Long userId,
                                                           @RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "10") int size,
@@ -67,6 +68,7 @@ public class OrderController {
 
     }
     @PostMapping("/cancel")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isOrderOwner(#orderId)")
     public ResponseEntity<ServerResponseDto> cancelOrder(@RequestParam Long orderId) {
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
     }

@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ public class OrderService {
 
     private static final long FLAT_SHIPPING_FEE = 30_000L;
     private static final int DEFAULT_DELIVERY_DAYS = 3;
+    private static final long PENDING_PAYMENT_CHECK_INTERVAL_MS = 60_000L;
 
     private final EmailService emailService;
 
@@ -78,6 +80,10 @@ public class OrderService {
         String username = authentication.getName();
         UserEntity user = userRepository.findUserByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
+
+        if (!Objects.equals(cartEntity.getUserId(), user.getId())) {
+            throw new ResourceNotFoundException(MessageException.UNAUTHORIZED_ACTION);
+        }
 
         List<CartItemEntity> cartItemEntities = cartItemRepository.findByCartId(cartEntity.getId());
         if (cartItemEntities.isEmpty()) {
@@ -215,10 +221,22 @@ public class OrderService {
 
     @Transactional
     public ServerResponseDto updateStatusOrder(Long orderId, int orderStatus) {
-        OrderEntity orderEntity = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-//        order.setOrderStatus(orderStatus);
-        return ServerResponseDto.success(modelMapper.map(orderRepository.save(orderEntity), OrderDTO.class));
+        PaymentStatus[] statuses = PaymentStatus.values();
+        if (orderStatus < 0 || orderStatus >= statuses.length) {
+            throw new ResourceNotFoundException(MessageException.INVALID_REQUEST);
+        }
+        switch (statuses[orderStatus]) {
+            case CONFIRMED:
+                return confirmOrder(orderId);
+            case IN_TRANSIT:
+                return transitOrder(orderId);
+            case DELIVERED:
+                return deliveryOrder(orderId);
+            case CANCELLED:
+                return cancelOrder(orderId);
+            default:
+                throw new ResourceNotFoundException(MessageException.INVALID_REQUEST);
+        }
     }
 
     @Transactional
@@ -236,16 +254,7 @@ public class OrderService {
         payment.setStatus(PaymentStatus.CANCELLED);
         paymentRepository.save(payment);
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-
-        Map<Long, Integer> quantityByStoreBookId = orderItems.stream()
-                .filter(orderItem -> orderItem.getStoreBookId() != null)
-                .collect(Collectors.groupingBy(OrderItem::getStoreBookId,
-                        Collectors.summingInt(OrderItem::getQuantity)));
-
-        for (Map.Entry<Long, Integer> entry : quantityByStoreBookId.entrySet()) {
-            storeBookRepository.increaseStock(entry.getKey(), entry.getValue().longValue());
-        }
+        restoreStockForOrder(orderId);
         if (currentStatus == PaymentStatus.CONFIRMED || currentStatus == PaymentStatus.COMPLETED) {
             decreaseSoldCount(orderId);
         }
@@ -412,6 +421,34 @@ public class OrderService {
         int updatedRows = storeBookRepository.decreaseStockIfAvailable(storeBookId, quantity.longValue());
         if (updatedRows == 0) {
             throw new ResourceNotFoundException(MessageException.BOOK_STOCK_PROBLEM);
+        }
+    }
+
+    private void restoreStockForOrder(Long orderId) {
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+        Map<Long, Integer> quantityByStoreBookId = orderItems.stream()
+                .filter(orderItem -> orderItem.getStoreBookId() != null)
+                .collect(Collectors.groupingBy(OrderItem::getStoreBookId,
+                        Collectors.summingInt(OrderItem::getQuantity)));
+        for (Map.Entry<Long, Integer> entry : quantityByStoreBookId.entrySet()) {
+            storeBookRepository.increaseStock(entry.getKey(), entry.getValue().longValue());
+        }
+    }
+
+    @Scheduled(fixedDelay = PENDING_PAYMENT_CHECK_INTERVAL_MS)
+    @Transactional
+    public void expireStalePendingPayments() {
+        Date now = new Date();
+        List<Payment> pendingPayments = paymentRepository.findAllByStatusAndType(PaymentStatus.PENDING, PaymentType.BANK_TRANSFER);
+        for (Payment payment : pendingPayments) {
+            if (payment.getExpireAt() == null || payment.getExpireAt().after(now)) {
+                continue;
+            }
+            payment.setStatus(PaymentStatus.EXPIRED);
+            paymentRepository.save(payment);
+            orderRepository.findByPaymentId((long) payment.getId())
+                    .ifPresent(order -> restoreStockForOrder(order.getId()));
+            LOGGER.info("Expired pending payment {} and restored stock", payment.getId());
         }
     }
 

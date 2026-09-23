@@ -25,11 +25,13 @@ public class CartController {
     }
 
     @PostMapping("/add-book")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isCartOwner(#request.cartId)")
     public ResponseEntity<ServerResponseDto> addBookToCart(@RequestBody AddToCartRequest request) {
         return ResponseEntity.ok(ServerResponseDto.success(cartService.addProductToCart(request.getCartId(), request.getStoreBookId(), request.getBookId(), request.getStoreId(), request.getQuantity())));
     }
 
     @DeleteMapping("/remove-book")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isCartOwner(#cartId)")
     public ResponseEntity<ServerResponseDto> deleteBookFromCart(@RequestParam Long cartId,
                                                             @RequestParam(required = false) Long storeBookId,
                                                             @RequestParam(required = false) Long bookId,
@@ -38,6 +40,7 @@ public class CartController {
     }
 
     @PostMapping("/decrease-book")
+    @PreAuthorize("@authorizationService.isAdmin() || @authorizationService.isCartOwner(#cartId)")
     public ResponseEntity<ServerResponseDto> decreaseBookFromCart(@RequestParam Long cartId,
                                                               @RequestParam(required = false) Long storeBookId,
                                                               @RequestParam(required = false) Long bookId,

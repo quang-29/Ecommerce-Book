@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -16,6 +17,8 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
     Page<OrderEntity> findAllOrderByUserId(Long userId, Pageable pageable);
 
     java.util.List<OrderEntity> findAllByUserId(Long userId);
+
+    Optional<OrderEntity> findByPaymentId(Long paymentId);
 
     @Query(value = "select count(id) as totalOrder from orders;",nativeQuery = true)
     int countOrder();
