@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 
 @Repository
@@ -60,4 +61,6 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     BookEntity findBookByIsbn(@Param("isbn") String isbn);
 
     BookEntity findAllByTitle(String title);
+
+    List<BookEntity> findAllById(Set<String> listBookIds);
 }

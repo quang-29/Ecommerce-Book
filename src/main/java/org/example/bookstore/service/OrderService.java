@@ -1,7 +1,10 @@
 package org.example.bookstore.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
+import lombok.Data;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.*;
 import org.example.bookstore.exception.ResourceNotFoundException;
@@ -17,6 +20,7 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -26,6 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -45,6 +50,7 @@ public class OrderService {
     private final StoreRepository storeRepository;
     private final StoreVoucherRepository storeVoucherRepository;
     private final VNPayService vnPayService;
+    private final ObjectMapper objectMapper;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderService.class);
 
@@ -54,7 +60,7 @@ public class OrderService {
 
     private final EmailService emailService;
 
-    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreRepository storeRepository, StoreVoucherRepository storeVoucherRepository, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, EmailService emailService) {
+    public OrderService(CartRepository cartRepository, UserRepository userRepository, ModelMapper modelMapper, PaymentRepository paymentRepository, OrderRepository orderRepository, CartService cartService, CartItemRepository cartItemRepository, OrderItemRepository orderItemRepository, BookRepository bookRepository, StoreBookRepository storeBookRepository, StoreRepository storeRepository, StoreVoucherRepository storeVoucherRepository, VNPayService vnPayService, NotificationRepository notificationRepository, NotificationService notificationService, ObjectMapper objectMapper, EmailService emailService) {
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
@@ -68,6 +74,7 @@ public class OrderService {
         this.storeRepository = storeRepository;
         this.storeVoucherRepository = storeVoucherRepository;
         this.vnPayService = vnPayService;
+        this.objectMapper = objectMapper;
         this.emailService = emailService;
     }
 
@@ -142,6 +149,8 @@ public class OrderService {
         orderRepository.save(orderEntity);
 
         List<OrderItem> orderItems = new ArrayList<>();
+        Map<Long, BookEntity> booksById = loadBooks(cartItemEntities.stream().map(CartItemEntity::getBookId).collect(Collectors.toList()));
+        Map<Long, StoreBookEntity> storeBooksById = loadStoreBooks(cartItemEntities.stream().map(CartItemEntity::getStoreBookId).collect(Collectors.toList()));
 
         for (CartItemEntity cartItemEntity : cartItemEntities) {
             OrderItem orderItem = new OrderItem();
@@ -150,8 +159,8 @@ public class OrderService {
             orderItem.setQuantity(cartItemEntity.getQuantity());
             orderItem.setProductPrice(cartItemEntity.getBookPrice());
             if (cartItemEntity.getStoreBookId() != null) {
-                BookEntity itemBook = bookRepository.findById(cartItemEntity.getBookId()).orElse(null);
-                StoreBookEntity itemStoreBook = storeBookRepository.findById(cartItemEntity.getStoreBookId()).orElse(null);
+                BookEntity itemBook = booksById.get(cartItemEntity.getBookId());
+                StoreBookEntity itemStoreBook = storeBooksById.get(cartItemEntity.getStoreBookId());
                 if (itemBook != null && itemStoreBook != null) {
                     orderItem.setDiscountPercent(itemStoreBook.getDiscountPercent(itemBook));
                     orderItem.setDiscountAmount(itemStoreBook.getDiscountAmount(itemBook));
@@ -182,7 +191,7 @@ public class OrderService {
     public ServerResponseDto getOrder(Long orderId) {
         OrderEntity orderEntity = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
-        OrderDTO orderDTO = mapToOrderDto(orderEntity);
+        OrderDTO orderDTO = mapToOrderDtos(List.of(orderEntity)).get(0);
         return ServerResponseDto.success(orderDTO);
     }
 
@@ -191,7 +200,8 @@ public class OrderService {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<OrderDTO> orderDTOPage = orderRepository.findAllOrderByUserId(userId, pageable).map(this::mapToOrderDto);
+        Page<OrderEntity> orderPage = orderRepository.findAllOrderByUserId(userId, pageable);
+        Page<OrderDTO> orderDTOPage = new PageImpl<>(mapToOrderDtos(orderPage.getContent()), pageable, orderPage.getTotalElements());
         return ServerResponseDto.success(orderDTOPage);
     }
 
@@ -203,20 +213,44 @@ public class OrderService {
         if (orderPage.getContent().isEmpty()) {
             throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
         }
-        return orderPage.getContent().stream()
-                .map(this::mapToOrderDto)
-                .collect(Collectors.toList());
+        return mapToOrderDtos(orderPage.getContent());
     }
 
-    private OrderDTO mapToOrderDto(OrderEntity order) {
-        OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
-        orderDTO.setOrderItem(orderItemRepository.findByOrderId(order.getId()).stream()
-                .map(this::mapToOrderItemDto).collect(Collectors.toList()));
-        if (order.getPaymentId() != null) {
-            paymentRepository.findById(order.getPaymentId().intValue())
-                    .ifPresent(payment -> orderDTO.setPayment(modelMapper.map(payment, org.example.bookstore.payload.payment.PaymentDTO.class)));
+    // Batch-loads everything the DTOs need (items, books, store_books, stores, payments) with one
+    // query per table, instead of several queries per order and per order item.
+    private List<OrderDTO> mapToOrderDtos(List<OrderEntity> orders) {
+        if (orders.isEmpty()) {
+            return new ArrayList<>();
         }
-        return orderDTO;
+        Map<Long, List<OrderItem>> itemsByOrderId = orderItemRepository
+                .findByOrderIdIn(orders.stream().map(OrderEntity::getId).collect(Collectors.toList()))
+                .stream().collect(Collectors.groupingBy(OrderItem::getOrderId));
+        List<OrderItem> allItems = itemsByOrderId.values().stream().flatMap(List::stream).collect(Collectors.toList());
+        Map<Long, BookEntity> booksById = loadBooks(allItems.stream().map(OrderItem::getBookId).collect(Collectors.toList()));
+        Map<Long, StoreBookEntity> storeBooksById = loadStoreBooks(allItems.stream().map(OrderItem::getStoreBookId).collect(Collectors.toList()));
+        Map<Long, StoreEntity> storesById = storeRepository
+                .findAllById(storeBooksById.values().stream().map(StoreBookEntity::getStoreId).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(StoreEntity::getId, s -> s));
+        Map<Long, Payment> paymentsById = paymentRepository
+                .findAllById(orders.stream().map(OrderEntity::getPaymentId).filter(Objects::nonNull)
+                        .map(Long::intValue).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(Payment::getId, p -> p));
+
+        List<OrderDTO> result = new ArrayList<>();
+        for (OrderEntity order : orders) {
+            OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
+            orderDTO.setOrderItem(itemsByOrderId.getOrDefault(order.getId(), List.of()).stream()
+                    .map(item -> mapToOrderItemDto(item, booksById, storeBooksById, storesById))
+                    .collect(Collectors.toList()));
+            if (order.getPaymentId() != null) {
+                Payment payment = paymentsById.get(order.getPaymentId());
+                if (payment != null) {
+                    orderDTO.setPayment(modelMapper.map(payment, org.example.bookstore.payload.payment.PaymentDTO.class));
+                }
+            }
+            result.add(orderDTO);
+        }
+        return result;
     }
 
     @Transactional
@@ -389,6 +423,120 @@ public class OrderService {
 
     }
 
+    @Data
+    class OrderRequest {
+        private List<OrderItemRequest> items;
+    }
+
+    @Data
+    class OrderItemRequest {
+        private Long bookId;
+        private Long storeId;
+        private Integer quantity;
+    }
+
+
+    @Transactional
+    public ServerResponseDto order(OrderRequest orderRequest, Long voucherId, HttpServletRequest request) throws Exception {
+        List<OrderItemRequest> items = orderRequest.getItems();
+        Set<Long> listBookIds = items.stream().map(OrderItemRequest::getBookId).collect(Collectors.toSet());
+        Set<Long> listStoreIds = items.stream().map(OrderItemRequest::getStoreId).collect(Collectors.toSet());
+
+        Map<Long, BookEntity> bookMap = bookRepository.findAllById(listBookIds).stream()
+                .collect(Collectors.toMap(BookEntity::getId, Function.identity()));
+        Map<Long, StoreBookEntity> storeMap = storeBookRepository.findAllById(listStoreIds).stream()
+                .collect(Collectors.toMap(StoreBookEntity::getId, Function.identity()));
+
+
+        if(listBookIds.isEmpty()){
+
+        }
+        OrderEntity orderEntity = new OrderEntity();
+
+        for(OrderItemRequest item: items){
+            BookEntity book = bookMap.get(item.getBookId());
+            StoreBookEntity store = storeMap.get(item.getStoreId());
+            if (book == null){
+                return ServerResponseDto.error("Book not found: " + item.getBookId());
+            }
+            if (store == null) {
+                return ServerResponseDto.error("Store not found: " + item.getStoreId());
+            }
+            if(item.quantity > book.getStock()) {
+                return ServerResponseDto.error("Book is out of stock");
+            }
+
+
+            OrderItem orderItem = new OrderItem();
+
+
+
+        }
+
+
+//        long shippingFee = FLAT_SHIPPING_FEE;
+//
+//        long voucherDiscount = calculateVoucherDiscount(storeBookEntity, placeSingleBookDTO.getVoucherCode());
+//        long totalPay = Math.max(0, storeBookEntity.getEffectivePrice(bookEntity) - voucherDiscount) + shippingFee;
+//
+//        PaymentType paymentType = placeSingleBookDTO.getPaymentType();
+//
+//        if(paymentType == null) {
+//            throw new ResourceNotFoundException(MessageException.PAYMENT_METHOD_NOT_FOUND);
+//        }
+
+//        Payment payment = new Payment();
+//        payment.setType(paymentType);
+//        payment.setCreatedAt(new Date());
+//        payment.setFeeShip(shippingFee);
+//        payment.setDiscountAmount(voucherDiscount);
+//        payment.setAmount(totalPay);
+//        if(payment.getType() != PaymentType.COD) {
+//            Calendar calendar = Calendar.getInstance();
+//            calendar.setTime(payment.getCreatedAt());
+//            calendar.add(Calendar.MINUTE, 2);
+//            payment.setExpireAt(calendar.getTime());
+//            payment.setStatus(PaymentStatus.PENDING);
+//            payment.setGateway(PaymentGateway.VNPAY);
+//        }
+//        else {
+//            payment.setStatus(PaymentStatus.COD);
+//            payment.setGateway(PaymentGateway.COD);
+//        }
+//
+//        reserveStock(storeBookEntity.getId(), 1);
+//
+//        paymentRepository.save(payment);
+//
+//        OrderEntity orderEntity = new OrderEntity();
+//        orderEntity.setCreateAt(new Date());
+//        orderEntity.setUserId(user.getId());
+//        orderEntity.setShippingAddress(shippingAddress);
+//        orderEntity.setPaymentId(payment.getId());
+//        orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
+//
+//        orderRepository.save(orderEntity);
+//
+//        OrderItem orderItem = new OrderItem();
+//        orderItem.setBookId(bookEntity.getId());
+//        orderItem.setStoreBookId(storeBookEntity.getId());
+//        orderItem.setQuantity(1);
+//        orderItem.setProductPrice(storeBookEntity.getEffectivePrice(bookEntity));
+//        orderItem.setDiscountPercent(storeBookEntity.getDiscountPercent(bookEntity));
+//        orderItem.setDiscountAmount(storeBookEntity.getDiscountAmount(bookEntity));
+//        orderItem.setOrderId(orderEntity.getId());
+//        orderItemRepository.save(orderItem);
+//
+//        PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
+//        placeOrderResponse.setOrderId(orderEntity.getId());
+//        if(paymentType == PaymentType.BANK_TRANSFER){
+//            String paymentUrl = vnPayService.createPaymentUrl(orderEntity, request);
+//            placeOrderResponse.setPaymentUrl(paymentUrl);
+//        }
+        return ServerResponseDto.success("");
+
+    }
+
     private Date estimatedDeliveryDate() {
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_MONTH, DEFAULT_DELIVERY_DAYS);
@@ -482,9 +630,10 @@ public class OrderService {
             return 0L;
         }
 
+        Map<Long, StoreBookEntity> storeBooksById = loadStoreBooks(cartItemEntities.stream().map(CartItemEntity::getStoreBookId).collect(Collectors.toList()));
         Map<Long, Long> subtotalByStoreId = cartItemEntities.stream()
                 .filter(item -> item.getStoreBookId() != null)
-                .collect(Collectors.groupingBy(item -> storeBookRepository.findById(item.getStoreBookId())
+                .collect(Collectors.groupingBy(item -> Optional.ofNullable(storeBooksById.get(item.getStoreBookId()))
                                 .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND)).getStoreId(),
                         Collectors.summingLong(item -> item.getBookPrice() * item.getQuantity())));
 
@@ -524,18 +673,32 @@ public class OrderService {
         return voucher.calculateDiscount(storeBookEntity.getEffectivePrice(bookEntity));
     }
 
-    private OrderItemDTO mapToOrderItemDto(OrderItem orderItem) {
+    private OrderItemDTO mapToOrderItemDto(OrderItem orderItem, Map<Long, BookEntity> booksById,
+                                           Map<Long, StoreBookEntity> storeBooksById, Map<Long, StoreEntity> storesById) {
         OrderItemDTO orderItemDTO = modelMapper.map(orderItem, OrderItemDTO.class);
-        bookRepository.findById(orderItem.getBookId())
-                .ifPresent(book -> orderItemDTO.setBook(modelMapper.map(book, org.example.bookstore.payload.BookDTO.class)));
-        if (orderItem.getStoreBookId() != null) {
-            storeBookRepository.findById(orderItem.getStoreBookId()).ifPresent(storeBookEntity ->
-                    storeRepository.findById(storeBookEntity.getStoreId()).ifPresent(store -> {
-                        orderItemDTO.setStoreId(store.getId());
-                        orderItemDTO.setStoreName(store.getName());
-                    }));
+        BookEntity book = booksById.get(orderItem.getBookId());
+        if (book != null) {
+            orderItemDTO.setBook(modelMapper.map(book, org.example.bookstore.payload.BookDTO.class));
+        }
+        StoreBookEntity storeBook = orderItem.getStoreBookId() == null ? null : storeBooksById.get(orderItem.getStoreBookId());
+        if (storeBook != null) {
+            StoreEntity store = storesById.get(storeBook.getStoreId());
+            if (store != null) {
+                orderItemDTO.setStoreId(store.getId());
+                orderItemDTO.setStoreName(store.getName());
+            }
         }
         return orderItemDTO;
+    }
+
+    private Map<Long, BookEntity> loadBooks(Collection<Long> ids) {
+        return bookRepository.findAllById(ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(BookEntity::getId, b -> b));
+    }
+
+    private Map<Long, StoreBookEntity> loadStoreBooks(Collection<Long> ids) {
+        return storeBookRepository.findAllById(ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(StoreBookEntity::getId, sb -> sb));
     }
 
     private String buildOrderConfirmationEmail(UserEntity user, OrderEntity orderEntity, List<OrderItem> orderItems, Payment payment) {
@@ -543,8 +706,10 @@ public class OrderService {
         body.append("Xin chào ").append(user.getFirstName()).append(",\n\n");
         body.append("Đơn hàng #").append(orderEntity.getId()).append(" của bạn đã được ghi nhận thành công.\n\n");
         body.append("Chi tiết đơn hàng:\n");
+        Map<Long, BookEntity> booksById = loadBooks(orderItems.stream().map(OrderItem::getBookId).collect(Collectors.toList()));
         for (OrderItem item : orderItems) {
-            String title = bookRepository.findById(item.getBookId()).map(BookEntity::getTitle).orElse("");
+            BookEntity book = booksById.get(item.getBookId());
+            String title = book == null ? "" : book.getTitle();
             body.append("- ").append(title)
                     .append(" x").append(item.getQuantity())
                     .append(": ").append(item.getProductPrice() * item.getQuantity()).append(" VND\n");

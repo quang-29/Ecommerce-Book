@@ -33,8 +33,11 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.lang.Long;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -134,10 +137,16 @@ public class CartService {
         if (cartEntities.isEmpty()) {
             throw new ResourceNotFoundException(MessageException.CART_NOT_FOUND);
         }
+        Map<Long, List<CartItemEntity>> itemsByCartId = cartItemRepository
+                .findByCartIdIn(cartEntities.stream().map(CartEntity::getId).collect(Collectors.toList()))
+                .stream()
+                .collect(Collectors.groupingBy(CartItemEntity::getCartId));
+        Map<Long, BookEntity> booksById = loadBooks(itemsByCartId.values().stream()
+                .flatMap(List::stream).map(CartItemEntity::getBookId).collect(Collectors.toList()));
         List<CartDTO> cartDTOs = cartEntities.stream().map(cart -> {
             CartDTO cartDTO = modelMapper.map(cart, CartDTO.class);
-            List<CartItemDTO> cartItemDTOS = cartItemRepository.findByCartId(cart.getId()).stream()
-                    .map(p -> modelMapper.map(bookRepository.findById(p.getBookId()).orElse(null), CartItemDTO.class))
+            List<CartItemDTO> cartItemDTOS = itemsByCartId.getOrDefault(cart.getId(), List.of()).stream()
+                    .map(p -> modelMapper.map(booksById.get(p.getBookId()), CartItemDTO.class))
                     .collect(Collectors.toList());
             cartDTO.setCartItem(cartItemDTOS);
             return cartDTO;
@@ -300,10 +309,14 @@ public class CartService {
             return cartDTO;
         }
 
+        Map<Long, BookEntity> booksById = loadBooks(cartItems.stream().map(CartItemEntity::getBookId).collect(Collectors.toList()));
+        Map<Long, StoreBookEntity> storeBooksById = loadStoreBooks(cartItems.stream().map(CartItemEntity::getStoreBookId).collect(Collectors.toList()));
+        Map<Long, StoreEntity> storesById = loadStores(storeBooksById.values().stream().map(StoreBookEntity::getStoreId).collect(Collectors.toList()));
+
         List<CartItemDTO> cartItemDTOS = new ArrayList<>();
         long totalPrice = 0;
         for (CartItemEntity cartItem : cartItems) {
-            CartItemDTO cartItemDTO = mapToCartItemDto(cartItem);
+            CartItemDTO cartItemDTO = mapToCartItemDto(cartItem, booksById, storeBooksById, storesById);
             totalPrice += cartItemDTO.getBookPrice() * cartItemDTO.getQuantity();
             cartItemDTOS.add(cartItemDTO);
         }
@@ -324,18 +337,38 @@ public class CartService {
             List<CartItemDTO> cartItemDTOS = new ArrayList<>();
             long totalPrice = 0;
 
+            Map<Long, Integer> quantityByStoreBookId = new LinkedHashMap<>();
             for (Map.Entry<String, Object> entry : cachedItems.entrySet()) {
-                Long storeBookId = Long.valueOf(entry.getKey());
-                Integer quantity = toInteger(entry.getValue());
-                StoreBookEntity storeBookEntity = storeBookRepository.findById(storeBookId)
-                        .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
-                BookEntity bookEntity = bookRepository.findById(storeBookEntity.getBookId())
-                        .orElseThrow(() -> new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND));
-                StoreEntity storeEntity = storeRepository.findById(storeBookEntity.getStoreId())
-                        .orElseThrow(() -> new ResourceNotFoundException(MessageException.STORE_NOT_FOUND));
+                quantityByStoreBookId.put(Long.valueOf(entry.getKey()), toInteger(entry.getValue()));
+            }
+            Map<Long, StoreBookEntity> storeBooksById = loadStoreBooks(quantityByStoreBookId.keySet());
+            Map<Long, BookEntity> booksById = loadBooks(storeBooksById.values().stream().map(StoreBookEntity::getBookId).collect(Collectors.toList()));
+            Map<Long, StoreEntity> storesById = loadStores(storeBooksById.values().stream().map(StoreBookEntity::getStoreId).collect(Collectors.toList()));
+            Map<Long, CartItemEntity> cartItemsByStoreBookId = new LinkedHashMap<>();
+            for (CartItemEntity item : cartItemRepository.findByCartId(cartId)) {
+                if (item.getStoreBookId() != null) {
+                    cartItemsByStoreBookId.putIfAbsent(item.getStoreBookId(), item);
+                }
+            }
+
+            for (Map.Entry<Long, Integer> entry : quantityByStoreBookId.entrySet()) {
+                Long storeBookId = entry.getKey();
+                Integer quantity = entry.getValue();
+                StoreBookEntity storeBookEntity = storeBooksById.get(storeBookId);
+                if (storeBookEntity == null) {
+                    throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
+                }
+                BookEntity bookEntity = booksById.get(storeBookEntity.getBookId());
+                if (bookEntity == null) {
+                    throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
+                }
+                StoreEntity storeEntity = storesById.get(storeBookEntity.getStoreId());
+                if (storeEntity == null) {
+                    throw new ResourceNotFoundException(MessageException.STORE_NOT_FOUND);
+                }
 
                 CartItemDTO cartItemDTO = new CartItemDTO();
-                CartItemEntity cartItemEntity = cartItemRepository.findByCartIdAndStoreBookId(cartId, storeBookId);
+                CartItemEntity cartItemEntity = cartItemsByStoreBookId.get(storeBookId);
                 cartItemDTO.setCartItemId(cartItemEntity == null ? null : cartItemEntity.getId());
                 cartItemDTO.setStoreId(storeEntity.getId());
                 cartItemDTO.setStoreName(storeEntity.getName());
@@ -377,17 +410,34 @@ public class CartService {
         }
     }
 
-    private CartItemDTO mapToCartItemDto(CartItemEntity cartItem) {
+    private Map<Long, BookEntity> loadBooks(Collection<Long> ids) {
+        return bookRepository.findAllById(ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(BookEntity::getId, b -> b));
+    }
+
+    private Map<Long, StoreBookEntity> loadStoreBooks(Collection<Long> ids) {
+        return storeBookRepository.findAllById(ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(StoreBookEntity::getId, sb -> sb));
+    }
+
+    private Map<Long, StoreEntity> loadStores(Collection<Long> ids) {
+        return storeRepository.findAllById(ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList()))
+                .stream().collect(Collectors.toMap(StoreEntity::getId, s -> s));
+    }
+
+    private CartItemDTO mapToCartItemDto(CartItemEntity cartItem, Map<Long, BookEntity> booksById,
+                                         Map<Long, StoreBookEntity> storeBooksById, Map<Long, StoreEntity> storesById) {
         CartItemDTO cartItemDTO = new CartItemDTO();
         cartItemDTO.setCartItemId(cartItem.getId());
-        BookEntity bookEntity = bookRepository.findById(cartItem.getBookId()).orElse(null);
+        BookEntity bookEntity = booksById.get(cartItem.getBookId());
         StoreBookEntity storeBookEntity = cartItem.getStoreBookId() == null ? null
-                : storeBookRepository.findById(cartItem.getStoreBookId()).orElse(null);
+                : storeBooksById.get(cartItem.getStoreBookId());
         if (storeBookEntity != null) {
-            storeRepository.findById(storeBookEntity.getStoreId()).ifPresent(store -> {
+            StoreEntity store = storesById.get(storeBookEntity.getStoreId());
+            if (store != null) {
                 cartItemDTO.setStoreId(store.getId());
                 cartItemDTO.setStoreName(store.getName());
-            });
+            }
         }
         cartItemDTO.setQuantity(cartItem.getQuantity());
         cartItemDTO.setBook(modelMapper.map(bookEntity, BookDTO.class));

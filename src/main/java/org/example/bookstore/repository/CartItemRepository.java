@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.Long;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -19,6 +20,8 @@ public interface CartItemRepository extends JpaRepository<CartItemEntity, Long> 
     CartItemEntity findByCartIdAndStoreBookId(Long cartId, Long storeBookId);
 
     List<CartItemEntity> findByCartId(Long cartId);
+
+    List<CartItemEntity> findByCartIdIn(Collection<Long> cartIds);
 
     @Transactional
     @Modifying
