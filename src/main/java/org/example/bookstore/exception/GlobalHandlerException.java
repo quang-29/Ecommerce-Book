@@ -1,21 +1,11 @@
 package org.example.bookstore.exception;
 
 import com.google.api.gax.rpc.NotFoundException;
-import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.config.dto.ServerResponseDto;
-import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.payload.response.DataResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @ControllerAdvice
 public class GlobalHandlerException {

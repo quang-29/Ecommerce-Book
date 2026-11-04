@@ -4,7 +4,6 @@ import com.cloudinary.Cloudinary;
 import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.payload.response.CloudinaryResponse;
-import org.example.bookstore.service.Interface.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,12 +12,12 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class CloudinaryServiceImpl implements CloudinaryService {
+public class CloudinaryServiceImpl{
 
-    @Autowired
-    private Cloudinary cloudinary;
 
-    @Override
+    private final Cloudinary cloudinary;
+
+
     public CloudinaryResponse uploadFile(final MultipartFile file, final String fileName) throws FileUploadException {
         try {
             final Map result = cloudinary.uploader()

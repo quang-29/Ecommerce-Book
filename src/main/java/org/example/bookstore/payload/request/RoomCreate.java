@@ -17,7 +17,7 @@ import java.util.UUID;
 public class RoomCreate {
 
     private String roomId;
-    private UUID userId;
+    private Long userId;
     private String userAvatar;
     private String userName;
     private Date createdAt = new Date();

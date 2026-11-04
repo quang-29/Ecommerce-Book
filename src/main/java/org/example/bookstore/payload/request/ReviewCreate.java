@@ -13,10 +13,10 @@ import java.util.UUID;
 public class ReviewCreate {
 
     @JsonProperty("user")
-    private UUID userId;
+    private Long userId;
 
     @JsonProperty("book")
-    private UUID bookId;
+    private Long bookId;
 
     private String content;
     private int rating;

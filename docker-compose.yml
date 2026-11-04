@@ -1,36 +1,63 @@
-version: '3.8'
-
 services:
   app:
     build: .
     container_name: bookstore-app
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/bookbook
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: minhquang
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/bookstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      SPRING_DATASOURCE_USERNAME: bookstore_user
+      SPRING_DATASOURCE_PASSWORD: bookstore_pass
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
       TZ: Asia/Ho_Chi_Minh
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - bookstore-network
 
   db:
     image: mysql:8.0
+    container_name: bookstore-db
     environment:
-      MYSQL_DATABASE: bookbook
+      MYSQL_DATABASE: bookstore
+      MYSQL_USER: bookstore_user
+      MYSQL_PASSWORD: bookstore_pass
       MYSQL_ROOT_PASSWORD: minhquang
+      TZ: Asia/Ho_Chi_Minh
     ports:
       - "3308:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./bookstore_data.sql:/docker-entrypoint-initdb.d/bookstore_data.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pminhquang"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - bookstore-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: bookstore-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - bookstore-network
 
 volumes:
   mysql-data: {}
+  redis-data: {}
 
 networks:
   bookstore-network:

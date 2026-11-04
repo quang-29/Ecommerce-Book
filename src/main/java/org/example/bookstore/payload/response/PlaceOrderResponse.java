@@ -9,7 +9,7 @@ import java.util.UUID;
 @Setter
 public class PlaceOrderResponse {
 
-    private UUID orderId;
+    private Long orderId;
 
     private String paymentUrl;
 

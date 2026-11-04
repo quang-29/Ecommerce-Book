@@ -2,7 +2,7 @@ package org.example.bookstore.service;
 
 import jakarta.persistence.criteria.Join;
 import org.example.bookstore.model.Notifications;
-import org.example.bookstore.model.User;
+import org.example.bookstore.model.UserEntity;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.UUID;
@@ -13,7 +13,7 @@ public class NotificationSpecification {
             if (userId == null || userId.isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            Join<Notifications, User> usersJoin = root.join("users");
+            Join<Notifications, UserEntity> usersJoin = root.join("users");
             return criteriaBuilder.equal(usersJoin.get("id"), UUID.fromString(userId));
         };
     }

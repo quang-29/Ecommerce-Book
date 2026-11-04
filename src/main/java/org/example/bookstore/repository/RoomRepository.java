@@ -7,7 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface RoomRepository extends JpaRepository<Room,Long> {
+public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT r FROM Room r WHERE r.roomId = :roomId")
     Room findByRoomId(@Param("roomId") String roomId);

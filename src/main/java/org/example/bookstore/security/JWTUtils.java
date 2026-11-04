@@ -8,11 +8,10 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.experimental.NonFinal;
 import org.example.bookstore.enums.ErrorCode;
 import org.example.bookstore.exception.AppException;
-import org.example.bookstore.model.User;
+import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.repository.InvalidTokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
@@ -43,13 +42,13 @@ public class JWTUtils {
         if (!(verified && expiryTime.after(new Date())))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        if (invalidTokenRepository.existsById(UUID.fromString(signedJWT.getJWTClaimsSet().getJWTID())))
+        if (invalidTokenRepository.existsById(Long.valueOf(signedJWT.getJWTClaimsSet().getJWTID())))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
         return signedJWT;
     }
 
-    public String generateToken(User user) {
+    public String generateToken(UserEntity user) {
 
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()

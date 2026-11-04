@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import org.apache.tomcat.util.http.fileupload.FileUploadException;
 import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.exception.AppException;
+import org.example.bookstore.enums.MessageException;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.experimental.UtilityClass;
 @UtilityClass
@@ -27,12 +27,12 @@ public class FileUploadUtil {
     public static void assertAllowed(MultipartFile file, String pattern) throws FileUploadException {
         final long size = file.getSize();
         if (size > MAX_FILE_SIZE) {
-            throw new AppException(ErrorCode.FILE_UPLOAD_SIZE);
+            throw new FileUploadException(MessageException.FILE_UPLOAD_SIZE.getMessage());
         }
 
         final String fileName = file.getOriginalFilename();
         if (!isAllowedExtension(fileName, pattern)) {
-            throw new AppException(ErrorCode.FILE_UPLOAD_SIZE);
+            throw new FileUploadException(MessageException.FILE_UPLOAD_SIZE.getMessage());
         }
     }
 

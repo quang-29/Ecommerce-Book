@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @Data
 public class UserShortenDTO {
-    private UUID userId;
+    private Long userId;
     private String username;
     private String phoneNumber;
     private String email;

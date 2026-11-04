@@ -50,6 +50,8 @@ public enum ErrorCode {
     INVALID_ADDRESS(735, "Address ID cannot be null.",HttpStatus.BAD_REQUEST),
     NOTIFICATION_NOT_FOUND(736, "Notification not found",HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(737, "Email address is invalid",HttpStatus.BAD_REQUEST),
+    VOUCHER_NOT_FOUND(738, "Voucher not found",HttpStatus.BAD_REQUEST),
+    VOUCHER_INVALID(739, "Voucher is invalid",HttpStatus.BAD_REQUEST),
 
     ;
 

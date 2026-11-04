@@ -1,14 +1,6 @@
 package org.example.bookstore.mapper;
 
-import org.example.bookstore.model.Role;
-import org.example.bookstore.model.User;
-import org.example.bookstore.payload.CartDTO;
-import org.example.bookstore.payload.UserDTO;
-import org.example.bookstore.repository.RoleRepository;
 import org.springframework.stereotype.Component;
-
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 public class UserMapper {

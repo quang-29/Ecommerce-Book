@@ -18,7 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 public class UserUpdate {
-    private UUID id;
+    private Long id;
     private String firstName;
     private String lastName;
     private String username;

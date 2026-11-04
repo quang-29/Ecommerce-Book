@@ -1,8 +1,9 @@
 package org.example.bookstore.configuration;
 
 
+import org.example.bookstore.enums.Roles;
 import org.example.bookstore.model.Role;
-import org.example.bookstore.model.User;
+import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.repository.BookRepository;
 import org.example.bookstore.repository.RoleRepository;
 import org.example.bookstore.repository.UserRepository;
@@ -13,11 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Configuration
 public class ApplicationInitConfig {
@@ -33,19 +31,19 @@ public class ApplicationInitConfig {
             Role userRole = roleRepository.findByRoleName("USER")
                     .orElseGet(() -> roleRepository.save(new Role(null, "USER")));
             if (userRepository.findByUsername("admin").isEmpty()) {
-                User admin = User.builder()
+                UserEntity admin = UserEntity.builder()
                         .username("admin")
                         .password(passwordEncoder.encode("admin"))
-                        .roles(new HashSet<>(Collections.singleton(adminRole)))
+                        .roles(Roles.ADMIN)
                         .build();
                 userRepository.save(admin);
                 log.info("Admin account created: username='admin', password='admin'. Please change it!");
             }
             if (userRepository.findByUsername("user").isEmpty()) {
-                User user = User.builder()
+                UserEntity user = UserEntity.builder()
                         .username("user")
                         .password(passwordEncoder.encode("user"))
-                        .roles(new HashSet<>(Collections.singleton(userRole)))
+                        .roles(Roles.USER)
                         .build();
                 userRepository.save(user);
                 log.info("User account created: username='user', password='user'.");

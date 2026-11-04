@@ -25,11 +25,11 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `author`
+-- Table structure for table `authorEntity`
 --
 
-CREATE TABLE `author` (
-  `id` binary(16) NOT NULL,
+CREATE TABLE `authorEntity` (
+  `id` BIGINT NOT NULL,
   `biography` varchar(255) DEFAULT NULL,
   `birth_date` datetime(6) DEFAULT NULL,
   `country` varchar(255) DEFAULT NULL,
@@ -40,10 +40,10 @@ CREATE TABLE `author` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `author`
+-- Dumping data for table `authorEntity`
 --
 
-INSERT INTO `author` (`id`, `biography`, `birth_date`, `country`, `email`, `image_path`, `author_name`, `website`) VALUES
+INSERT INTO `authorEntity` (`id`, `biography`, `birth_date`, `country`, `email`, `image_path`, `author_name`, `website`) VALUES
 (0x1a5bc9fe184811f09d2700155d851915, 'Stephen William Hawking là một nhà vật lý lý thuyết, nhà vũ trụ học, tác giả khoa học nổi tiếng người Anh. Ông là giám đốc nghiên cứu tại Trung tâm Vũ trụ học lý thuyết thuộc Đại học Cambridge.', '1942-01-08 00:00:00.000000', 'Anh', 'contact@hawking.org.uk', '/images/authors/stephen_hawking.jpg', 'Stephen Hawking', 'www.hawkingfoundation.org'),
 (0x1a5bdbd5184811f09d2700155d851915, 'Thomas Loren Friedman là một nhà báo và tác giả người Mỹ. Ông là ba lần người đoạt giải Pulitzer và hiện là nhà bình luận thường trực cho The New York Times.', '1953-07-20 00:00:00.000000', 'Mỹ', 'friedman@nytimes.com', '/images/authors/thomas_friedman.jpg', 'Thomas L. Friedman', 'www.thomaslfriedman.com'),
 (0x1a5bdc79184811f09d2700155d851915, 'Dale Breckenridge Carnegie là một nhà văn và nhà thuyết trình Mỹ và là người phát triển các khóa học về tự giáo dục, nghệ thuật bán hàng, huấn luyện đoàn thể, nói trước công chúng và các kỹ năng giao tiếp giữa mọi người.', '1888-11-24 00:00:00.000000', 'Mỹ', 'info@dalecarnegie.com', '/images/authors/dale_carnegie.jpg', 'Dale Carnegie', 'www.dalecarnegie.com'),
@@ -83,11 +83,11 @@ INSERT INTO `author` (`id`, `biography`, `birth_date`, `country`, `email`, `imag
 -- --------------------------------------------------------
 
 --
--- Table structure for table `book`
+-- Table structure for table `bookEntity`
 --
 
-CREATE TABLE `book` (
-  `id` binary(16) NOT NULL,
+CREATE TABLE `bookEntity` (
+  `id` BIGINT NOT NULL,
   `average_rating` double DEFAULT NULL,
   `book_description` text DEFAULT NULL,
   `image_path` varchar(255) DEFAULT NULL,
@@ -101,15 +101,15 @@ CREATE TABLE `book` (
   `sold` bigint(20) NOT NULL,
   `stock` bigint(20) DEFAULT NULL,
   `title` varchar(255) DEFAULT NULL,
-  `author_id` binary(16) DEFAULT NULL,
-  `category_id` binary(16) DEFAULT NULL
+  `author_id` BIGINT DEFAULT NULL,
+  `category_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `book`
+-- Dumping data for table `bookEntity`
 --
 
-INSERT INTO `book` (`id`, `average_rating`, `book_description`, `image_path`, `isbn`, `language`, `page`, `price`, `published_date`, `publisher`, `reprint`, `sold`, `stock`, `title`, `author_id`, `category_id`) VALUES
+INSERT INTO `bookEntity` (`id`, `average_rating`, `book_description`, `image_path`, `isbn`, `language`, `page`, `price`, `published_date`, `publisher`, `reprint`, `sold`, `stock`, `title`, `author_id`, `category_id`) VALUES
 (0x18818805b39b479dbfbe31b0ed5b7f2b, 5, 'Lấy bối cảnh giả tưởng vào năm 1952, khi một thiên thạch khổng lồ đâm xuống Trái Đất, tàn phá phần lớn Bờ Đông Hoa Kỳ và dẫn đến biến đổi khí hậu toàn cầu. Trước nguy cơ tuyệt chủng, loài người phải gấp rút phát triển chương trình không gian để di cư ra ngoài hành tinh. Cuốn tiểu thuyết kết hợp giữa khoa học viễn tưởng, chính trị, và tâm lý nhân vật, xoay quanh Elma York – một nữ phi công tài năng, người không chỉ chiến đấu cho sự sống còn của nhân loại mà còn chống lại định kiến giới tính để trở thành người phụ nữ đầu tiên bay vào vũ trụ.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1747068272/302800428-0_gaugev.jpg', '9780733426094', 'English', 432, 189000, '2018-07-03', 'Tor Books', 2, 2110, 66, 'The Calculating Stars', 0xe568a023c3934f609c0bd509fdbee660, 0x13e9528f184811f09d2700155d851915),
 (0x1f79b19b184811f09d2700155d851915, 4.5, '“Vũ Trụ Trong Vỏ Hạt Dẻ” là một tác phẩm được viết bởi Stephen Hawking với mục đích đưa những kiến thức phức tạp về vật lý thiên văn và lý thuyết vũ trụ vào tầm hiểu của người đọc phổ thông. Cuốn sách khám phá những khái niệm như thuyết siêu dây, không thời gian uốn cong, và vũ trụ song song, tất cả đều được diễn giải qua các minh họa trực quan và ngôn ngữ thân thiện. Đây là cuốn sách không chỉ mở rộng tầm hiểu biết về vũ trụ mà còn làm thay đổi cách chúng ta nhìn nhận về thời gian, không gian và chính bản thân mình.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744088783/sg-11134201-7rd4f-m76dvxyictf683_cprsqn.webp', '9788837092467', 'Tiếng Việt', 248, 120000, '2022-01-01', 'NXB Trẻ', 5, 17, 3, 'Vũ Trụ Trong Vỏ Hạt Dẻ', 0x1a5bc9fe184811f09d2700155d851915, 0x13e93799184811f09d2700155d851915),
 (0x1f79e2f9184811f09d2700155d851915, 4, '“A Brief History of Time” là kiệt tác nổi bật của Stephen Hawking, trình bày một cách đầy đủ và cô đọng nhất về nguồn gốc, cấu trúc và tương lai của vũ trụ. Từ Big Bang đến lỗ đen, từ thuyết tương đối đến thuyết lượng tử, cuốn sách là hành trình khám phá cách khoa học lý giải bản chất thực tại. Với lối viết dễ tiếp cận nhưng không làm mất đi chiều sâu tri thức, tác phẩm đã đưa hàng triệu người đọc trên thế giới đến gần hơn với những bí ẩn lớn nhất của vũ trụ.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744088852/vn-11134207-7r98o-lnhyg46hwmi559_resize_w900_nl_df6cht.webp', '9783161484100', 'English', 320, 130009, '2021-05-15', 'NXB Trẻ', 5, 31, 45, 'A Brief History of Time', 0x1a5bc9fe184811f09d2700155d851915, 0x13e93799184811f09d2700155d851915),
@@ -122,7 +122,7 @@ INSERT INTO `book` (`id`, `average_rating`, `book_description`, `image_path`, `i
 (0x1f79f89b184811f09d2700155d851915, 5, '“Số Đỏ” của Vũ Trọng Phụng là một tác phẩm trào phúng kinh điển, phản ánh sâu sắc sự lố lăng, nửa mùa và giả tạo của xã hội thượng lưu thành thị thời kỳ giao thời giữa phong kiến và hiện đại. Nhân vật Xuân Tóc Đỏ – một kẻ cơ hội và vô học, qua những tình huống dở khóc dở cười, trở thành người thành đạt nhờ vào sự ngớ ngẩn của xã hội xung quanh. Tác phẩm là màn biếm họa đầy châm biếm nhưng không kém phần trí tuệ.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1748874960/l_455072028_a2d5109ed55d6c144e79a216fa03981d_qxscgk.jpg', '9786045830975', 'Tiếng Việt', 250, 80000, '2022-01-20', 'NXB Văn học', 5, 19, 14, 'Số Đỏ', 0x1a5bdded184811f09d2700155d851915, 0x13e9525f184811f09d2700155d851915),
 (0x1f79f9b2184811f09d2700155d851915, 5, '“Dế Mèn Phiêu Lưu Ký” là một tác phẩm văn học thiếu nhi kinh điển của Tô Hoài, kể lại hành trình khám phá thế giới đầy màu sắc của chú dế Mèn. Trên đường đi, Dế Mèn gặp gỡ nhiều loài vật, chứng kiến những câu chuyện về tình bạn, lòng dũng cảm và cả sự hy sinh. Cuốn sách không chỉ hấp dẫn với trẻ em mà còn chứa đựng nhiều tầng lớp ý nghĩa sâu sắc về cuộc sống và sự trưởng thành.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744089197/sg-11134201-7rcf0-m6imjmu9pbzme2_resize_w900_nl_ionafw.webp', '9786045832463', 'Tiếng Việt', 185, 60000, '2022-06-01', 'NXB Kim Đồng', 5, 25, 33, 'Dế Mèn Phiêu Lưu Ký', 0x1a5bde22184811f09d2700155d851915, 0x13e95276184811f09d2700155d851915),
 (0x1f79faa3184811f09d2700155d851915, 4.8, '“Totto-chan: Cô Bé Bên Cửa Sổ” là câu chuyện có thật về tuổi thơ của nữ tác giả Tetsuko Kuroyanagi tại một ngôi trường đặc biệt mang tên Tomoe. Thầy hiệu trưởng Kobayashi với triết lý giáo dục tiên phong đã nuôi dưỡng tâm hồn và sự sáng tạo của học sinh thông qua tình yêu thương, sự lắng nghe và tôn trọng. Cuốn sách là minh chứng xúc động cho một nền giáo dục nhân văn và khai phóng.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744089376/tottochan_the_little_girl_at_t_1668619682_e8b5b74b_lkragh.jpg', '9786045834215', 'Tiếng Việt', 265, 85000, '2021-09-25', 'NXB Hội Nhà văn', 5, 19, 31, 'Totto-chan: Cô Bé Bên Cửa Sổ', 0x1a5bde5c184811f09d2700155d851915, 0x13e95276184811f09d2700155d851915),
-(0x1f79fb8d184811f09d2700155d851915, 4.6, 'Tuyển tập các câu chuyện cổ tích dân gian Việt Nam', '/images/books/coTichVietNam.jpg', '9786045831896', 'Tiếng Việt', 200, 50000, '2022-02-10', 'NXB Kim Đồng', 5, 25, 47, 'Những Câu Chuyện Cổ Tích Việt Nam', 0x1a5bde91184811f09d2700155d851915, 0x13e95276184811f09d2700155d851915),
+(0x1f79fb8d184811f09d2700155d851915, 4.6, 'Tuyển tập các câu chuyện cổ tích dân gian Việt Nam', '/images/bookEntities/coTichVietNam.jpg', '9786045831896', 'Tiếng Việt', 200, 50000, '2022-02-10', 'NXB Kim Đồng', 5, 25, 47, 'Những Câu Chuyện Cổ Tích Việt Nam', 0x1a5bde91184811f09d2700155d851915, 0x13e95276184811f09d2700155d851915),
 (0x1f79fc81184811f09d2700155d851915, 4.9, '“Harry Potter và Hòn Đá Phù Thủy” là tập đầu tiên trong loạt truyện nổi tiếng của J.K. Rowling, mở đầu cho hành trình kỳ ảo tại Trường Phù thủy Hogwarts. Cậu bé Harry – vốn sống khổ cực với gia đình Dursley – bất ngờ phát hiện mình là phù thủy, kết bạn với Ron và Hermione, và đối đầu với bí ẩn xoay quanh hòn đá phù thủy và kẻ thù không đội trời chung – Voldemort.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744089513/sg-11134201-7rd5c-m76dx519bhf6a9_owlq94.webp', '9786045831236', 'Tiếng Việt', 366, 150000, '2022-07-31', 'NXB Trẻ', 5, 20, 25, 'Harry Potter và Hòn Đá Phù Thủy', 0x1a5bdec2184811f09d2700155d851915, 0x13e9528f184811f09d2700155d851915),
 (0x1f79fd7e184811f09d2700155d851915, 4.8, '“The Lord of the Rings” là bộ sử thi giả tưởng vĩ đại của J.R.R. Tolkien, theo chân Frodo Baggins trong cuộc hành trình tiêu hủy chiếc nhẫn quyền năng để ngăn chặn thế lực bóng tối của Sauron. Với bối cảnh thế giới Trung Địa rộng lớn, tác phẩm là biểu tượng của lòng trung thành, sự hy sinh, và tinh thần anh hùng vượt thời gian.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744089566/OIP_fgz66b.jpg', '9786045832573', 'Tiếng Việt', 850, 200000, '2021-11-05', 'NXB Văn học', 5, 12, 23, 'The Lord of the Rings', 0x1a5bdef8184811f09d2700155d851915, 0x13e9528f184811f09d2700155d851915),
 (0x1f79fe76184811f09d2700155d851915, 4.7, '“Percy Jackson” là loạt tiểu thuyết phiêu lưu giả tưởng hấp dẫn dành cho lứa tuổi thiếu niên, xoay quanh cuộc đời của cậu bé Percy – một á thần con trai của Poseidon. Khi phát hiện ra thân thế thật của mình, Percy bước vào thế giới các vị thần Hy Lạp cổ đại, chiến đấu với quái vật và thực hiện những sứ mệnh nguy hiểm để bảo vệ cả nhân loại lẫn thế giới thần linh.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744089645/vn-11134201-7r98o-lx3vleu5x1i17c_resize_w900_nl_qaxnvi.webp', '9786045833748', 'Tiếng Việt', 420, 135000, '2022-05-20', 'NXB Hội Nhà văn', 5, 20, 22, 'Percy Jackson', 0x1a5bdf33184811f09d2700155d851915, 0x13e9528f184811f09d2700155d851915),
@@ -138,14 +138,14 @@ INSERT INTO `book` (`id`, `average_rating`, `book_description`, `image_path`, `i
 (0x1f7a084c184811f09d2700155d851915, 5, '“365 Món Ngon Mỗi Ngày” là cẩm nang ẩm thực thực tế cho những ai yêu thích nấu ăn và chăm sóc gia đình. Cuốn sách tổng hợp các công thức nấu ăn từ món truyền thống đến hiện đại, đơn giản, dễ làm và phù hợp với khẩu vị người Việt, giúp làm mới bữa cơm mỗi ngày.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744091270/img128_5_sx3poi.jpg', '9786045830135', 'Tiếng Việt', 380, 69000, '2022-01-05', 'NXB Phụ nữ', 4, 20, 0, '365 Món Ngon Mỗi Ngày', 0x1a5bed51184811f09d2700155d851915, 0x13e95384184811f09d2700155d851915),
 (0x1f7a0968184811f09d2700155d851915, 5, '“Ẩm Thực Việt Nam” đưa bạn đến hành trình khám phá những món ăn đặc sắc và truyền thống khắp ba miền đất nước. Mỗi món ăn đều mang trong mình hồn dân tộc và văn hóa vùng miền, được trình bày kèm hình ảnh và công thức rõ ràng, dễ thực hiện tại nhà.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1744349651/am-thuc-viet-nam-thuoc-top-ngon-nhat-the-gioi-104749_ou0hxx.jpg', '9786045832562', 'Tiếng Việt', 320, 70000, '2021-11-15', 'NXB Thế giới', 5, 16, 27, 'Ẩm Thực Việt Nam', 0x1a5bde91184811f09d2700155d851915, 0x13e95384184811f09d2700155d851915),
 (0x1f7a0a70184811f09d2700155d851915, 4.6, '“Nghệ Thuật Nấu Ăn” là một cuốn sách hướng dẫn toàn diện từ kỹ thuật cơ bản đến các món ăn cao cấp, dành cho những ai muốn nâng cao kỹ năng nấu nướng chuyên nghiệp. Nội dung được trình bày khoa học, trực quan và truyền cảm hứng cho người đọc về tình yêu với căn bếp.', 'https://simg.zalopay.com.vn/zlp-website/assets/sach_day_nau_an_ngon_Ve_Nha_An_Com_823f5ebc37.jpg', '9786045831246', 'Tiếng Việt', 420, 85000, '2022-04-25', 'NXB Phụ nữ', 5, 10, 18, 'Nghệ Thuật Nấu Ăn', 0x1a5bed73184811f09d2700155d851915, 0x13e95384184811f09d2700155d851915),
-(0x1f7a0b83184811f09d2700155d851915, 4.5, '“Sống Lâu Trăm Tuổi” là một cẩm nang thiết thực về sức khỏe, đưa ra những bí quyết đơn giản, dễ áp dụng trong cuộc sống hằng ngày để tăng cường sức đề kháng, duy trì năng lượng tích cực và kéo dài tuổi thọ. Cuốn sách kết hợp kiến thức khoa học với kinh nghiệm dân gian, phù hợp với mọi đối tượng độc giả.', '/images/books/songLauTramTuoi.jpg', '9786045830425', 'Tiếng Việt', 280, 78000, '2022-03-10', 'NXB Y học', 5, 12, 25, 'Sống Lâu Trăm Tuổi', 0x1a5bed92184811f09d2700155d851915, 0x13e9539a184811f09d2700155d851915),
-(0x1f7a0c87184811f09d2700155d851915, 4.6, '“Nhân Tố Enzyme” là tác phẩm nổi bật của bác sĩ Hiromi Shinya, giới thiệu quan điểm khoa học về việc sống khỏe mạnh thông qua việc ăn uống đúng cách, ưu tiên thực phẩm tự nhiên và cân bằng enzyme trong cơ thể. Cuốn sách làm thay đổi tư duy sức khỏe của hàng triệu người.', '/images/books/nhanToEnzyme.jpg', '9786045831853', 'Tiếng Việt', 350, 95000, '2021-07-25', 'NXB Thế giới', 5, 11, 16, 'Nhân Tố Enzyme', 0x1a5bed92184811f09d2700155d851915, 0x13e9539a184811f09d2700155d851915),
+(0x1f7a0b83184811f09d2700155d851915, 4.5, '“Sống Lâu Trăm Tuổi” là một cẩm nang thiết thực về sức khỏe, đưa ra những bí quyết đơn giản, dễ áp dụng trong cuộc sống hằng ngày để tăng cường sức đề kháng, duy trì năng lượng tích cực và kéo dài tuổi thọ. Cuốn sách kết hợp kiến thức khoa học với kinh nghiệm dân gian, phù hợp với mọi đối tượng độc giả.', '/images/bookEntities/songLauTramTuoi.jpg', '9786045830425', 'Tiếng Việt', 280, 78000, '2022-03-10', 'NXB Y học', 5, 12, 25, 'Sống Lâu Trăm Tuổi', 0x1a5bed92184811f09d2700155d851915, 0x13e9539a184811f09d2700155d851915),
+(0x1f7a0c87184811f09d2700155d851915, 4.6, '“Nhân Tố Enzyme” là tác phẩm nổi bật của bác sĩ Hiromi Shinya, giới thiệu quan điểm khoa học về việc sống khỏe mạnh thông qua việc ăn uống đúng cách, ưu tiên thực phẩm tự nhiên và cân bằng enzyme trong cơ thể. Cuốn sách làm thay đổi tư duy sức khỏe của hàng triệu người.', '/images/bookEntities/nhanToEnzyme.jpg', '9786045831853', 'Tiếng Việt', 350, 95000, '2021-07-25', 'NXB Thế giới', 5, 11, 16, 'Nhân Tố Enzyme', 0x1a5bed92184811f09d2700155d851915, 0x13e9539a184811f09d2700155d851915),
 (0x1f7a0dc3184811f09d2700155d851915, 4.4, '“Bí Quyết Sống Khỏe” là hướng dẫn thiết thực cho lối sống lành mạnh, bao gồm chế độ ăn uống, luyện tập thể chất và quản lý căng thẳng tinh thần. Cuốn sách cung cấp kiến thức cơ bản và lời khuyên dễ áp dụng để nâng cao sức khỏe và phòng tránh bệnh tật.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1748014797/Picture1_p588cn.png', '9786045830937', 'Tiếng Việt', 240, 72000, '2022-01-15', 'NXB Y học', 5, 12, 21, 'Bí Quyết Sống Khỏe', 0x1a5bde91184811f09d2700155d851915, 0x13e9539a184811f09d2700155d851915),
-(0x1f7a0e9f184811f09d2700155d851915, 4.7, '“Xách Ba Lô Lên Và Đi” là hành trình truyền cảm hứng khám phá thế giới của Huyền Chip, một cô gái trẻ dám từ bỏ công việc ổn định để thực hiện ước mơ du lịch khắp nơi. Cuốn sách thể hiện tinh thần tự do, vượt qua nỗi sợ và giới hạn bản thân, lan tỏa thông điệp sống trọn vẹn với đam mê.', '/images/books/xachBaLo.jpg', '9786045830241', 'Tiếng Việt', 368, 89000, '2022-06-10', 'NXB Hội Nhà văn', 5, 11, 19, 'Xách Ba Lô Lên Và Đi', 0x1a5bedb1184811f09d2700155d851915, 0x13e953ae184811f09d2700155d851915),
-(0x1f7a0f89184811f09d2700155d851915, 4.5, '“Tuổi Trẻ Trong Những Chuyến Đi” là tuyển tập những câu chuyện và trải nghiệm đáng nhớ của người trẻ Việt Nam trên các hành trình khám phá bản thân và thế giới xung quanh. Mỗi trang sách đều truyền tải thông điệp tích cực về sự dũng cảm, khát khao tự do và hành trình tìm kiếm ý nghĩa cuộc sống.', '/images/books/tuoiTreChuyenDi.jpg', '9786045831357', 'Tiếng Việt', 320, 75000, '2021-09-10', 'NXB Trẻ', 5, 18, 23, 'Tuổi Trẻ Trong Những Chuyến Đi', 0x1a5bedcf184811f09d2700155d851915, 0x13e953ae184811f09d2700155d851915),
+(0x1f7a0e9f184811f09d2700155d851915, 4.7, '“Xách Ba Lô Lên Và Đi” là hành trình truyền cảm hứng khám phá thế giới của Huyền Chip, một cô gái trẻ dám từ bỏ công việc ổn định để thực hiện ước mơ du lịch khắp nơi. Cuốn sách thể hiện tinh thần tự do, vượt qua nỗi sợ và giới hạn bản thân, lan tỏa thông điệp sống trọn vẹn với đam mê.', '/images/bookEntities/xachBaLo.jpg', '9786045830241', 'Tiếng Việt', 368, 89000, '2022-06-10', 'NXB Hội Nhà văn', 5, 11, 19, 'Xách Ba Lô Lên Và Đi', 0x1a5bedb1184811f09d2700155d851915, 0x13e953ae184811f09d2700155d851915),
+(0x1f7a0f89184811f09d2700155d851915, 4.5, '“Tuổi Trẻ Trong Những Chuyến Đi” là tuyển tập những câu chuyện và trải nghiệm đáng nhớ của người trẻ Việt Nam trên các hành trình khám phá bản thân và thế giới xung quanh. Mỗi trang sách đều truyền tải thông điệp tích cực về sự dũng cảm, khát khao tự do và hành trình tìm kiếm ý nghĩa cuộc sống.', '/images/bookEntities/tuoiTreChuyenDi.jpg', '9786045831357', 'Tiếng Việt', 320, 75000, '2021-09-10', 'NXB Trẻ', 5, 18, 23, 'Tuổi Trẻ Trong Những Chuyến Đi', 0x1a5bedcf184811f09d2700155d851915, 0x13e953ae184811f09d2700155d851915),
 (0x1f7a106b184811f09d2700155d851915, 4.6, '“Một Mình Ở Châu Âu” là câu chuyện du ký đặc sắc của tác giả trẻ người Việt, ghi lại những trải nghiệm chân thực và thú vị trên hành trình khám phá các quốc gia châu Âu. Cuốn sách không chỉ là nhật ký hành trình mà còn là hành trình trưởng thành, tự lập và sống hết mình với tuổi trẻ.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1748014841/10854-mot-minh-o-chau-au-1_ibtr0s.jpg', '9786045832981', 'Tiếng Việt', 300, 92000, '2022-04-15', 'NXB Hội Nhà văn', 5, 12, 11, 'Một Mình Ở Châu Âu', 0x1a5beded184811f09d2700155d851915, 0x13e953ae184811f09d2700155d851915),
 (0x1f7a118f184811f09d2700155d851915, 4.4, '“Giải Tích 1” là giáo trình toán học cơ bản dành cho sinh viên đại học, trình bày chi tiết về giới hạn, đạo hàm, tích phân và các ứng dụng. Với phương pháp giảng giải mạch lạc, ví dụ minh họa phong phú, sách giúp sinh viên dễ dàng tiếp cận và áp dụng trong học tập và nghiên cứu.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1748014956/OIP_u06b2j.jpg', '9786045830159', 'Tiếng Việt', 320, 68000, '2022-07-20', 'NXB Giáo dục', 5, 28, 47, 'Giải Tích 1', 0x1a5bee0b184811f09d2700155d851915, 0x13e953c1184811f09d2700155d851915),
-(0x1f7a1281184811f09d2700155d851915, 4.3, '“Đại Số Tuyến Tính” trình bày có hệ thống các khái niệm cơ bản của đại số tuyến tính như ma trận, định thức, không gian vector, ánh xạ tuyến tính và giá trị riêng. Đây là giáo trình cần thiết cho sinh viên các ngành khoa học tự nhiên và kỹ thuật.', '/images/books/daiSoTuyenTinh.jpg', '9786045831578', 'Tiếng Việt', 280, 72000, '2021-08-15', 'NXB Giáo dục', 5, 21, 39, 'Đại Số Tuyến Tính', 0x1a5bee29184811f09d2700155d851915, 0x13e953c1184811f09d2700155d851915),
+(0x1f7a1281184811f09d2700155d851915, 4.3, '“Đại Số Tuyến Tính” trình bày có hệ thống các khái niệm cơ bản của đại số tuyến tính như ma trận, định thức, không gian vector, ánh xạ tuyến tính và giá trị riêng. Đây là giáo trình cần thiết cho sinh viên các ngành khoa học tự nhiên và kỹ thuật.', '/images/bookEntities/daiSoTuyenTinh.jpg', '9786045831578', 'Tiếng Việt', 280, 72000, '2021-08-15', 'NXB Giáo dục', 5, 21, 39, 'Đại Số Tuyến Tính', 0x1a5bee29184811f09d2700155d851915, 0x13e953c1184811f09d2700155d851915),
 (0x1f7a1369184811f09d2700155d851915, 4.5, '“Cơ Sở Dữ Liệu” là giáo trình chuyên ngành dành cho sinh viên công nghệ thông tin, cung cấp kiến thức toàn diện từ mô hình quan hệ, SQL, thiết kế cơ sở dữ liệu đến quản trị và tối ưu hóa truy vấn. Cuốn sách giúp người học tiếp cận bài bản và thực tiễn với lĩnh vực lưu trữ và xử lý dữ liệu.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1748014974/OIP_dmptvi.jpg', '9786045832376', 'Tiếng Việt', 350, 75000, '2022-01-10', 'NXB Bách khoa Hà Nội', 5, 27, 40, 'Cơ Sở Dữ Liệu', 0x1a5bee49184811f09d2700155d851915, 0x13e953c1184811f09d2700155d851915),
 (0x2aeda0b31a6b4b19b100aa45b92a21c4, 0, '“Cây chuối non đi giày xanh” là một câu chuyện đầy cảm xúc về tuổi thơ tại vùng quê Việt Nam. Tác phẩm tái hiện những ký ức trong trẻo, những trò chơi ngây thơ và tình cảm gia đình, hàng xóm đong đầy yêu thương qua cái nhìn ngây ngô nhưng sâu sắc của trẻ nhỏ.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1748882122/OIP_duas8d.jpg', '9786041109347', 'Tiếng Việt', 250, 110000, '2010-07-15', 'NXB Trẻ', 3, 1, 29, 'Cây chuối non đi giày xanh', 0x54fb3e59202f40259ef1f769443fdab9, NULL),
 (0x3e55d1332dc446358e0a61ce46b12fed, 0, '“Đất rừng phương Nam” là tác phẩm văn học nổi tiếng của Đoàn Giỏi, kể về cuộc sống phiêu lưu của cậu bé An trong kháng chiến chống Pháp tại vùng rừng U Minh. Cuốn sách vừa mang tính sử thi vừa đậm chất nhân văn, phản ánh sinh động thiên nhiên và con người Nam Bộ.', 'https://res.cloudinary.com/dmotq51fh/image/upload/v1747066888/3a3015d2864b61086f44fba984fcad49_xtg7re.jpg', '9786041109345', 'Tiếng Việt', 230, 85000, '2020-04-04', 'Nhà xuất bản Kim Đồng', 5, 3200, 120, 'Đất rừng phương Nam', 0x29cb2c4f19734582850365b42223a609, 0x13e9525f184811f09d2700155d851915),
@@ -156,20 +156,20 @@ INSERT INTO `book` (`id`, `average_rating`, `book_description`, `image_path`, `i
 -- --------------------------------------------------------
 
 --
--- Table structure for table `carts`
+-- Table structure for table `cartEntities`
 --
 
-CREATE TABLE `carts` (
-  `id` binary(16) NOT NULL,
+CREATE TABLE `cartEntities` (
+  `id` BIGINT NOT NULL,
   `total_price` bigint(20) NOT NULL,
-  `user_id` binary(16) DEFAULT NULL
+  `user_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `carts`
+-- Dumping data for table `cartEntities`
 --
 
-INSERT INTO `carts` (`id`, `total_price`, `user_id`) VALUES
+INSERT INTO `cartEntities` (`id`, `total_price`, `user_id`) VALUES
 (0x018a4bbe524e4978bb4af3af4d61960c, 0, 0xf207b218a13b4bc8aff035b41a5f2f33),
 (0x224c38df53e144b9b13d791ca648017a, 189000, 0xab87e54994dd4c04883db71141eeedbc),
 (0x3185276c0ff74656bb89525b6e1a36b5, 567000, 0xb83d3d4a9e6f45ee9140ffa8dea3d8bd),
@@ -197,11 +197,12 @@ INSERT INTO `carts` (`id`, `total_price`, `user_id`) VALUES
 --
 
 CREATE TABLE `cart_items` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `book_price` bigint(20) NOT NULL,
   `quantity` int(11) DEFAULT NULL,
-  `book_id` binary(16) DEFAULT NULL,
-  `cart_id` binary(16) DEFAULT NULL
+  `book_id` BIGINT DEFAULT NULL,
+  `cart_id` BIGINT DEFAULT NULL,
+  `store_book_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -217,20 +218,20 @@ INSERT INTO `cart_items` (`id`, `book_price`, `quantity`, `book_id`, `cart_id`) 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `category`
+-- Table structure for table `categoryEntity`
 --
 
-CREATE TABLE `category` (
-  `id` binary(16) NOT NULL,
+CREATE TABLE `categoryEntity` (
+  `id` BIGINT NOT NULL,
   `category_img` varchar(255) DEFAULT NULL,
   `category_name` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `category`
+-- Dumping data for table `categoryEntity`
 --
 
-INSERT INTO `category` (`id`, `category_img`, `category_name`) VALUES
+INSERT INTO `categoryEntity` (`id`, `category_img`, `category_name`) VALUES
 (0x13e93799184811f09d2700155d851915, 'https://theme.hstatic.net/200000512563/1000871060/14/categorybanner2_1_img.jpg?v=124', 'Khoa học - Công nghệ'),
 (0x13e951fb184811f09d2700155d851915, 'https://theme.hstatic.net/200000512563/1000871060/14/categorybanner_4_img.jpg?v=124', 'Tâm lý - Kỹ năng sống'),
 (0x13e9525f184811f09d2700155d851915, 'https://theme.hstatic.net/200000512563/1000871060/14/categorybanner_5_img.jpg?v=124', 'Văn học'),
@@ -316,7 +317,7 @@ CREATE TABLE `message` (
 --
 
 CREATE TABLE `notifications` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `content` varchar(255) DEFAULT NULL,
   `created_at` datetime(6) DEFAULT NULL,
   `is_read` bit(1) DEFAULT NULL,
@@ -324,7 +325,7 @@ CREATE TABLE `notifications` (
   `redirect_url` varchar(255) DEFAULT NULL,
   `scope` enum('BUYER','SHOP') DEFAULT NULL,
   `thumbnail_url` varchar(255) DEFAULT NULL,
-  `receiver_id` binary(16) DEFAULT NULL
+  `receiver_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -458,11 +459,11 @@ INSERT INTO `notifications` (`id`, `content`, `created_at`, `is_read`, `item_cou
 --
 
 CREATE TABLE `orders` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `create_at` datetime(6) DEFAULT NULL,
   `payment_id` bigint(20) DEFAULT NULL,
-  `user_id` binary(16) DEFAULT NULL,
-  `address_id` binary(16) DEFAULT NULL,
+  `user_id` BIGINT DEFAULT NULL,
+  `address_id` BIGINT DEFAULT NULL,
   `estimated_delivery_date` datetime(6) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -599,11 +600,12 @@ INSERT INTO `orders` (`id`, `create_at`, `payment_id`, `user_id`, `address_id`, 
 --
 
 CREATE TABLE `order_items` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `product_price` bigint(20) NOT NULL,
   `quantity` int(11) DEFAULT NULL,
-  `book_id` binary(16) DEFAULT NULL,
-  `order_id` binary(16) DEFAULT NULL
+  `book_id` BIGINT DEFAULT NULL,
+  `order_id` BIGINT DEFAULT NULL,
+  `store_book_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1008,12 +1010,12 @@ INSERT INTO `provinces` (`id`, `name`) VALUES
 --
 
 CREATE TABLE `review` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `content` varchar(255) DEFAULT NULL,
   `created_at` date DEFAULT NULL,
   `rate_point` int(11) DEFAULT NULL,
-  `book_id` binary(16) DEFAULT NULL,
-  `user_id` binary(16) DEFAULT NULL
+  `book_id` BIGINT DEFAULT NULL,
+  `user_id` BIGINT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1035,6 +1037,74 @@ INSERT INTO `review` (`id`, `content`, `created_at`, `rate_point`, `book_id`, `u
 (0xc9eee4c571d54174af490ac2fac74b2d, 'Cuốn sách rất hay và ý nghĩa', '2025-05-28', 5, 0x1f7a0968184811f09d2700155d851915, 0xa180561dbf4349e080760c5c466136c0),
 (0xd8e39eba7db848d3962d61f28aa74c83, 'Cuốn sách rất hay và thú vị\n', '2025-05-28', 5, 0x1f79b19b184811f09d2700155d851915, 0xa180561dbf4349e080760c5c466136c0),
 (0xe9999487de214209ae6cad3421caae82, 'Cuốn sách cực kì bổ ích cho những bà mẹ nội trợ', '2025-05-28', 5, 0x1f7a084c184811f09d2700155d851915, 0xa180561dbf4349e080760c5c466136c0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `store`
+--
+
+CREATE TABLE `store` (
+  `id` BIGINT NOT NULL,
+  `code` binary(16) DEFAULT NULL,
+  `created_time` datetime DEFAULT NULL,
+  `updated_time` datetime DEFAULT NULL,
+  `created_by_user_id` BIGINT DEFAULT NULL,
+  `updated_by_user_id` BIGINT DEFAULT NULL,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `store_name` varchar(255) NOT NULL,
+  `phone_number` varchar(32) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `province_id` BIGINT DEFAULT NULL,
+  `district_id` BIGINT DEFAULT NULL,
+  `ward_id` varchar(64) DEFAULT NULL,
+  `address_detail` varchar(500) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `store`
+--
+
+INSERT INTO `store` (`id`, `store_name`, `address_detail`, `active`, `is_deleted`) VALUES
+(1, 'Default Store', '144 Chien Thang', 1, 0);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `store_book`
+--
+
+CREATE TABLE `store_book` (
+  `id` BIGINT NOT NULL,
+  `code` binary(16) DEFAULT NULL,
+  `created_time` datetime DEFAULT NULL,
+  `updated_time` datetime DEFAULT NULL,
+  `created_by_user_id` BIGINT DEFAULT NULL,
+  `updated_by_user_id` BIGINT DEFAULT NULL,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `store_id` BIGINT NOT NULL,
+  `book_id` BIGINT NOT NULL,
+  `stock` BIGINT NOT NULL DEFAULT 0,
+  `price` BIGINT DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `store_book`
+--
+
+INSERT INTO `store_book` (`id`, `store_id`, `book_id`, `stock`, `price`, `active`, `is_deleted`)
+SELECT ROW_NUMBER() OVER (ORDER BY `id`) AS `id`, 1, `id`, COALESCE(`stock`, 0), `price`, 1, 0
+FROM `bookEntity`;
+
+UPDATE `cart_items` ci
+JOIN `store_book` sb ON sb.`book_id` = ci.`book_id` AND sb.`store_id` = 1
+SET ci.`store_book_id` = sb.`id`;
+
+UPDATE `order_items` oi
+JOIN `store_book` sb ON sb.`book_id` = oi.`book_id` AND sb.`store_id` = 1
+SET oi.`store_book_id` = sb.`id`;
 
 -- --------------------------------------------------------
 
@@ -1065,7 +1135,7 @@ CREATE TABLE `room` (
   `id` bigint(20) NOT NULL,
   `chatroom_id` varchar(255) DEFAULT NULL,
   `created_at` datetime(6) DEFAULT NULL,
-  `user_id` binary(16) DEFAULT NULL,
+  `user_id` BIGINT DEFAULT NULL,
   `room_id` varchar(255) DEFAULT NULL,
   `user_avatar` varchar(255) DEFAULT NULL,
   `user_name` varchar(255) DEFAULT NULL
@@ -1088,7 +1158,7 @@ INSERT INTO `room` (`id`, `chatroom_id`, `created_at`, `user_id`, `room_id`, `us
 --
 
 CREATE TABLE `token_invalid` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `expires` datetime(6) DEFAULT NULL,
   `token` varchar(1024) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -1110,7 +1180,7 @@ INSERT INTO `token_invalid` (`id`, `expires`, `token`) VALUES
 --
 
 CREATE TABLE `user` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `avatar` varchar(255) DEFAULT NULL,
   `device_token` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
@@ -1155,8 +1225,8 @@ INSERT INTO `user` (`id`, `avatar`, `device_token`, `email`, `first_name`, `last
 --
 
 CREATE TABLE `users_liked_books` (
-  `user_id` binary(16) NOT NULL,
-  `book_id` binary(16) NOT NULL
+  `user_id` BIGINT NOT NULL,
+  `book_id` BIGINT NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -1194,7 +1264,7 @@ INSERT INTO `users_liked_books` (`user_id`, `book_id`) VALUES
 --
 
 CREATE TABLE `user_address` (
-  `id` binary(16) NOT NULL,
+  `id` BIGINT NOT NULL,
   `detail` varchar(255) DEFAULT NULL,
   `is_primary` bit(1) NOT NULL,
   `phone_number` varchar(255) DEFAULT NULL,
@@ -1252,7 +1322,7 @@ INSERT INTO `user_address` (`id`, `detail`, `is_primary`, `phone_number`, `recei
 --
 
 CREATE TABLE `user_role` (
-  `user_id` binary(16) NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `role_id` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -1328,23 +1398,23 @@ INSERT INTO `wards` (`id`, `district_id`, `name`) VALUES
 --
 
 --
--- Indexes for table `author`
+-- Indexes for table `authorEntity`
 --
-ALTER TABLE `author`
+ALTER TABLE `authorEntity`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `book`
+-- Indexes for table `bookEntity`
 --
-ALTER TABLE `book`
+ALTER TABLE `bookEntity`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FKklnrv3weler2ftkweewlky958` (`author_id`),
   ADD KEY `FKam9riv8y6rjwkua1gapdfew4j` (`category_id`);
 
 --
--- Indexes for table `carts`
+-- Indexes for table `cartEntities`
 --
-ALTER TABLE `carts`
+ALTER TABLE `cartEntities`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `UK64t7ox312pqal3p7fg9o503c2` (`user_id`);
 
@@ -1354,12 +1424,13 @@ ALTER TABLE `carts`
 ALTER TABLE `cart_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FKd5p1jgglnj3gl89odc95hurot` (`book_id`),
-  ADD KEY `FKpcttvuq4mxppo8sxggjtn5i2c` (`cart_id`);
+  ADD KEY `FKpcttvuq4mxppo8sxggjtn5i2c` (`cart_id`),
+  ADD KEY `fk_cart_items_store_book` (`store_book_id`);
 
 --
--- Indexes for table `category`
+-- Indexes for table `categoryEntity`
 --
-ALTER TABLE `category`
+ALTER TABLE `categoryEntity`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -1403,7 +1474,8 @@ ALTER TABLE `orders`
 ALTER TABLE `order_items`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FKqscqcme08spiyt2guyqdj72eh` (`book_id`),
-  ADD KEY `FKbioxgbv59vetrxe0ejfubep1w` (`order_id`);
+  ADD KEY `FKbioxgbv59vetrxe0ejfubep1w` (`order_id`),
+  ADD KEY `fk_order_items_store_book` (`store_book_id`);
 
 --
 -- Indexes for table `payment`
@@ -1424,6 +1496,23 @@ ALTER TABLE `review`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FK70yrt09r4r54tcgkrwbeqenbs` (`book_id`),
   ADD KEY `FKiyf57dy48lyiftdrf7y87rnxi` (`user_id`);
+
+--
+-- Indexes for table `store`
+--
+ALTER TABLE `store`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_store_province` (`province_id`),
+  ADD KEY `fk_store_district` (`district_id`),
+  ADD KEY `fk_store_ward` (`ward_id`);
+
+--
+-- Indexes for table `store_book`
+--
+ALTER TABLE `store_book`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_store_book_store_book` (`store_id`,`book_id`),
+  ADD KEY `fk_store_book_book` (`book_id`);
 
 --
 -- Indexes for table `roles`
@@ -1516,28 +1605,41 @@ ALTER TABLE `room`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
+-- AUTO_INCREMENT for table `store`
+--
+ALTER TABLE `store`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `store_book`
+--
+ALTER TABLE `store_book`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
 --
--- Constraints for table `book`
+-- Constraints for table `bookEntity`
 --
-ALTER TABLE `book`
-  ADD CONSTRAINT `FKam9riv8y6rjwkua1gapdfew4j` FOREIGN KEY (`category_id`) REFERENCES `category` (`id`),
-  ADD CONSTRAINT `FKklnrv3weler2ftkweewlky958` FOREIGN KEY (`author_id`) REFERENCES `author` (`id`);
+ALTER TABLE `bookEntity`
+  ADD CONSTRAINT `FKam9riv8y6rjwkua1gapdfew4j` FOREIGN KEY (`category_id`) REFERENCES `categoryEntity` (`id`),
+  ADD CONSTRAINT `FKklnrv3weler2ftkweewlky958` FOREIGN KEY (`author_id`) REFERENCES `authorEntity` (`id`);
 
 --
--- Constraints for table `carts`
+-- Constraints for table `cartEntities`
 --
-ALTER TABLE `carts`
+ALTER TABLE `cartEntities`
   ADD CONSTRAINT `FKpay9408fi1tlnkqv3fhetr6hy` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 
 --
 -- Constraints for table `cart_items`
 --
 ALTER TABLE `cart_items`
-  ADD CONSTRAINT `FKd5p1jgglnj3gl89odc95hurot` FOREIGN KEY (`book_id`) REFERENCES `book` (`id`),
-  ADD CONSTRAINT `FKpcttvuq4mxppo8sxggjtn5i2c` FOREIGN KEY (`cart_id`) REFERENCES `carts` (`id`);
+  ADD CONSTRAINT `FKd5p1jgglnj3gl89odc95hurot` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
+  ADD CONSTRAINT `FKpcttvuq4mxppo8sxggjtn5i2c` FOREIGN KEY (`cart_id`) REFERENCES `cartEntities` (`id`),
+  ADD CONSTRAINT `fk_cart_items_store_book` FOREIGN KEY (`store_book_id`) REFERENCES `store_book` (`id`);
 
 --
 -- Constraints for table `notifications`
@@ -1558,21 +1660,37 @@ ALTER TABLE `orders`
 --
 ALTER TABLE `order_items`
   ADD CONSTRAINT `FKbioxgbv59vetrxe0ejfubep1w` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`),
-  ADD CONSTRAINT `FKqscqcme08spiyt2guyqdj72eh` FOREIGN KEY (`book_id`) REFERENCES `book` (`id`);
+  ADD CONSTRAINT `FKqscqcme08spiyt2guyqdj72eh` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
+  ADD CONSTRAINT `fk_order_items_store_book` FOREIGN KEY (`store_book_id`) REFERENCES `store_book` (`id`);
 
 --
 -- Constraints for table `review`
 --
 ALTER TABLE `review`
-  ADD CONSTRAINT `FK70yrt09r4r54tcgkrwbeqenbs` FOREIGN KEY (`book_id`) REFERENCES `book` (`id`),
+  ADD CONSTRAINT `FK70yrt09r4r54tcgkrwbeqenbs` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
   ADD CONSTRAINT `FKiyf57dy48lyiftdrf7y87rnxi` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
+
+--
+-- Constraints for table `store`
+--
+ALTER TABLE `store`
+  ADD CONSTRAINT `fk_store_district` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`),
+  ADD CONSTRAINT `fk_store_province` FOREIGN KEY (`province_id`) REFERENCES `provinces` (`id`),
+  ADD CONSTRAINT `fk_store_ward` FOREIGN KEY (`ward_id`) REFERENCES `wards` (`id`);
+
+--
+-- Constraints for table `store_book`
+--
+ALTER TABLE `store_book`
+  ADD CONSTRAINT `fk_store_book_book` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`),
+  ADD CONSTRAINT `fk_store_book_store` FOREIGN KEY (`store_id`) REFERENCES `store` (`id`);
 
 --
 -- Constraints for table `users_liked_books`
 --
 ALTER TABLE `users_liked_books`
   ADD CONSTRAINT `FK7qe94kas6rfxa0l0crpa5atgk` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
-  ADD CONSTRAINT `FKaroyldps4n24gjg503kcx3qrx` FOREIGN KEY (`book_id`) REFERENCES `book` (`id`);
+  ADD CONSTRAINT `FKaroyldps4n24gjg503kcx3qrx` FOREIGN KEY (`book_id`) REFERENCES `bookEntity` (`id`);
 
 --
 -- Constraints for table `user_address`

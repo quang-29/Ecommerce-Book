@@ -1,16 +1,12 @@
 package org.example.bookstore.security;
 
-import jakarta.servlet.http.HttpServletResponse;
-import org.example.bookstore.enums.Role;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,31 +29,34 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private static final String[] PERMISSION_LIST = {
-            "/api/auth/**",
-            "/api/author/getAllAuthors",
-            "/api/author/getAuthorByName/{authorName}",
-            "/api/book/{id}",
-            "/api/book/getAllBooks",
-            "/api/book/getAllBookByAuthor/{authorName}",
-            "/api/book/getAllBooksByCategory/{category}",
-            "/api/category/getCategoryById/{id}",
-            "/api/category/getAllCategories",
-            "/api/cart/addBookToCart",
-            "/api/cart/deleteBookFromCar",
-            "/api/user/myInfo",
-            "/api/review/**",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/refresh-user",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/**",
+            "/api/v1/author/all",
+            "/api/v1/author/name/{authorName}",
+            "/api/v1/author/get-page",
+            "/api/v1/book/{id}",
+            "/api/v1/book/all",
+            "/api/v1/book/books/{authorName}",
+            "/api/v1/book/books/{category}",
+            "/api/v1/book/get-page",
+            "/api/v1/book/get-upsale-book",
+            "/api/v1/book/get-new-release-book",
+            "/api/v1/book/get-number-of-book",
+            "/api/v1/category/{id}",
+            "/api/v1/category/all",
+            "/api/v1/category/get-page",
             "/api/v1/cart/**",
-            "/api/payment/vn-pay/**",
-            "/api/payment/vn-pay-callback/**",
-            "/api/payment/**",
-            "/api/auth/**",
-            "/api/chat/**",
-            "/api/book/search/**",
+            "/api/v1/payment/**",
+            "/api/v1/chat/**",
+            "/api/v1/book/search/**",
             "/ws/***",
-            "/api/rooms/**",
-            "/api/messages/**",
-            "/api/book/searchByISBN/*",
-            "/api/order/getOrderByOrderId/*"
+            "/api/v1/rooms/**",
+            "/api/v1/messages/**",
+            "/api/v1/book/search-by-ISBN",
+            "/api/v1/order/{orderId}"
     };
 
     @Autowired
@@ -67,6 +66,9 @@ public class SecurityConfig {
     private final JwtTokenFilter jwtAuthenticationFilter;
     @Autowired
     private final UserDetailsService userDetailsService;
+
+    @Value("${app.cors.allowedOrigins}")
+    private String[] allowedOrigins;
 
     public SecurityConfig(JwtTokenFilter jwtAuthenticationFilter, UserDetailsService userDetailsService) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -98,7 +100,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PERMISSION_LIST).permitAll()
-                        .requestMatchers("/api/payment/check**").permitAll()
+                        .requestMatchers("/api/v1/payment/check**").permitAll()
                         .requestMatchers("/", "/index.html", "/ws/**", "/chat.html", "/app.js/**", "/main.css/**", "/static/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -109,23 +111,10 @@ public class SecurityConfig {
         return http.build();
     }
 
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration configuration = new CorsConfiguration();
-//        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080"));
-//        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-//        configuration.setAllowedHeaders(Arrays.asList("*"));
-//        configuration.setAllowCredentials(true);
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", configuration);
-//        return source;
-//    }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));

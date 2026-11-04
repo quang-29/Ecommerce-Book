@@ -1,13 +1,14 @@
 package org.example.bookstore.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,10 +16,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "review")
-public class Review {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class Review extends BaseEntity {
 
     @Column(name = "content")
     private String content;
@@ -29,11 +27,9 @@ public class Review {
     @Column(name = "created_at")
     private LocalDate createdAt;
 
-    @ManyToOne
-    @JoinColumn(name = "book_id")
-    private Book book;
+    @Column(name = "book_id")
+    private Long bookId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @Column(name = "user_id")
+    private Long userId;
 }

@@ -1,23 +1,22 @@
 package org.example.bookstore.controller;
 
+import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.payload.ReviewDTO;
 import org.example.bookstore.payload.request.ReviewCreate;
 import org.example.bookstore.payload.request.ReviewUpdate;
 import org.example.bookstore.payload.response.DataResponse;
-import org.example.bookstore.service.Interface.ReviewService;
+import org.example.bookstore.service.ReviewService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.Long;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/review")
+@RequestMapping("/api/v1/review")
 public class ReviewController {
 
     private final ReviewService reviewService;
@@ -27,83 +26,44 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    @PostMapping("/createReview")
-    public ResponseEntity<DataResponse> addReview(@RequestBody ReviewCreate reviewCreate) {
-
-        ReviewDTO reviewDTO = reviewService.addReview(reviewCreate);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.CREATED.value())
-                .status(HttpStatus.CREATED)
-                .timestamp(LocalDateTime.now())
-                .message("Review created!")
-                .data(reviewDTO).build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
+    @PostMapping("/save")
+    public ResponseEntity<ServerResponseDto> addReview(@RequestBody ReviewCreate reviewCreate) {
+        return ResponseEntity.ok(reviewService.addReview(reviewCreate));
     }
 
-    @PostMapping("/updateReview")
-    public ResponseEntity<DataResponse> updateReview(@RequestBody ReviewUpdate reviewUpdate) {
-        ReviewDTO reviewDTO1 = reviewService.updateReview(reviewUpdate);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review created!")
-                .data(reviewDTO1)
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @PostMapping("/update")
+    public ResponseEntity<ServerResponseDto> updateReview(@RequestBody ReviewUpdate reviewUpdate) {
+        return ResponseEntity.ok(reviewService.updateReview(reviewUpdate));
     }
 
-    @DeleteMapping("/deleteReview/{reviewId}")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<DataResponse> deleteReview(@PathVariable UUID reviewId) {
-        String result = reviewService.deleteReview(reviewId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review deleted!")
-                .data(result).build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @DeleteMapping("/delete/{reviewId}")
+    @PreAuthorize("@authorizationService.isAdmin()")
+    public ResponseEntity<ServerResponseDto> deleteReview(@PathVariable Long reviewId) {
+        return ResponseEntity.ok(reviewService.deleteReview(reviewId));
     }
 
-    @GetMapping("/getReviewByBookId/{bookId}")
-    public ResponseEntity<DataResponse> getReviewByBookId(@PathVariable UUID bookId) {
-        List<ReviewDTO> reviewDTOS = reviewService.getReviewsByBookId(bookId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review found!")
-                .data(reviewDTOS).build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @GetMapping("/bookId/{bookId}")
+    public ResponseEntity<ServerResponseDto> getReviewByBookId(@PathVariable Long bookId) {
+        return ResponseEntity.ok(reviewService.getReviewsByBookId(bookId));
     }
 
-    @GetMapping("/getReviewById/{reviewId}")
-    public ResponseEntity<DataResponse> getReviewById(@PathVariable UUID reviewId) {
-        ReviewDTO reviewDTO = reviewService.getReviewById(reviewId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review found!")
-                .data(reviewDTO)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @GetMapping("/{reviewId}")
+    public ResponseEntity<ServerResponseDto> getReviewById(@PathVariable Long reviewId) {
+        return ResponseEntity.ok(reviewService.getReviewById(reviewId));
     }
 
-    @GetMapping("/getReviewsByUserId/{userId}")
-    public ResponseEntity<DataResponse> getReviewsByUserId(@PathVariable UUID userId) {
-        List<ReviewDTO> reviewDTOS = reviewService.getReviewsByUserId(userId);
-        DataResponse dataResponse = DataResponse.builder()
-                .code(HttpStatus.OK.value())
-                .status(HttpStatus.OK)
-                .timestamp(LocalDateTime.now())
-                .message("Review found!")
-                .data(reviewDTOS)
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(dataResponse);
+    @GetMapping("/userId/{userId}")
+    public ResponseEntity<ServerResponseDto> getReviewsByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(reviewService.getReviewsByUserId(userId));
+    }
+
+    @GetMapping("/get-page")
+    public ResponseEntity<ServerResponseDto> getPageReview(@RequestParam String keywordSearch,
+                                                           @RequestParam(defaultValue = "1") int page,
+                                                           @RequestParam(defaultValue = "10") int size,
+                                                           @RequestParam(required = false) String sortField,
+                                                           @RequestParam(defaultValue = "desc") String sortDirection){
+        return ResponseEntity.ok(reviewService.getPageReview(keywordSearch, page, size, sortField, sortDirection));
     }
 
 }

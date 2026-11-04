@@ -23,7 +23,7 @@ public class Room {
     private long id;
     @Column(unique = true)
     private String roomId;
-    private UUID userId;
+    private Long userId;
     private String userAvatar;
     private String userName;
     private Date createdAt = new Date();

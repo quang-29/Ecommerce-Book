@@ -1,20 +1,15 @@
 package org.example.bookstore.security;
 
 import lombok.AllArgsConstructor;
-import org.example.bookstore.enums.ErrorCode;
-import org.example.bookstore.enums.Role;
-import org.example.bookstore.exception.AppException;
-import org.example.bookstore.model.User;
+import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.model.UserEntity;
 import org.example.bookstore.repository.UserRepository;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -24,21 +19,22 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        if (username == null || username.isBlank()) {
+            throw new UsernameNotFoundException(MessageException.USER_NOT_FOUND.getMessage());
+        }
 
-        User user = userRepository.findUserByUsername(username)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserEntity user = userRepository.findUserByUsername(username)
+                .or(() -> username.contains("@") ? userRepository.findUserByEmail(username) : Optional.empty())
+                .orElseThrow(() -> new UsernameNotFoundException(MessageException.USER_NOT_FOUND.getMessage()));
 
-        Set<GrantedAuthority> authorities = user.getRoles().stream()
-                .map(role -> new SimpleGrantedAuthority(
-                        role.getRoleName().startsWith("ROLE_") ? role.getRoleName() : "ROLE_" + role.getRoleName()
-                ))
-                .collect(Collectors.toSet());
-
-
-        return new org.springframework.security.core.userdetails.User(
-                username,
-                user.getPassword(),
-                authorities
-        );
+        return CustomUserDetails.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .name(user.getFirstName())
+                .phone(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .password(user.getPassword())
+                .avatarUrl(user.getAvatarUrl())
+                .build();
     }
 }

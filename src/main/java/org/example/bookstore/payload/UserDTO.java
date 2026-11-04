@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Data
 public class UserDTO {
 
-    private UUID userId;
+    private Long userId;
     private String username;
     private String firstName;
     private String lastName;
