@@ -58,6 +58,9 @@ app:
     expiration-in-ms: 900000
     refresh-expiration-in-ms: 604800000
 
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+
   cors:
     allowedOrigins: http://localhost:5173,http://localhost:5174
 

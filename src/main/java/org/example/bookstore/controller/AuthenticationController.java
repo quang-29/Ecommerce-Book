@@ -1,6 +1,7 @@
 package org.example.bookstore.controller;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,15 @@ public class AuthenticationController {
         String userAgent = request.getHeader("User-Agent");
         String ipAddress = getClientIpAddress(request);
         LoginResponse loginResponse = authenticationService.verifyOtp(verifyOtpRequest, userAgent, ipAddress);
+        setRefreshTokenCookie(response, loginResponse.getRefreshToken(), USER_REFRESH_TOKEN_COOKIE);
+        loginResponse.setRefreshToken(null);
+        return ResponseEntity.ok(loginResponse);
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<LoginResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest googleLoginRequest, HttpServletRequest request, HttpServletResponse response) {
+        LoginResponse loginResponse = authenticationService.loginWithGoogle(
+                googleLoginRequest.getIdToken(), request.getHeader("User-Agent"), getClientIpAddress(request));
         setRefreshTokenCookie(response, loginResponse.getRefreshToken(), USER_REFRESH_TOKEN_COOKIE);
         loginResponse.setRefreshToken(null);
         return ResponseEntity.ok(loginResponse);

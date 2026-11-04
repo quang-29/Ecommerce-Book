@@ -2,6 +2,7 @@ package org.example.bookstore.service;
 
 import org.apache.coyote.BadRequestException;
 import org.example.bookstore.enums.MessageException;
+import org.example.bookstore.enums.OauthProvider;
 import org.example.bookstore.enums.Roles;
 import org.example.bookstore.model.*;
 import org.example.bookstore.payload.request.ChangePasswordRequest;
@@ -12,7 +13,9 @@ import org.example.bookstore.payload.response.*;
 import org.example.bookstore.repository.UserRepository;
 import org.example.bookstore.security.CurrentUserDetails;
 import org.example.bookstore.security.CustomUserDetails;
+import org.example.bookstore.security.GoogleIdTokenVerifier;
 import org.example.bookstore.security.JwtTokenProvider;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.example.bookstore.service.cache.UserCacheService;
 import org.example.bookstore.service.dto.UserSaveDto;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.util.Objects;
 
 @Service
@@ -39,11 +43,12 @@ public class AuthenticationService {
     private final OtpService otpService;
     private final EmailService emailService;
     private final UserCacheService userCacheService;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Value("${app.otp.expiration-in-ms}")
     private long otpExpirationInMs;
 
-    public AuthenticationService(UserRepository userRepository, org.example.bookstore.repository.CartRepository cartRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService, UserCacheService userCacheService) {
+    public AuthenticationService(UserRepository userRepository, org.example.bookstore.repository.CartRepository cartRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, AuthenticationManager authenticationManager, RefreshTokenService refreshTokenService, OtpService otpService, EmailService emailService, UserCacheService userCacheService, GoogleIdTokenVerifier googleIdTokenVerifier) {
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
         this.passwordEncoder = passwordEncoder;
@@ -53,6 +58,7 @@ public class AuthenticationService {
         this.otpService = otpService;
         this.emailService = emailService;
         this.userCacheService = userCacheService;
+        this.googleIdTokenVerifier = googleIdTokenVerifier;
     }
 
     public LoginResponse login(LoginRequest loginRequest, String userAgent, String ipAddress) {
@@ -102,6 +108,90 @@ public class AuthenticationService {
                 .refreshToken(refreshToken)
                 .userDetails(userDetails)
                 .build();
+    }
+
+    public LoginResponse loginWithGoogle(String idToken, String userAgent, String ipAddress) {
+        Jwt jwt = googleIdTokenVerifier.verify(idToken);
+        String googleId = jwt.getSubject();
+        String email = jwt.getClaimAsString("email");
+        boolean emailVerified = Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified"));
+        if (googleId == null || email == null || !emailVerified) {
+            throw new RuntimeException(MessageException.UNAUTHENTICATED.getMessage());
+        }
+
+        UserEntity user = userRepository.findByOauthProviderAndOauthProviderId(OauthProvider.GOOGLE, googleId)
+                .orElseGet(() -> linkOrCreateGoogleUser(jwt, googleId, email));
+        if (user.isDeleted()) {
+            throw new RuntimeException(MessageException.UNAUTHENTICATED.getMessage());
+        }
+
+        CustomUserDetails userDetails = toUserDetails(user);
+        String accessToken = jwtTokenProvider.generateToken(userDetails);
+        String refreshToken = refreshTokenService.createRefreshToken(userDetails, userAgent, ipAddress);
+        return LoginResponse.builder()
+                .token(accessToken)
+                .refreshToken(refreshToken)
+                .userDetails(userDetails)
+                .build();
+    }
+
+    // Email đã có tài khoản thường (và Google xác nhận email) thì liên kết; chưa có thì tạo mới.
+    private UserEntity linkOrCreateGoogleUser(Jwt jwt, String googleId, String email) {
+        UserEntity existing = userRepository.findUserByEmail(email).orElse(null);
+        if (existing != null) {
+            if (existing.isDeleted()) {
+                throw new RuntimeException(MessageException.UNAUTHENTICATED.getMessage());
+            }
+            existing.setOauthProvider(OauthProvider.GOOGLE);
+            existing.setOauthProviderId(googleId);
+            if (existing.getAvatarUrl() == null) {
+                existing.setAvatarUrl(jwt.getClaimAsString("picture"));
+            }
+            return userRepository.save(existing);
+        }
+
+        UserEntity user = UserEntity.builder()
+                .email(email)
+                .username(generateUsername(googleId))
+                .firstName(sanitizeName(jwt.getClaimAsString("given_name")))
+                .lastName(sanitizeName(jwt.getClaimAsString("family_name")))
+                .avatarUrl(jwt.getClaimAsString("picture"))
+                .roles(Roles.USER)
+                .oauthProvider(OauthProvider.GOOGLE)
+                .oauthProviderId(googleId)
+                .build();
+        UserEntity saved = userRepository.save(user);
+        userCacheService.createUserCatche(UserSaveDto.builder()
+                .id(saved.getId().toString())
+                .email(saved.getEmail())
+                .userName(saved.getUsername())
+                .roles(saved.getRoles())
+                .build());
+        return saved;
+    }
+
+    // username phải 3-20 ký tự và là duy nhất
+    private String generateUsername(String googleId) {
+        String base = "g_" + googleId.substring(0, Math.min(googleId.length(), 14));
+        String username = base;
+        int i = 1;
+        while (userRepository.existsByUsernameAndIsDeletedFalse(username)) {
+            username = base + i++;
+        }
+        return username;
+    }
+
+    // firstName/lastName trong UserEntity chỉ cho phép chữ cái a-z, 3-20 ký tự: bỏ dấu, trả null nếu không hợp lệ
+    private String sanitizeName(String name) {
+        if (name == null) {
+            return null;
+        }
+        String cleaned = Normalizer.normalize(name.replace('đ', 'd').replace('Đ', 'D'), Normalizer.Form.NFD)
+                .replaceAll("[^a-zA-Z]", "");
+        if (cleaned.length() < 3) {
+            return null;
+        }
+        return cleaned.substring(0, Math.min(cleaned.length(), 20));
     }
 
     public void logout(String refreshToken) {

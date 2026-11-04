@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.bookstore.enums.OauthProvider;
 import org.example.bookstore.enums.Roles;
 
 @Getter
@@ -58,5 +59,12 @@ public class UserEntity extends BaseEntity {
 
     @Column(name = "device_token")
     private String deviceToken;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "oauth_provider")
+    private OauthProvider oauthProvider;
+
+    @Column(name = "oauth_provider_id")
+    private String oauthProviderId;
 
 }

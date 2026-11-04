@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="003-add-user-oauth-columns" author="quangnm">
+        <addColumn tableName="user">
+            <column name="oauth_provider" type="VARCHAR(50)"/>
+            <column name="oauth_provider_id" type="VARCHAR(255)"/>
+        </addColumn>
+        <createIndex tableName="user" indexName="idx_user_oauth" unique="true">
+            <column name="oauth_provider"/>
+            <column name="oauth_provider_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
