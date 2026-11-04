@@ -20,6 +20,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/store/store.xml
   - include:
+      file: db/changelog/store/store-owner.xml
+  - include:
       file: db/changelog/store/discount-voucher.xml
   - include:
       file: db/changelog/data/sample-data.xml

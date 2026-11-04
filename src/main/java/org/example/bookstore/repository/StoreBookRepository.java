@@ -3,6 +3,8 @@ package org.example.bookstore.repository;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
 import org.example.bookstore.model.StoreBookEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -24,6 +26,12 @@ public interface StoreBookRepository extends JpaRepository<StoreBookEntity, Long
     List<StoreBookEntity> findByStoreIdInAndBookIdIn(Collection<Long> storeIds, Collection<Long> bookIds);
 
     Optional<StoreBookEntity> findFirstByBookIdAndStockGreaterThanAndActiveTrueOrderByIdAsc(Long bookId, Long stock);
+
+    @Query(value = "select sb from StoreBookEntity sb, BookEntity b where sb.bookId = b.id and sb.storeId = :storeId "
+            + "and (:keyword is null or lower(b.title) like lower(concat('%', :keyword, '%')))",
+            countQuery = "select count(sb) from StoreBookEntity sb, BookEntity b where sb.bookId = b.id and sb.storeId = :storeId "
+                    + "and (:keyword is null or lower(b.title) like lower(concat('%', :keyword, '%')))")
+    Page<StoreBookEntity> searchByStore(@Param("storeId") Long storeId, @Param("keyword") String keyword, Pageable pageable);
 
     @Modifying
     @Query("UPDATE StoreBookEntity sb SET sb.stock = sb.stock - :quantity WHERE sb.id = :storeBookId AND sb.stock >= :quantity AND sb.active = true")

@@ -195,6 +195,35 @@ public class OrderService {
         return ServerResponseDto.success(orderDTO);
     }
 
+    // Đơn có chứa sách của cửa hàng; chỉ trả các dòng hàng thuộc cửa hàng đó
+    public ServerResponseDto getOrdersByStore(Long storeId, PaymentStatus status, int page, int size,
+                                              String sortBy, String sortDirection) {
+        String field = sortBy != null && Set.of("id", "createAt", "estimatedDeliveryDate").contains(sortBy) ? sortBy : "createAt";
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(direction, field));
+        Page<OrderEntity> orderPage = orderRepository.findByStore(storeId, status, pageable);
+        List<OrderDTO> dtos = mapToOrderDtos(orderPage.getContent());
+        dtos.forEach(dto -> keepOnlyStoreItems(dto, storeId));
+        return ServerResponseDto.success(new PageImpl<>(dtos, pageable, orderPage.getTotalElements()));
+    }
+
+    public ServerResponseDto getOrderOfStore(Long storeId, Long orderId) {
+        if (!orderRepository.existsByIdAndStore(orderId, storeId)) {
+            throw new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND);
+        }
+        OrderEntity orderEntity = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.ORDER_NOT_FOUND));
+        OrderDTO dto = mapToOrderDtos(List.of(orderEntity)).get(0);
+        keepOnlyStoreItems(dto, storeId);
+        return ServerResponseDto.success(dto);
+    }
+
+    private void keepOnlyStoreItems(OrderDTO dto, Long storeId) {
+        dto.setOrderItem(dto.getOrderItem().stream()
+                .filter(item -> Objects.equals(item.getStoreId(), storeId))
+                .collect(Collectors.toList()));
+    }
+
     public ServerResponseDto getOrdersByUserId(Long userId, int page, int size, String sortBy, String sortDirection) {
 
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);

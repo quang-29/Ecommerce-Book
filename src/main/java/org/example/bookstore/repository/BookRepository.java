@@ -62,5 +62,4 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
 
     BookEntity findAllByTitle(String title);
 
-    List<BookEntity> findAllById(Set<String> listBookIds);
 }

@@ -30,6 +30,9 @@ public class StoreEntity extends BaseEntity {
     @Column(name = "address_detail")
     private String addressDetail;
 
+    @Column(name = "owner_user_id")
+    private Long ownerUserId;
+
     @Column(name = "active", nullable = false)
     @JdbcTypeCode(SqlTypes.TINYINT)
     private boolean active = true;
