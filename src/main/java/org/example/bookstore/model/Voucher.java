@@ -17,7 +17,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class Voucher extends BaseEntity {
 
-    private String code;
+    private String voucherCode;
     private VoucherType voucherType;
     private Amount amount;
     private Long maxDiscount;

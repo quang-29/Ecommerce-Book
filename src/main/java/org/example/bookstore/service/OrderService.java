@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
-import lombok.Data;
 import org.example.bookstore.config.dto.ServerResponseDto;
 import org.example.bookstore.enums.*;
 import org.example.bookstore.exception.ResourceNotFoundException;
@@ -12,6 +11,7 @@ import org.example.bookstore.model.*;
 import org.example.bookstore.model.payment.Payment;
 import org.example.bookstore.payload.OrderDTO;
 import org.example.bookstore.payload.OrderItemDTO;
+import org.example.bookstore.payload.order.OrderRequest;
 import org.example.bookstore.payload.order.PlaceOrderDTO;
 import org.example.bookstore.payload.order.PlaceSingleBookDTO;
 import org.example.bookstore.payload.response.PlaceOrderResponse;
@@ -423,118 +423,147 @@ public class OrderService {
 
     }
 
-    @Data
-    class OrderRequest {
-        private List<OrderItemRequest> items;
-    }
-
-    @Data
-    class OrderItemRequest {
-        private Long bookId;
-        private Long storeId;
-        private Integer quantity;
-    }
-
-
     @Transactional
-    public ServerResponseDto order(OrderRequest orderRequest, Long voucherId, HttpServletRequest request) throws Exception {
-        List<OrderItemRequest> items = orderRequest.getItems();
-        Set<Long> listBookIds = items.stream().map(OrderItemRequest::getBookId).collect(Collectors.toSet());
-        Set<Long> listStoreIds = items.stream().map(OrderItemRequest::getStoreId).collect(Collectors.toSet());
-
-        Map<Long, BookEntity> bookMap = bookRepository.findAllById(listBookIds).stream()
-                .collect(Collectors.toMap(BookEntity::getId, Function.identity()));
-        Map<Long, StoreBookEntity> storeMap = storeBookRepository.findAllById(listStoreIds).stream()
-                .collect(Collectors.toMap(StoreBookEntity::getId, Function.identity()));
-
-
-        if(listBookIds.isEmpty()){
-
+    public ServerResponseDto order(OrderRequest orderRequest, HttpServletRequest request) throws Exception {
+        // 1. Validate input
+        String shippingAddress = orderRequest.getShippingAddress();
+        if (shippingAddress == null || shippingAddress.isBlank()) {
+            throw new ResourceNotFoundException(MessageException.INVALID_ADDRESS);
         }
+        PaymentType paymentType = orderRequest.getPaymentType();
+        if (paymentType == null) {
+            throw new ResourceNotFoundException(MessageException.PAYMENT_METHOD_NOT_FOUND);
+        }
+        List<OrderRequest.OrderItemRequest> items = orderRequest.getItems();
+        if (items == null || items.isEmpty()) {
+            throw new ResourceNotFoundException(MessageException.ORDER_ERROR);
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity user = userRepository.findUserByUsername(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException(MessageException.USER_NOT_FOUND));
+
+        // 2. Gộp các dòng trùng (storeId, bookId) và voucher theo cửa hàng
+        Map<Long, Map<Long, Integer>> quantityByStoreAndBook = new LinkedHashMap<>();
+        Map<Long, String> voucherCodes = new HashMap<>();
+        for (OrderRequest.OrderItemRequest item : items) {
+            Map<Long, Integer> books = quantityByStoreAndBook.computeIfAbsent(item.getStoreId(), k -> new LinkedHashMap<>());
+            for (OrderRequest.BookRequest book : item.getBooks()) {
+                books.merge(book.getBookId(), book.getQuantity(), Integer::sum);
+            }
+            if (item.getVoucherCode() != null && !item.getVoucherCode().isBlank()) {
+                voucherCodes.put(item.getStoreId(), item.getVoucherCode());
+            }
+        }
+
+        // 3. Load dữ liệu bằng batch query
+        Set<Long> storeIds = quantityByStoreAndBook.keySet();
+        Set<Long> bookIds = quantityByStoreAndBook.values().stream()
+                .flatMap(m -> m.keySet().stream()).collect(Collectors.toSet());
+        Map<Long, BookEntity> booksById = loadBooks(bookIds);
+        if (booksById.size() != bookIds.size()) {
+            throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
+        }
+        Map<String, StoreBookEntity> storeBooks = new HashMap<>();
+        for (StoreBookEntity sb : storeBookRepository.findByStoreIdInAndBookIdIn(storeIds, bookIds)) {
+            storeBooks.put(sb.getStoreId() + ":" + sb.getBookId(), sb);
+        }
+
+        // 4. Tính giá ở server, không tin dữ liệu client
+        List<OrderItem> orderItems = new ArrayList<>();
+        Map<Long, Long> subtotalByStoreId = new HashMap<>();
+        long allBookPrice = 0;
+        for (Map.Entry<Long, Map<Long, Integer>> storeEntry : quantityByStoreAndBook.entrySet()) {
+            Long storeId = storeEntry.getKey();
+            for (Map.Entry<Long, Integer> bookEntry : storeEntry.getValue().entrySet()) {
+                Long bookId = bookEntry.getKey();
+                int quantity = bookEntry.getValue();
+                StoreBookEntity storeBook = storeBooks.get(storeId + ":" + bookId);
+                if (storeBook == null || !storeBook.isActive()) {
+                    throw new ResourceNotFoundException(MessageException.BOOK_NOT_FOUND);
+                }
+                BookEntity book = booksById.get(bookId);
+                long price = storeBook.getEffectivePrice(book);
+
+                OrderItem orderItem = new OrderItem();
+                orderItem.setBookId(bookId);
+                orderItem.setStoreBookId(storeBook.getId());
+                orderItem.setQuantity(quantity);
+                orderItem.setProductPrice(price);
+                orderItem.setDiscountPercent(storeBook.getDiscountPercent(book));
+                orderItem.setDiscountAmount(storeBook.getDiscountAmount(book));
+                orderItems.add(orderItem);
+
+                subtotalByStoreId.merge(storeId, price * quantity, Long::sum);
+                allBookPrice += price * quantity;
+            }
+        }
+
+        long voucherDiscount = calculateVoucherDiscount(subtotalByStoreId, voucherCodes);
+        long shippingFee = FLAT_SHIPPING_FEE;
+        long totalPay = Math.max(0, allBookPrice - voucherDiscount) + shippingFee;
+
+        // 5. Trừ tồn kho nguyên tử (cập nhật có điều kiện stock >= quantity)
+        for (OrderItem orderItem : orderItems) {
+            reserveStock(orderItem.getStoreBookId(), orderItem.getQuantity());
+        }
+
+        // 6. Payment
+        Payment payment = new Payment();
+        payment.setType(paymentType);
+        payment.setCreatedAt(new Date());
+        payment.setFeeShip(shippingFee);
+        payment.setDiscountAmount(voucherDiscount);
+        payment.setAmount(totalPay);
+        if (paymentType != PaymentType.COD) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(payment.getCreatedAt());
+            calendar.add(Calendar.MINUTE, 2);
+            payment.setExpireAt(calendar.getTime());
+            payment.setStatus(PaymentStatus.PENDING);
+            payment.setGateway(PaymentGateway.VNPAY);
+        } else {
+            payment.setStatus(PaymentStatus.COD);
+            payment.setGateway(PaymentGateway.COD);
+        }
+        paymentRepository.save(payment);
+
+        // 7. Order + order items
         OrderEntity orderEntity = new OrderEntity();
+        orderEntity.setCreateAt(new Date());
+        orderEntity.setUserId(user.getId());
+        orderEntity.setShippingAddress(shippingAddress);
+        orderEntity.setPaymentId(payment.getId());
+        orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
+        orderRepository.save(orderEntity);
 
-        for(OrderItemRequest item: items){
-            BookEntity book = bookMap.get(item.getBookId());
-            StoreBookEntity store = storeMap.get(item.getStoreId());
-            if (book == null){
-                return ServerResponseDto.error("Book not found: " + item.getBookId());
-            }
-            if (store == null) {
-                return ServerResponseDto.error("Store not found: " + item.getStoreId());
-            }
-            if(item.quantity > book.getStock()) {
-                return ServerResponseDto.error("Book is out of stock");
-            }
+        orderItems.forEach(orderItem -> orderItem.setOrderId(orderEntity.getId()));
+        orderItemRepository.saveAll(orderItems);
 
-
-            OrderItem orderItem = new OrderItem();
-
-
-
+        PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
+        placeOrderResponse.setOrderId(orderEntity.getId());
+        if (paymentType == PaymentType.BANK_TRANSFER) {
+            placeOrderResponse.setPaymentUrl(vnPayService.createPaymentUrl(orderEntity, request));
         }
+        return ServerResponseDto.success(placeOrderResponse);
+    }
 
-
-//        long shippingFee = FLAT_SHIPPING_FEE;
-//
-//        long voucherDiscount = calculateVoucherDiscount(storeBookEntity, placeSingleBookDTO.getVoucherCode());
-//        long totalPay = Math.max(0, storeBookEntity.getEffectivePrice(bookEntity) - voucherDiscount) + shippingFee;
-//
-//        PaymentType paymentType = placeSingleBookDTO.getPaymentType();
-//
-//        if(paymentType == null) {
-//            throw new ResourceNotFoundException(MessageException.PAYMENT_METHOD_NOT_FOUND);
-//        }
-
-//        Payment payment = new Payment();
-//        payment.setType(paymentType);
-//        payment.setCreatedAt(new Date());
-//        payment.setFeeShip(shippingFee);
-//        payment.setDiscountAmount(voucherDiscount);
-//        payment.setAmount(totalPay);
-//        if(payment.getType() != PaymentType.COD) {
-//            Calendar calendar = Calendar.getInstance();
-//            calendar.setTime(payment.getCreatedAt());
-//            calendar.add(Calendar.MINUTE, 2);
-//            payment.setExpireAt(calendar.getTime());
-//            payment.setStatus(PaymentStatus.PENDING);
-//            payment.setGateway(PaymentGateway.VNPAY);
-//        }
-//        else {
-//            payment.setStatus(PaymentStatus.COD);
-//            payment.setGateway(PaymentGateway.COD);
-//        }
-//
-//        reserveStock(storeBookEntity.getId(), 1);
-//
-//        paymentRepository.save(payment);
-//
-//        OrderEntity orderEntity = new OrderEntity();
-//        orderEntity.setCreateAt(new Date());
-//        orderEntity.setUserId(user.getId());
-//        orderEntity.setShippingAddress(shippingAddress);
-//        orderEntity.setPaymentId(payment.getId());
-//        orderEntity.setEstimatedDeliveryDate(estimatedDeliveryDate());
-//
-//        orderRepository.save(orderEntity);
-//
-//        OrderItem orderItem = new OrderItem();
-//        orderItem.setBookId(bookEntity.getId());
-//        orderItem.setStoreBookId(storeBookEntity.getId());
-//        orderItem.setQuantity(1);
-//        orderItem.setProductPrice(storeBookEntity.getEffectivePrice(bookEntity));
-//        orderItem.setDiscountPercent(storeBookEntity.getDiscountPercent(bookEntity));
-//        orderItem.setDiscountAmount(storeBookEntity.getDiscountAmount(bookEntity));
-//        orderItem.setOrderId(orderEntity.getId());
-//        orderItemRepository.save(orderItem);
-//
-//        PlaceOrderResponse placeOrderResponse = new PlaceOrderResponse();
-//        placeOrderResponse.setOrderId(orderEntity.getId());
-//        if(paymentType == PaymentType.BANK_TRANSFER){
-//            String paymentUrl = vnPayService.createPaymentUrl(orderEntity, request);
-//            placeOrderResponse.setPaymentUrl(paymentUrl);
-//        }
-        return ServerResponseDto.success("");
-
+    private long calculateVoucherDiscount(Map<Long, Long> subtotalByStoreId, Map<Long, String> voucherCodes) {
+        long discount = 0L;
+        for (Map.Entry<Long, String> entry : voucherCodes.entrySet()) {
+            long storeSubtotal = subtotalByStoreId.getOrDefault(entry.getKey(), 0L);
+            if (storeSubtotal <= 0) {
+                throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
+            }
+            StoreVoucherEntity voucher = storeVoucherRepository
+                    .findByStoreIdAndVoucherCodeIgnoreCase(entry.getKey(), entry.getValue().trim())
+                    .orElseThrow(() -> new ResourceNotFoundException(MessageException.VOUCHER_NOT_FOUND));
+            if (!voucher.isUsableNow()) {
+                throw new ResourceNotFoundException(MessageException.VOUCHER_INVALID);
+            }
+            discount += voucher.calculateDiscount(storeSubtotal);
+        }
+        return discount;
     }
 
     private Date estimatedDeliveryDate() {
